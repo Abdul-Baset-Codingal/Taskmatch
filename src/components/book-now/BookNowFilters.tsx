@@ -22,10 +22,10 @@ const additionalOptions = [
 ];
 const BookNowFilters = () => {
   const [price, setPrice] = useState(25); // Initial value
-  const [selectedRating, setSelectedRating] = useState(null);
+  const [selectedRating, setSelectedRating] = useState<number | null>(null);
 
   const ratings = [3, 4, 5];
-  const [selectedOption, setSelectedOption] = useState(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [customDate, setCustomDate] = useState("");
 
   const [selectedTime, setSelectedTime] = useState("Anytime");
@@ -91,7 +91,7 @@ const BookNowFilters = () => {
               />
               <div className="flex text-[#8560F1]">
                 {Array(rating)
-                  .fill()
+                  .fill(null) // Provide a value, e.g., null
                   .map((_, i) => (
                     <FaStar key={i} />
                   ))}

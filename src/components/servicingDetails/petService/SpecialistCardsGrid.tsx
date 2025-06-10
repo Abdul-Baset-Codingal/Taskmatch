@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React from "react";
 import Image from "next/image";
@@ -6,7 +7,27 @@ import client1 from "../../../../public/Images/clientImage1.jpg";
 import client2 from "../../../../public/Images/clientImage2.jpg";
 import client3 from "../../../../public/Images/clientImage3.jpg";
 
-const specialists = [
+type Specialist = {
+  name: string;
+  role: string;
+  reviews: number;
+  location: string;
+  experience: number;
+  quote: string;
+  specialties: string[];
+  testimonial: string;
+  reviewer: string;
+  price: number;
+  availability: string;
+  responseTime: string;
+  image: any;
+  accentTextClass: string;
+  accentBgClass: string;
+  accentBg2class: string;
+  accentBorderClass: string;
+};
+
+const specialists: Specialist[] = [
   {
     name: "Sophia L.",
     role: "Cat Specialist",
@@ -56,14 +77,11 @@ const specialists = [
   {
     name: "Emily R.",
     role: "Cat Specialist",
-    reviews: 48,
     location: "Toronto, ON",
     experience: 5,
-    quote:
-      "Certified cat specialist with 5 years of experience. I ensure every cat feels safe and loved in my care.",
+    quote: "Certified cat specialist with 5 years of experience. I ensure every cat feels safe and loved in my care.",
     specialties: ["🐱 Playtime", "🐾 Grooming", "🏠 Home Visits"],
-    testimonial:
-      "Emily is amazing! My cats love her and she's so attentive to their needs.",
+    testimonial: "Emily is amazing! My cats love her and she's so attentive to their needs.",
     reviewer: "Alex P.",
     price: 28,
     availability: "Weekends",
@@ -73,10 +91,11 @@ const specialists = [
     accentBgClass: "bg-[#29B584]",
     accentBg2class: "bg-[#F0F9F7]",
     accentBorderClass: "border-[#29B584]",
+    reviews: 0
   },
 ];
 
-const SpecialistCard = ({ specialist }) => {
+const SpecialistCard = ({ specialist }: { specialist: Specialist }) => {
   const {
     name,
     role,
