@@ -58,10 +58,12 @@ const Navbar = () => {
             </button>
           </li>
           <li>
-            <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-              About
-              <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
-            </button>
+            <Link href={'/dashboard/tasker'}>
+              <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
+                Dashboard
+                <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
+              </button>
+            </Link>
           </li>
           <li>
             <select className="bg-[#252531] text-white font-semibold px-2 xs:px-3 sm:px-3 lg:px-2 py-1.5 xs:py-2 sm:py-2 lg:py-1 rounded-md outline-none w-full xs:w-auto text-base xs:text-lg sm:text-lg lg:text-base">
