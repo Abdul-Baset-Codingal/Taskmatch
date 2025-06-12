@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import BannerCard from "./BannerCard";
+import Link from "next/link";
 
 const Banner = () => {
   const [clipPath, setClipPath] = useState(
@@ -71,11 +72,14 @@ const Banner = () => {
               <p className="text-white font-bold mr-16">Choose an option:</p>
             </div>
             <div className="max-w-md mt-4">
-              <button className="text-white w-full font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3  rounded-4xl  hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                Post a Pet Care Task
-              </button>
+              ,
+              <Link href={'/post-a-task'}>
+                <button className="text-white w-full font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3  rounded-4xl  hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
+                  Post a Task
+                </button>
+              </Link>
               <button className="text-white w-full mt-5  bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-6 py-3 font-bold rounded-4xl  hover:shadow-lg hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                Book Pet Care Services
+                Book Now
               </button>
             </div>
             <div className="flex justify-center mt-2">
