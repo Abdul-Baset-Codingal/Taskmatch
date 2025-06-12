@@ -1,3 +1,5 @@
+"use client";
+
 import Navbar from "@/shared/Navbar";
 import React from "react";
 import client1 from "../../../public/Images/clientImage1.jpg";
@@ -27,28 +29,31 @@ const cards = [
     detail: "Heading north on King St",
   },
 ];
+
 const page = () => {
   return (
     <div>
-      <div>
-        <Navbar />
-      </div>
-      <div className="flex justify-center">
-        <div className="max-w-5xl w-full bg-[#10B0A9] p-5 flex justify-between rounded-3xl">
-          <button className="text-white font-bold px-5 py-2 border rounded-3xl flex items-center gap-2">
+      <Navbar />
+
+      {/* Status Header */}
+      <div className="flex justify-center mt-6 px-4">
+        <div className="w-full max-w-5xl bg-[#10B0A9] p-5 flex flex-col lg:flex-row justify-between items-center gap-4 rounded-3xl">
+          <button className="text-white font-bold px-5 py-2 border rounded-3xl flex items-center gap-2 text-sm text-center">
             <span className="w-3 h-3 rounded-full bg-white"></span> Tasker is en
             route to your location
           </button>
-          <button className="text-white font-semibold py-2 px-4 shadow-2xl rounded-3xl bg-white/10 flex items-center gap-2">
+          <button className="text-white font-semibold py-2 px-4 shadow-2xl rounded-3xl bg-white/10 flex items-center gap-2 text-sm">
             <FiRefreshCcw className="text-white text-base" />
             Refresh Status
           </button>
         </div>
       </div>
-      <div className="flex justify-center mt-10 ">
-        <div className="max-w-5xl py-12 px-8 shadow-2xl w-full ">
-          <div className="flex gap-5 items-center">
-            {/* Image Section */}
+
+      {/* Client Info */}
+      <div className="flex justify-center mt-10 px-4">
+        <div className="w-full max-w-5xl py-8 px-6 shadow-2xl rounded-xl bg-white">
+          <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+            {/* Image */}
             <div className="w-[100px] h-[100px] relative rounded-full overflow-hidden">
               <Image
                 src={client1}
@@ -58,20 +63,19 @@ const page = () => {
               />
             </div>
 
-            {/* Text Info Section */}
-            <div>
-              <h3 className="text-3xl font-bold text-gray-800">John D.</h3>
-              <p className="text-[#FF7000]  mt-3">★★★★★ (48 reviews)</p>
-              <p className="mt-3 text-gray-500">
+            {/* Text Info */}
+            <div className="text-center md:text-left">
+              <h3 className="text-2xl font-bold text-gray-800">John D.</h3>
+              <p className="text-[#FF7000] mt-2">★★★★★ (48 reviews)</p>
+              <p className="mt-2 text-gray-500">
                 Specializes in: Plumbing, Home Repairs, Electrical
               </p>
-              <div className="flex items-center gap-3 mt-3">
-                <button className="bg-[#E0E7FF] py-2 px-5 mt-3 text-blue-500 rounded-2xl font-semibold flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row justify-center md:justify-start gap-3 mt-4">
+                <button className="bg-[#E0E7FF] py-2 px-4 text-blue-500 rounded-2xl font-semibold flex items-center justify-center gap-2 text-sm">
                   <FiMessageCircle className="text-blue-500 text-lg" />
                   Message
                 </button>
-
-                <button className="bg-[#FEF3C7] py-2 px-5 mt-3 text-yellow-500 rounded-2xl font-semibold flex items-center gap-2">
+                <button className="bg-[#FEF3C7] py-2 px-4 text-yellow-500 rounded-2xl font-semibold flex items-center justify-center gap-2 text-sm">
                   <FiPhoneCall className="text-yellow-500 text-lg" />
                   Call
                 </button>
@@ -80,29 +84,34 @@ const page = () => {
           </div>
         </div>
       </div>
-      <div className="flex justify-center mt-10">
-        <div className="flex items-center max-w-5xl w-full gap-8 shadow-2xl p-5">
-          {/* location */}
-          <div className="w-1/2"></div>
-          {/* info */}
-          <div className="w-1/2">
-            <div className="grid grid-cols-1 gap-6 mt-10">
+
+      {/* Task Info Section */}
+      <div className="flex justify-center mt-10 px-4">
+        <div className="w-full max-w-5xl shadow-2xl p-6 rounded-xl bg-white flex flex-col lg:flex-row gap-8">
+          {/* Map / Location Section (Placeholder) */}
+          <div className="w-full lg:w-1/2 h-60 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 text-sm">
+            Map / Location Preview
+          </div>
+
+          {/* Info Cards */}
+          <div className="w-full lg:w-1/2">
+            <div className="grid grid-cols-1 gap-5">
               {cards.map((card, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-5 bg-white shadow-md p-5 rounded-xl border-l-4 border-[#8560F1] hover:bg-[#E0E7FF] hover:border"
+                  className="flex items-center gap-5 bg-white shadow-md p-5 rounded-xl border-l-4 border-[#8560F1] hover:bg-[#E0E7FF] transition"
                 >
-                  {/* Icon Section */}
-                  <div className="shadow-lg text-white text-3xl rounded-full p-4 flex items-center justify-center w-16 h-16 hover:bg-[#E0E7FF] ">
+                  {/* Icon */}
+                  <div className="bg-[#8560F1] text-white text-2xl rounded-full p-3 w-12 h-12 flex items-center justify-center">
                     {card.icon}
                   </div>
 
-                  {/* Text Info Section */}
+                  {/* Text */}
                   <div>
-                    <h3 className="text-sm  text-gray-600">
-                      {card.title}
-                    </h3>
-                    <p className="text-lg text-gray-800 font-semibold">{card.detail}</p>
+                    <h3 className="text-sm text-gray-600">{card.title}</h3>
+                    <p className="text-base font-semibold text-gray-800">
+                      {card.detail}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -110,7 +119,9 @@ const page = () => {
           </div>
         </div>
       </div>
-      <div>
+
+      {/* Tracking Component */}
+      <div className="mt-12">
         <TrackTask />
       </div>
     </div>

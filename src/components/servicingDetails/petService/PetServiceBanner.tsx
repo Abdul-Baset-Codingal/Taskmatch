@@ -1,16 +1,38 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import BannerCard from "@/components/home/BannerCard";
 
 const PetServiceBanner = () => {
-  return (
-    <div
-      className="w-full bg-[#16161A] relative overflow-hidden"
-      style={{
-        height: "105vh",
-        clipPath: "polygon(0 0, 100% 0, 100% 95vh, 0 105vh)",
-      }}
-    >
+  const [clipPath, setClipPath] = useState(
+      "polygon(0 0, 100% 0, 100% 210vh, 0 220vh)"
+    );
+    const [height, setHeight] = useState("120vh");
+  
+    useEffect(() => {
+      const updateClipPath = () => {
+        if (window.innerWidth < 768) {
+          setClipPath("polygon(0 0, 100% 0, 100% 190vh, 0 200vh)");
+          setHeight("200vh");
+        } else {
+          setClipPath("polygon(0 0, 100% 0, 100% 210vh, 0 120vh)");
+          setHeight("120vh");
+        }
+      };
+  
+      updateClipPath(); // Run once on mount
+  
+      window.addEventListener("resize", updateClipPath);
+      return () => window.removeEventListener("resize", updateClipPath);
+    }, []);
+  
+    return (
+      <div
+        className="w-full bg-[#16161A] relative overflow-hidden"
+        style={{
+          height: height,
+          clipPath: clipPath,
+        }}
+      >
       {/* Bubble Top Left */}
       <div className="absolute z-10 w-[450px] h-[450px] bg-purple-950 opacity-30 rounded-full top-[-60px] left-[-60px] blur-3xl animate-bubbleFloat"></div>
 
@@ -19,7 +41,7 @@ const PetServiceBanner = () => {
 
       {/* Content Container */}
       <div className="relative z-20 flex justify-center items-center h-full w-full">
-        <div className="flex items-center max-w-6xl mx-auto gap-16 px-16 w-full justify-center">
+        <div className="flex items-center max-w-6xl mx-auto gap-16 w-full justify-center flex-col lg:flex-row px-4">
           {/* Left Text */}
           <div className="text-white max-w-lg">
             <h1 className="text-6xl font-bold leading-snug">

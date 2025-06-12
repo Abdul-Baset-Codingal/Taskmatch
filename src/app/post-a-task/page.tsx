@@ -2,6 +2,7 @@ import TaskSteps from "@/components/post-a-task/TaskSteps";
 import Navbar from "@/shared/Navbar";
 import React from "react";
 import { FaRegClock, FaUsers, FaRegComments } from "react-icons/fa";
+
 const cardData = [
   {
     icon: <FaRegClock />,
@@ -19,46 +20,45 @@ const cardData = [
     subtitle: "avg. response time",
   },
 ];
+
 const page = () => {
   return (
-    <div className="bg-[#F7F8FF] w-full">
+    <div className="bg-[#F7F8FF] min-h-screen w-full">
       <Navbar />
-      <div>
-        <div className="flex flex-col justify-center items-center w-full">
-          <h2 className="text-4xl md:text-6xl font-bold z-10 text-center mt-12 w-full bg-gradient-to-r from-[#8F6DF2] to-[#B27BB2] bg-clip-text text-transparent">
+      <div className="px-4 md:px-8 py-10 max-w-7xl mx-auto">
+        {/* Title Section */}
+        <div className="flex flex-col items-center text-center">
+          <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-[#8F6DF2] to-[#B27BB2] bg-clip-text text-transparent">
             Post Your Task
           </h2>
+          <div className="mt-4 w-[70px] h-[4px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] rounded-md" />
+          <p className="mt-4 text-base md:text-lg text-gray-500 max-w-2xl">
+            Describe what you need done and find the perfect tasker to help you.
+            Posting a task is free, and you&#39;ll get competitive offers from
+            top-rated taskers.
+          </p>
+        </div>
 
-          <div className="flex justify-center mt-6 w-full">
-            <div className="flex rounded-md justify-center h-[4px] w-[70px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE]"></div>
-          </div>
-          <div className="flex justify-center mt-1 w-full">
-            <p className="mt-2  text-xl  text-center px-4 w-full text-gray-500 ">
-              Describe what you need done and find the perfect tasker to help
-              you. Posting a <br /> task is free, and you&#39;ll get competitive
-              offers from top-rated taskers.
-            </p>
-          </div>
-        </div>
-        <div className="flex justify-center mt-12">
-          <div className="flex flex-wrap gap-5 items-center">
-            {cardData.map((card, index) => (
-              <div
-                key={index}
-                className="bg-white p-4 rounded-xl shadow-2xl text-center flex items-center gap-5 w-full sm:w-auto"
-              >
-                <div className="text-[#6F3DE9] text-5xl">{card.icon}</div>
-                <div className="text-left">
-                  <h3 className="text-2xl text-[#6F3DE9] font-medium">
-                    {card.title}
-                  </h3>
-                  <p className="text-gray-500 text-sm">{card.subtitle}</p>
-                </div>
+        {/* Cards Section */}
+        <div className="flex flex-wrap justify-center gap-6 mt-10">
+          {cardData.map((card, index) => (
+            <div
+              key={index}
+              className="bg-white p-5 rounded-xl shadow-xl flex items-center gap-4 w-full sm:w-[280px]"
+            >
+              <div className="text-[#6F3DE9] text-4xl">{card.icon}</div>
+              <div className="text-left">
+                <h3 className="text-xl font-semibold text-[#6F3DE9]">
+                  {card.title}
+                </h3>
+                <p className="text-sm text-gray-500">{card.subtitle}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-        <div className="w-full mt-10">
+
+        {/* Task Steps Section */}
+        <div className="mt-12">
           <TaskSteps />
         </div>
       </div>

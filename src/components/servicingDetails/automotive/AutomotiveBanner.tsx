@@ -1,14 +1,36 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import AutomotiveBookingForm from "./AutomotiveBookingForm";
 
 const AutomotiveBanner = () => {
+ const [clipPath, setClipPath] = useState(
+    "polygon(0 0, 100% 0, 100% 270vh, 0 280vh)"
+  );
+  const [height, setHeight] = useState("280vh");
+
+  useEffect(() => {
+    const updateClipPath = () => {
+      if (window.innerWidth < 768) {
+        setClipPath("polygon(0 0, 100% 0, 100% 440vh, 0 450vh)");
+        setHeight("450vh");
+      } else {
+        setClipPath("polygon(0 0, 100% 0, 100% 270vh, 0 280vh)");
+        setHeight("280vh");
+      }
+    };
+
+    updateClipPath(); // Run once on mount
+
+    window.addEventListener("resize", updateClipPath);
+    return () => window.removeEventListener("resize", updateClipPath);
+  }, []);
+
   return (
     <div
       className="w-full bg-[#16161A] relative overflow-hidden"
       style={{
-        height: "280vh",
-        clipPath: "polygon(0 0, 100% 0, 100% 270vh, 0 280vh)",
+        height: height,
+        clipPath: clipPath,
       }}
     >
       {/* Bubble Top Left */}
@@ -19,7 +41,7 @@ const AutomotiveBanner = () => {
 
       {/* Content Container */}
       <div className="relative z-20 flex justify-center items-center h-full w-full">
-        <div className="flex items-center max-w-6xl mx-auto gap-16  w-full justify-center">
+        <div className="flex items-center max-w-6xl mx-auto gap-16 w-full justify-center flex-col lg:flex-row px-4">
           {/* Left Text */}
           <div className="text-white max-w-lg">
             <h1 className="text-6xl font-bold leading-snug">
@@ -71,7 +93,7 @@ const AutomotiveBanner = () => {
               </div>
             </div>
           </div>
-          <div>
+          <div className="w-full max-w-xl">
             <AutomotiveBookingForm />
           </div>
         </div>

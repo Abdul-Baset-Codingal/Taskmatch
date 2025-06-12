@@ -47,7 +47,7 @@ const TaskSteps = () => {
   };
 
   return (
-    <div className="w-full max-w-6xl mx-auto  p-10 rounded-xl ">
+    <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Steps Indicator */}
       <div className="relative mb-12">
         {/* Progress Background Line */}
@@ -55,26 +55,26 @@ const TaskSteps = () => {
 
         {/* Progress Filled Line */}
         <div
-          className="absolute top-1/2 left-0 h-1  bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transform -translate-y-1/2 z-10 transition-all duration-500"
+          className="absolute top-1/2 left-0 h-1 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transform -translate-y-1/2 z-10 transition-all duration-500"
           style={{
             width: `${(currentStep / (steps.length - 1)) * 100}%`,
           }}
         />
 
         {/* Steps */}
-        <div className="flex justify-between relative z-20 gap-20">
+        <div className="flex flex-wrap justify-between relative z-20 gap-4 sm:gap-6 md:gap-10">
           {steps.map((step, index) => (
             <button
               key={index}
               onClick={() => setCurrentStep(index)}
-              className={`flex-1 text-center py-2 px-3 cursor-pointer  rounded-md text-sm font-medium flex flex-col items-center justify-center transition duration-300 ${
+              className={`flex-1 min-w-[80px] text-center py-2 px-3 cursor-pointer rounded-md text-xs sm:text-sm font-medium flex flex-col items-center justify-center transition duration-300 ${
                 index === currentStep
                   ? "bg-[#6F3DE9] text-white"
-                  : "border-2 border-[#8F6DF2]  text-[#72757E] bg-white"
+                  : "border-2 border-[#8F6DF2] text-[#72757E] bg-white"
               }`}
             >
-              <span className="text-4xl font-bold">{index + 1}</span>
-              <span>{step}</span>
+              <span className="text-xl sm:text-2xl font-bold">{index + 1}</span>
+              <span className="mt-1">{step}</span>
             </button>
           ))}
         </div>
@@ -82,29 +82,25 @@ const TaskSteps = () => {
 
       {/* Step Content */}
       <div className="relative rounded-md mb-6">
-        {/* Top Gradient Border */}
         <div className="h-2 rounded-t-2xl bg-gradient-to-r from-[#8560F1] to-[#E7B6FE]" />
-
-        {/* Inner Card Content */}
-        <div className="bg-white p-6 shadow-md rounded-b-md rounded">
-          {/* Your step content goes here */}
+        <div className="bg-white p-4 sm:p-6 shadow-md rounded-b-md rounded">
           {renderStepContent()}
         </div>
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex justify-between">
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
         <button
           onClick={handlePrevious}
           disabled={currentStep === 0}
-          className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50"
+          className="w-full sm:w-auto px-4 py-3 bg-gray-300 rounded hover:bg-gray-400 disabled:opacity-50"
         >
           Previous
         </button>
         <button
           onClick={handleNext}
           disabled={currentStep === steps.length - 1}
-          className="px-4 py-2 bg-[#6F3DE9] text-white rounded hover:bg-[#5714E0] disabled:opacity-50"
+          className="w-full sm:w-auto px-4 py-3 bg-[#6F3DE9] text-white rounded hover:bg-[#5714E0] disabled:opacity-50"
         >
           Next
         </button>

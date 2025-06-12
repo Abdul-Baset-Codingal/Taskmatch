@@ -2,151 +2,106 @@ import React from "react";
 
 const AllTimings = () => {
   return (
-    <div>
-      <h2 className="text-lg font-semibold text-[#8560F1]">
+    <div className="px-4 md:px-10 lg:px-16 py-6">
+      <h2 className="text-lg md:text-xl font-semibold text-[#8560F1] mb-6">
         📊 Available Tasker Times
       </h2>
-      <div className="flex items-start gap-10">
-        <div className="w-[120px] bg-[#FFFCF1] border-t-2 rounded-2xl border-yellow-500 py-5 px-4 mt-4">
+
+      <div className="flex flex-col md:flex-row items-start gap-6 md:gap-10">
+        {/* Morning */}
+        <div className="w-full md:w-[160px] bg-[#FFFCF1] border-t-2 rounded-2xl border-yellow-500 py-5 px-4">
           <p className="text-yellow-500 font-bold text-sm mb-3 ml-3">Morning</p>
 
           <div className="space-y-3">
-            {/* Time 1 - High */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              6:00 am
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-            </span>
-
-            {/* Time 2 - Medium */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              6:30 am
-              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
-            </span>
-
-            {/* Time 3 - Popular + High */}
-            <span className="relative px-4 py-2 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm border-2 border-yellow-400 hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              {/* Availability Dot - Top Right */}
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-
-              {/* Popular Label - Top Left */}
-              <span className="absolute top-6 left-[15px] text-[10px] text-white px-2 font-medium bg-yellow-400 rounded-2xl">
-                Popular
-              </span>
-
-              {/* Actual Time */}
-              <span className="block text-center">7:00 am</span>
-            </span>
-
-            {/* Time 4 - Low */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              7:30 am
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </span>
-
-            {/* Time 5 - Medium */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              8:00 am
-              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
-            </span>
-
-            {/* Time 6 - High */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              8:30 am
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-            </span>
+            <TimeTag label="6:00 am" color="green-500" />
+            <TimeTag label="6:30 am" color="yellow-400" />
+            <PopularTimeTag
+              label="7:00 am"
+              dotColor="green-500"
+              borderColor="border-yellow-400"
+              bgColor="bg-yellow-400"
+            />
+            <TimeTag label="7:30 am" color="red-500" />
+            <TimeTag label="8:00 am" color="yellow-400" />
+            <TimeTag label="8:30 am" color="green-500" />
           </div>
         </div>
-        {/* 2nd */}
-        <div className="w-[120px] bg-[#EFF7FA] border-t-2 rounded-2xl border-blue-500 py-5 px-4 mt-4">
+
+        {/* Afternoon */}
+        <div className="w-full md:w-[160px] bg-[#EFF7FA] border-t-2 rounded-2xl border-blue-500 py-5 px-4">
           <p className="text-blue-500 font-bold text-sm mb-3 ml-3">Afternoon</p>
 
           <div className="space-y-3">
-            {/* Time 1 - High */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              12:00 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-            </span>
-
-            {/* Time 2 - Medium */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              1:30 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full"></span>
-            </span>
-
-            {/* Time 3 - Popular + High */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              2:00 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
-            </span>
-
-            {/* Time 4 - Low */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              3:30 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </span>
-
-            {/* Time 5 - Medium */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              4:00 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
-            </span>
-
-            {/* Time 6 - High */}
-            <span className="relative px-4 py-2 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm border-2 border-blue-400 hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              {/* Availability Dot - Top Right */}
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-
-              {/* Popular Label - Top Left */}
-              <span className="absolute top-6 left-[15px] text-[10px] text-white px-2 font-medium bg-blue-400 rounded-2xl">
-                Popular
-              </span>
-
-              {/* Actual Time */}
-              <span className="block text-center">5:00 pm</span>
-            </span>
+            <TimeTag label="12:00 pm" color="green-500" />
+            <TimeTag label="1:30 pm" color="green-400" />
+            <TimeTag label="2:00 pm" color="yellow-400" />
+            <TimeTag label="3:30 pm" color="red-500" />
+            <TimeTag label="4:00 pm" color="yellow-400" />
+            <PopularTimeTag
+              label="5:00 pm"
+              dotColor="green-500"
+              borderColor="border-blue-400"
+              bgColor="bg-blue-400"
+            />
           </div>
         </div>
-        {/* 3rd */}
-        <div className="w-[120px] bg-[#F7F2F7] border-t-2 rounded-2xl border-[#8560F1] py-5 px-4 mt-4">
+
+        {/* Evening */}
+        <div className="w-full md:w-[160px] bg-[#F7F2F7] border-t-2 rounded-2xl border-[#8560F1] py-5 px-4">
           <p className="text-[#8560F1] font-bold text-sm mb-3 ml-3">Evening</p>
 
           <div className="space-y-3">
-            {/* Time 1 - High */}
-            <span className="relative px-4 py-2 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm border-2 border-[#8560F1] hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              {/* Availability Dot - Top Right */}
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full"></span>
-
-              {/* Popular Label - Top Left */}
-              <span className="absolute top-6 left-[15px] text-[10px] text-white px-2 font-medium bg-[#8560F1] rounded-2xl">
-                Popular
-              </span>
-
-              {/* Actual Time */}
-              <span className="block text-center">6:00 pm</span>
-            </span>
-
-            {/* Time 2 - Medium */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              7:30 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-green-400 rounded-full"></span>
-            </span>
-
-            {/* Time 3 - Popular + High */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              8:00 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></span>
-            </span>
-
-            {/* Time 4 - Low */}
-            <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
-              8:30 pm
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </span>
+            <PopularTimeTag
+              label="6:00 pm"
+              dotColor="green-500"
+              borderColor="border-[#8560F1]"
+              bgColor="bg-[#8560F1]"
+            />
+            <TimeTag label="7:30 pm" color="green-400" />
+            <TimeTag label="8:00 pm" color="yellow-400" />
+            <TimeTag label="8:30 pm" color="red-500" />
           </div>
         </div>
       </div>
     </div>
   );
 };
+
+type TimeTagProps = {
+  label: string;
+  color: string;
+};
+
+const TimeTag = ({ label, color }: TimeTagProps) => (
+  <span className="relative px-4 py-3 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm hover:bg-[#e1d5fb] cursor-pointer transition inline-block">
+    {label}
+    <span
+      className={`absolute top-1 right-1 w-2 h-2 bg-${color} rounded-full`}
+    ></span>
+  </span>
+);
+
+type PopularTimeTagProps = {
+  label: string;
+  dotColor: string;
+  borderColor: string;
+  bgColor: string;
+};
+
+const PopularTimeTag = ({ label, dotColor, borderColor, bgColor }: PopularTimeTagProps) => (
+  <span
+    className={`relative px-4 py-2 bg-white text-[#72757E] text-xs font-semibold rounded-full shadow-sm ${borderColor} border-2 hover:bg-[#e1d5fb] cursor-pointer transition inline-block`}
+  >
+    <span
+      className={`absolute top-1 right-1 w-2 h-2 ${dotColor} rounded-full`}
+    ></span>
+    <span
+      className={`absolute top-6 left-[15px] text-[10px] text-white px-2 font-medium ${bgColor} rounded-2xl`}
+    >
+      Popular
+    </span>
+    <span className="block text-center">{label}</span>
+  </span>
+);
 
 export default AllTimings;

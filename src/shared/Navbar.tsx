@@ -1,55 +1,77 @@
 "use client";
 import Link from "next/link";
-import React from "react";
+import React, { useState } from "react";
+import { FiMenu, FiX } from "react-icons/fi";
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleMenu = () => setIsOpen(!isOpen);
+
   return (
-    <div className="relative w-full h-[110px] bg-[#1C1C2E] overflow-hidden ">
+    <div className="relative w-full h-[110px] bg-[#1C1C2E] overflow-visible">
       {/* Bubble 1 */}
-      <div className="absolute z-20 w-[300px] h-[300px] bg-slate-700 opacity-40 rounded-full top-[-50px] left-[10%]  animate-bubbleFloat"></div>
+      <div className="absolute z-20 w-[150px] xs:w-[200px] sm:w-[250px] lg:w-[300px] h-[150px] xs:h-[200px] sm:h-[250px] lg:h-[300px] bg-slate-700 opacity-40 rounded-full top-[-30px] xs:top-[-40px] sm:top-[-50px] lg:top-[-50px] left-[5%] xs:left-[8%] lg:left-[10%] animate-bubbleFloat"></div>
 
       {/* Bubble 2 */}
-      <div className="absolute w-[250px] h-[250px] bg-slate-700 opacity-40 rounded-full top-[-100px] right-[15%]  animate-bubbleFloat delay-[2s]"></div>
+      <div className="absolute w-[120px] xs:w-[160px] sm:w-[200px] lg:w-[250px] h-[120px] xs:h-[160px] sm:h-[200px] lg:h-[250px] bg-slate-700 opacity-40 rounded-full top-[-60px] xs:top-[-80px] sm:top-[-90px] lg:top-[-100px] right-[5%] xs:right-[10%] lg:right-[15%] animate-bubbleFloat delay-[2s]"></div>
 
       {/* Navbar Content */}
-      <div className="relative z-10 flex items-center justify-between px-6 h-full text-white">
+      <div className="relative z-30 flex items-center justify-between px-4 xs:px-6 sm:px-8 lg:px-6 h-full text-white">
+        {/* Logo */}
         <div className="flex items-center gap-2">
-          <Link href={"/"}>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-[#8560F1]  to-[#E7B6FE] bg-clip-text text-transparent">
+          <Link href="/">
+            <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] bg-clip-text text-transparent">
               TaskMatch
             </h1>
           </Link>
-          <span className="w-2 h-2 rounded-full bg-[#FF8906] inline-block top-[18px] relative right-[11px] z-10"></span>
+          <span className="w-2 h-2 rounded-full bg-[#FF8906] inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span>
         </div>
 
-        <ul className="flex gap-10 items-center">
-          <li className="">
-            <button className="relative text-lg font-bold text-[#FF8906] bg-[#3C2C2A] hover:bg-[#5A4038] py-3 px-5 rounded-lg overflow-hidden group cursor-pointer">
+        {/* Hamburger for small screens */}
+        <div className="lg:hidden z-40">
+          <button onClick={toggleMenu}>
+            {isOpen ? (
+              <FiX className="w-6 h-6 xs:w-6.5 xs:h-6.5 sm:w-7 sm:h-7" />
+            ) : (
+              <FiMenu className="w-6 h-6 xs:w-6.5 xs:h-6.5 sm:w-7 sm:h-7" />
+            )}
+          </button>
+        </div>
+
+        {/* Menu */}
+        <ul
+          className={`flex flex-col lg:flex-row gap-4 xs:gap-5 sm:gap-6 lg:gap-10 items-start lg:items-center absolute lg:static top-[110px] left-0 w-full lg:w-auto bg-[#1C1C2E] lg:bg-transparent px-4 xs:px-6 sm:px-8 lg:px-0 py-4 sm:py-6 lg:p-0 transition-all duration-300 ease-in-out ${
+            isOpen ? "flex z-[60]" : "hidden lg:flex"
+          }`}
+        >
+          <li>
+            <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-bold text-[#FF8906] bg-[#3C2C2A] hover:bg-[#5A4038] py-2 xs:py-2.5 sm:py-3 px-4 xs:px-5 sm:px-5 lg:px-5 rounded-lg overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
               Become a Tasker
               <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
             </button>
           </li>
-          <li className=" cursor-pointer font-semibold">
-            <button className="relative font-semibold text-white py-3  overflow-hidden group cursor-pointer">
+          <li>
+            <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
               Services
               <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
             </button>
           </li>
-          <li className=" cursor-pointer font-semibold">
-            <button className="relative font-semibold text-white py-3  overflow-hidden group cursor-pointer">
+          <li>
+            <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
               About
               <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
             </button>
           </li>
           <li>
-            <select className="bg-transparent text-white font-semibold px-2 py-1 rounded-md outline-none">
-              <option className="bg-[#1C1C2E] text-white">us English</option>
-              <option className="bg-[#1C1C2E] text-white">Spanish</option>
-              <option className="bg-[#1C1C2E] text-white">French</option>
+            <select className="bg-[#252531] text-white font-semibold px-2 xs:px-3 sm:px-3 lg:px-2 py-1.5 xs:py-2 sm:py-2 lg:py-1 rounded-md outline-none w-full xs:w-auto text-base xs:text-lg sm:text-lg lg:text-base">
+              <option className="bg-[#252531] text-white">us English</option>
+              <option className="bg-[#252531] text-white">Spanish</option>
+              <option className="bg-[#252531] text-white">French</option>
             </select>
           </li>
           <li>
-            <button className="px-6 py-3 text-white font-bold rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300">
+            <button className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left">
               Sign Up/Log In
             </button>
           </li>

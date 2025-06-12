@@ -13,24 +13,27 @@ const Step1Fields = () => {
   ];
 
   return (
-    <div className="">
+    <div className="w-full">
       <p className="font-semibold text-[#72757E] text-lg mb-4">
         When do you need it done?
       </p>
+
+      {/* Date Picker */}
       <input
         type="date"
-        className="w-[500px] border border-[#ccc] shadow-lg rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-[#8560F1] hover:border-[#8560F1] transition duration-300"
+        className="w-full md:w-[500px] border border-[#ccc] shadow-lg rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-[#8560F1] hover:border-[#8560F1] transition duration-300"
       />
+
       {/* Tabs */}
-      <div className="flex w-full  rounded-2xl overflow-hidden mb-6 shadow mt-16">
+      <div className="flex flex-col sm:flex-row w-full rounded-2xl overflow-hidden mb-6 shadow mt-10">
         {tabs.map((tab) => (
           <button
             key={tab.value}
             onClick={() => setActiveTab(tab.value)}
-            className={`flex-1 py-5 cursor-pointer font-bold transition duration-300 ${
+            className={`w-full sm:flex-1 py-5 cursor-pointer font-bold transition duration-300 text-sm sm:text-base ${
               activeTab === tab.value
                 ? "bg-[#8560F1] text-white"
-                : "bg-[#F3EDFF] text-[#72757E] hover:bg-[#e1d5fb] "
+                : "bg-[#F3EDFF] text-[#72757E] hover:bg-[#e1d5fb]"
             }`}
           >
             {tab.label}
@@ -44,11 +47,12 @@ const Step1Fields = () => {
           <ExactTime />
         </div>
       )}
+
       {activeTab === "flexible" && (
         <div className="text-[#72757E] space-y-2">
           <p className="font-semibold text-[#72757E] text-lg mb-4">
-            Preferred time window{" "}
-          </p>{" "}
+            Preferred time window
+          </p>
           <select className="w-full font-semibold border border-[#ccc] rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-[#8560F1] hover:border-[#8560F1] transition duration-300">
             <option className="font-semibold" value="morning">
               Morning (8am - 12pm)
@@ -63,7 +67,7 @@ const Step1Fields = () => {
               Any time
             </option>
           </select>
-          <p className="font-semibold text-[#72757E] italic text-sm  text-italic">
+          <p className="font-semibold text-[#72757E] italic text-sm">
             This gives taskers flexibility to fit your task in their schedule
           </p>
         </div>
@@ -71,7 +75,7 @@ const Step1Fields = () => {
 
       {activeTab === "all" && (
         <div>
-            <AllTimings />
+          <AllTimings />
         </div>
       )}
     </div>
