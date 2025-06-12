@@ -97,19 +97,21 @@ const PopularServices = () => {
       />
 
       {/* Filters */}
-      <div className="mt-12 flex justify-center">
-        <div className="flex gap-8 items-center">
-          <h2 className="font-semibold">Filter by category:</h2>
+      <div className="mt-12 flex justify-center px-4">
+        <div className="flex flex-col lg:flex-row gap-4 lg:gap-8 items-center text-center">
+          <h2 className="font-semibold text-lg lg:text-xl">
+            Filter by category:
+          </h2>
           <div className="flex gap-3 flex-wrap justify-center">
             {categories.map((category) => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}
-                className={`px-6 py-3 rounded-3xl cursor-pointer ${
+                className={`px-5 py-2 md:px-6 md:py-3 rounded-3xl cursor-pointer ${
                   selectedCategory === category
                     ? "bg-[#8560F1] text-white font-semibold"
-                    : "bg-[#F2EEFD] text-[#8560F1] "
-                } hover:-translate-y-1 transform transition duration-300`}
+                    : "bg-[#F2EEFD] text-[#8560F1]"
+                } hover:-translate-y-1 transform transition duration-300 text-sm md:text-base`}
               >
                 {category}
               </button>
