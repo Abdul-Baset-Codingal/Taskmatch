@@ -1,5 +1,7 @@
+import AvailabilitySchedule from '@/components/dashboard/tasker/AvailabilitySchedule';
 import DashboardStats from '@/components/dashboard/tasker/DashboardStats';
 import EditProfile from '@/components/dashboard/tasker/EditProfile';
+import SkillsSection from '@/components/dashboard/tasker/SkillsSection';
 import TaskTabs from '@/components/dashboard/tasker/TaskTabs';
 import UrgentTasks from '@/components/dashboard/tasker/UrgentTasks';
 import Navbar from '@/shared/Navbar';
@@ -28,6 +30,12 @@ const page = () => {
           </div>
           <div>
             <TaskTabs/>
+          </div>
+          <div>
+            <SkillsSection/>
+          </div>
+          <div>
+            <AvailabilitySchedule/>
           </div>
         </div>
       </div>

@@ -62,7 +62,6 @@ const AvailableTasks = () => {
       <h2 className="text-3xl font-bold mb-10 text-center text-purple-800">
         Available Tasks
       </h2>
-
       <div className="space-y-8">
         {availableTasks.map((task) => (
           <div
