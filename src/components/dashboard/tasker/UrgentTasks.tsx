@@ -31,10 +31,10 @@ export default function UrgentTaskCards() {
     <div className="min-h-screen px-4 py-10 bg-gradient-to-br from-[#F45F47] to-[#D77C1C] flex flex-col items-center justify-center gap-10">
       {/* Section Title */}
       <div className="text-center">
-        <h1 className="text-4xl font-extrabold text-white drop-shadow-md">
+        <h1 className="text-4xl font-bold text-white drop-shadow-md">
           URGENT TASKS - Immediate Action Required
         </h1>
-        <p className="text-lg mt-2 font-semibold text-white">2 new tasks</p>
+        <p className="text-lg mt-2 font-semibold text-white ">2 new tasks</p>
       </div>
 
       {/* Cards Container */}
