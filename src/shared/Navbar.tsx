@@ -67,12 +67,20 @@ const Navbar = () => {
               </button>
             </Link>
           </li>
-          <li>
+          {/* <li>
             <select className="bg-[#252531] text-white font-semibold px-2 xs:px-3 sm:px-3 lg:px-2 py-1.5 xs:py-2 sm:py-2 lg:py-1 rounded-md outline-none w-full xs:w-auto text-base xs:text-lg sm:text-lg lg:text-base">
               <option className="bg-[#252531] text-white">us English</option>
               <option className="bg-[#252531] text-white">Spanish</option>
               <option className="bg-[#252531] text-white">French</option>
             </select>
+          </li> */}
+          <li>
+            <Link href={"/dashboard/admin"}>
+              <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
+                Admin Dashboard
+                <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
+              </button>
+            </Link>
           </li>
           <li>
             <button className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left">
