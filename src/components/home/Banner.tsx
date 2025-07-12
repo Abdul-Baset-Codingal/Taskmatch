@@ -6,6 +6,7 @@ import BannerCard from "./BannerCard";
 import { FaSpa, FaCalendarAlt } from "react-icons/fa";
 import FindTaskersModal from "./FindTaskersModal";
 import { FaPlusCircle, FaSearch } from "react-icons/fa";
+import Link from "next/link";
 const Banner = () => {
   const [clipPath, setClipPath] = useState(
     "polygon(0 0, 100% 0, 100% 210vh, 0 220vh)"
@@ -111,18 +112,20 @@ const Banner = () => {
               )}
               {showOptions && (
                 <div className="flex flex-col gap-4 mt-5">
-                  <div
-                    onClick={() => setOption("urgent")}
-                    className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"
-                  >
-                    <FaSpa className="text-pink-500 text-xl mt-1" />
-                    <div>
-                      <h4 className="font-semibold capitalize text-white">Urgent</h4>
-                      <p className="text-sm text-gray-400">
-                        Get pampered as soon as possible
-                      </p>
+                  <Link href={'/urgent-task'}>
+                    <div
+                      onClick={() => setOption("urgent")}
+                      className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"
+                    >
+                      <FaSpa className="text-pink-500 text-xl mt-1" />
+                      <div>
+                        <h4 className="font-semibold capitalize text-white">Urgent</h4>
+                        <p className="text-sm text-gray-400">
+                          Get pampered as soon as possible
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                   <div
                     onClick={() => setOption("scheduled")}
                     className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"

@@ -172,12 +172,13 @@ const JoinTaskMatch = () => {
               <span className="text-emerald-500 font-medium">Professional licensing assistance</span> available.
             </p>
 
-            <button
-              onClick={() => setIsTaskerSignupModalOpen(true)}
-              className="w-full bg-gradient-to-r from-emerald-400 to-teal-400 text-white font-bold py-3 rounded-md hover:from-emerald-500 hover:to-teal-500 transition text-sm text-fancy btn-shine"
-            >
-              Sign Up as Tasker
-            </button>
+            <Link href={'/tasker-signup'}>
+              <button
+                className="w-full bg-gradient-to-r from-emerald-400 to-teal-400 text-white font-bold py-3 rounded-md hover:from-emerald-500 hover:to-teal-500 transition text-sm text-fancy btn-shine"
+              >
+                Sign Up as Tasker
+              </button>
+            </Link>
           </div>
 
         </div>
