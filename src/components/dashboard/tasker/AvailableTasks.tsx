@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState } from "react";
 import {
@@ -85,7 +86,7 @@ const AvailableTasks = () => {
     }
   };
 
-  const handleRequestCompletion = async (taskId) => {
+  const handleRequestCompletion = async (taskId: any) => {
     if (!window.confirm("Are you sure you want to request task completion?")) return;
 
     try {

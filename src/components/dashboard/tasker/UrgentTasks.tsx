@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState } from "react";
+import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, SetStateAction, useState } from "react";
 import { FaMapMarkerAlt, FaClock, FaCalendarAlt, FaDollarSign } from "react-icons/fa";
 import { MdAccessTime, MdOutlinePlayArrow } from "react-icons/md";
 import { useGetUrgentTasksQuery, useBidOnTaskMutation, useUpdateTaskMutation, useAcceptTaskMutation } from "@/features/api/taskApi";
@@ -13,7 +15,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { Navigation } from "swiper/modules";
 
 export default function UrgentTaskCards() {
-  const { data: urgentTasks = [], isLoading } = useGetUrgentTasksQuery();
+  const { data: urgentTasks = [], isLoading } = useGetUrgentTasksQuery({});
   const [bidOnTask, { isLoading: isBidding }] = useBidOnTaskMutation();
   const [updateTaskStatus, { isLoading: isUpdating }] = useUpdateTaskMutation();
   const [acceptTask, { isLoading: isAccepting }] = useAcceptTaskMutation();
@@ -24,13 +26,13 @@ export default function UrgentTaskCards() {
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   const [offerPrice, setOfferPrice] = useState("");
   const [message, setMessage] = useState("");
-  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
 
   if (isLoading) return <p className="text-white text-center">Loading...</p>;
 
 
-  const openConfirmModal = (taskId) => {
+  const openConfirmModal = (taskId: string | null) => {
     setSelectedTaskId(taskId);
     setConfirmModalOpen(true);
   };
@@ -47,7 +49,11 @@ export default function UrgentTaskCards() {
       toast.success("✅ Task accepted successfully!");
     } catch (err) {
       console.error("Failed to accept task", err);
-      toast.error(err?.data?.error || "❌ Failed to accept task.");
+      const errorMessage =
+        typeof err === "object" && err !== null && "data" in err && typeof (err as any).data?.error === "string"
+          ? (err as any).data.error
+          : "❌ Failed to accept task.";
+      toast.error(errorMessage);
     } finally {
       closeConfirmModal();
     }
@@ -137,8 +143,8 @@ export default function UrgentTaskCards() {
             1024: { slidesPerView: 3 },
           }}
         >
-          {urgentTasks.map((task) => (
-            <SwiperSlide key={task._id} className="p-4 ">
+          {urgentTasks.map((task: { _id: SetStateAction<null> | Key | undefined; taskTitle: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; status: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; location: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; schedule: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; createdAt: string | number | Date; taskDescription: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; photos: string | any[]; video: any; offerDeadline: string | number | Date; price: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }) => (
+            <SwiperSlide key={typeof task._id === "function" ? undefined : task._id as Key} className="p-4 ">
               <div className="border-2 rounded-3xl border-[#FFA651] p-6 bg-gradient-to-br from-[#FFF9F2] to-[#FFF3E7] shadow-2xl relative overflow-hidden">
                 <div className="absolute top-4 right-4 bg-gradient-to-r from-[#FF6B6B] to-[#FFA751] text-white px-4 py-1 rounded-full text-xs font-bold shadow-md">
                   URGENT · ASAP
@@ -152,8 +158,8 @@ export default function UrgentTaskCards() {
                   <h2 className="text-2xl font-extrabold text-[#FF7B00]">
                     {task.taskTitle}
                   </h2>
-                  <div className={`text-sm font-bold px-3 py-1 rounded-xl shadow-sm flex items-center gap-2 ${getStatusStyle(task?.status)}`}>
-                    <span className={`w-2 h-2 rounded-full inline-block ${getDotColor(task?.status)}`}></span>
+                  <div className={`text-sm font-bold px-3 py-1 rounded-xl shadow-sm flex items-center gap-2 ${getStatusStyle(String(task?.status ?? ""))}`}>
+                    <span className={`w-2 h-2 rounded-full inline-block ${getDotColor(String(task?.status ?? ""))}`}></span>
                     {task?.status}
                   </div>
 
@@ -211,7 +217,7 @@ export default function UrgentTaskCards() {
                 <div className="mt-6 flex flex-wrap gap-3">
 
                   <button
-                    onClick={() => openBidModal(task._id)}
+                    onClick={() => openBidModal(String(task._id ?? ""))}
                     disabled={task.status === "in progress" || task.status === "completed"}
                     className={`px-4 py-2 rounded-xl font-semibold transition ${task.status === "in progress"
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -222,7 +228,7 @@ export default function UrgentTaskCards() {
                   </button>
 
                   <button
-                    onClick={() => openConfirmModal(task._id)}
+                    onClick={() => openConfirmModal(task._id ? String(task._id) : null)}
                     disabled={task.status === "in progress" || task.status === "completed"}
                     className={`px-4 py-2 rounded-xl font-bold transition ${task.status === "in progress"
                       ? "bg-gray-400 text-white cursor-not-allowed"
