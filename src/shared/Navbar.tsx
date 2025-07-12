@@ -1,12 +1,29 @@
 "use client";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation"; 
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const router = useRouter();
 
   const toggleMenu = () => setIsOpen(!isOpen);
+
+  // Check if token cookie exists on mount
+  useEffect(() => {
+    const token = Cookies.get("token");
+    setIsLoggedIn(!!token);
+  }, []);
+
+  // Logout handler
+  const handleLogout = () => {
+    Cookies.remove("token");
+    setIsLoggedIn(false);
+    router.push("/"); 
+  };
 
   return (
     <div className="relative w-full h-[110px] bg-[#1C1C2E] overflow-visible">
@@ -41,16 +58,10 @@ const Navbar = () => {
 
         {/* Menu */}
         <ul
-          className={`flex flex-col lg:flex-row gap-4 xs:gap-5 sm:gap-6 lg:gap-10 items-start lg:items-center absolute lg:static top-[110px] left-0 w-full lg:w-auto bg-[#1C1C2E] lg:bg-transparent px-4 xs:px-6 sm:px-8 lg:px-0 py-4 sm:py-6 lg:p-0 transition-all duration-300 ease-in-out ${
-            isOpen ? "flex z-[60]" : "hidden lg:flex"
-          }`}
+          className={`flex flex-col lg:flex-row gap-4 xs:gap-5 sm:gap-6 lg:gap-10 items-start lg:items-center absolute lg:static top-[110px] left-0 w-full lg:w-auto bg-[#1C1C2E] lg:bg-transparent px-4 xs:px-6 sm:px-8 lg:px-0 py-4 sm:py-6 lg:p-0 transition-all duration-300 ease-in-out ${isOpen ? "flex z-[60]" : "hidden lg:flex"
+            }`}
         >
-          {/* <li>
-            <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-bold text-[#FF8906] bg-[#3C2C2A] hover:bg-[#5A4038] py-2 xs:py-2.5 sm:py-3 px-4 xs:px-5 sm:px-5 lg:px-5 rounded-lg overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-              Become a Tasker
-              <span className="absolute left-0 bottom-0 w-0 h-[3px] bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] transition-all duration-500 group-hover:w-full"></span>
-            </button>
-          </li> */}
+          {/* Dashboard links */}
           <li>
             <Link href={"/dashboard/owner"}>
               <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
@@ -75,13 +86,6 @@ const Navbar = () => {
               </button>
             </Link>
           </li>
-          {/* <li>
-            <select className="bg-[#252531] text-white font-semibold px-2 xs:px-3 sm:px-3 lg:px-2 py-1.5 xs:py-2 sm:py-2 lg:py-1 rounded-md outline-none w-full xs:w-auto text-base xs:text-lg sm:text-lg lg:text-base">
-              <option className="bg-[#252531] text-white">us English</option>
-              <option className="bg-[#252531] text-white">Spanish</option>
-              <option className="bg-[#252531] text-white">French</option>
-            </select>
-          </li> */}
           <li>
             <Link href={"/dashboard/admin"}>
               <button className="relative text-base xs:text-lg sm:text-lg lg:text-lg font-semibold text-white py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
@@ -91,10 +95,22 @@ const Navbar = () => {
             </Link>
           </li>
 
+          {/* Sign Up / Log In or Logout */}
           <li>
-            <button className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left">
-              Sign Up/Log In
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={handleLogout}
+                className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left"
+              >
+                Logout
+              </button>
+            ) : (
+              <Link href={"/authentication"}>
+                <button className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left">
+                  Sign Up/Log In
+                </button>
+              </Link>
+            )}
           </li>
         </ul>
       </div>

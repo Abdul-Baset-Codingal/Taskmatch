@@ -7,6 +7,7 @@ import TaskManagementSection from "./TaskManagementSection";
 import TransactionSection from "./TransactionSection";
 import OperationsSection from "./OperationsSection";
 import ReportsSection from "./ReportsSection";
+import ServiceManagement from "./ServiceManagement";
 
 const tabs = [
   { id: "dashboard", label: "Dashboard Overview" },
@@ -15,6 +16,8 @@ const tabs = [
   { id: "transactions", label: "Transactions" },
   { id: "operations", label: "Operations" },
   { id: "reports", label: "Reports" },
+  { id: "serviceManagement", label: "Service Management" },
+
 ];
 
 const TabsSection = () => {
@@ -24,19 +27,22 @@ const TabsSection = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <DashboardOverview/>;
+        return <DashboardOverview />;
       case "users":
-        return <UserManagementTable/>;
+        return <UserManagementTable />;
       case "tasks":
-        return <TaskManagementSection/>;
+        return <TaskManagementSection />;
       case "transactions":
-        return <TransactionSection/>;
+        return <TransactionSection />;
       case "operations":
-        return <OperationsSection/>;
+        return <OperationsSection />;
       case "reports":
-        return <ReportsSection/>;
+        return <ReportsSection />;
+      case "serviceManagement":
+        return <ServiceManagement />;
       default:
         return null;
+
     }
   };
 
@@ -52,10 +58,9 @@ const TabsSection = () => {
               onClick={() => setActiveTab(tab.id)}
               className={`
                 px-8 py-3 rounded-full font-semibold text-lg transition-all
-                ${
-                  isActive
-                    ? "bg-gradient-to-r from-[#222543] to-[#0F1123] text-white shadow-[0_8px_15px_rgba(34,37,67,0.4)] scale-105"
-                    : "bg-[#1a1d35] text-gray-400 hover:bg-[#2a2f52] hover:text-white shadow-sm"
+                ${isActive
+                  ? "bg-gradient-to-r from-[#222543] to-[#0F1123] text-white shadow-[0_8px_15px_rgba(34,37,67,0.4)] scale-105"
+                  : "bg-[#1a1d35] text-gray-400 hover:bg-[#2a2f52] hover:text-white shadow-sm"
                 }
                 focus:outline-none focus:ring-4 focus:ring-indigo-500
               `}

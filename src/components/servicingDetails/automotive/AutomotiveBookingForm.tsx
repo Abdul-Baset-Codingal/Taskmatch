@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal } from "react";
 import {
   FaCar,
   FaBolt,
@@ -14,7 +15,16 @@ import mech3 from "../../../../public/Images/clientImage3.jpg";
 import mech4 from "../../../../public/Images/clientImage4.jpg";
 import Image from "next/image";
 
-export default function AutomotiveBookingForm() {
+type ServiceOption = {
+  name: string;
+};
+
+type Service = {
+  inputFields: string[];
+  popularOptions?: ServiceOption[];
+};
+
+export default function AutomotiveBookingForm({ service }: { service: Service }) {
   // State for urgency (urgent or schedule)
   const [urgency, setUrgency] = useState("urgent");
   // State for preferred mechanic (random or specific)
@@ -35,6 +45,8 @@ export default function AutomotiveBookingForm() {
     urgencyFee: 0,
     mechanicFee: 0,
   });
+
+  console.log(service)
 
   // Price calculation logic based on selected options
   const calculatePrice = () => {
@@ -102,11 +114,10 @@ export default function AutomotiveBookingForm() {
 
         {/* Urgent Option */}
         <label
-          className={`cursor-pointer block p-4 rounded-xl border transition-all duration-200 mb-4 ${
-            urgency === "urgent"
-              ? "bg-white border-[#FF6E31] shadow"
-              : "bg-gray-100 border-transparent hover:bg-gray-200"
-          }`}
+          className={`cursor-pointer block p-4 rounded-xl border transition-all duration-200 mb-4 ${urgency === "urgent"
+            ? "bg-white border-[#FF6E31] shadow"
+            : "bg-gray-100 border-transparent hover:bg-gray-200"
+            }`}
         >
           <input
             type="radio"
@@ -129,11 +140,10 @@ export default function AutomotiveBookingForm() {
 
         {/* Schedule Option */}
         <label
-          className={`cursor-pointer block p-4 rounded-xl border transition-all duration-200 ${
-            urgency === "schedule"
-              ? "bg-white border-[#FF6E31] shadow"
-              : "bg-gray-100 border-transparent hover:bg-gray-200"
-          }`}
+          className={`cursor-pointer block p-4 rounded-xl border transition-all duration-200 ${urgency === "schedule"
+            ? "bg-white border-[#FF6E31] shadow"
+            : "bg-gray-100 border-transparent hover:bg-gray-200"
+            }`}
         >
           <input
             type="radio"
@@ -158,7 +168,7 @@ export default function AutomotiveBookingForm() {
       {/* Vehicle Details */}
       <div className="mt-6 space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Vehicle Make</label>
+          <label className="block text-sm font-medium mb-1">{service?.inputFields[0]}</label>
           <div className="flex items-center gap-3 bg-gray-100 rounded-xl px-4 py-2">
             <FaCar className="text-blue-500" />
             <input
@@ -171,7 +181,7 @@ export default function AutomotiveBookingForm() {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-medium mb-1">Vehicle Model</label>
+          <label className="block text-sm font-medium mb-1">{service?.inputFields[1]}</label>
           <div className="flex items-center gap-3 bg-gray-100 rounded-xl px-4 py-2">
             <FaCar className="text-green-500" />
             <input
@@ -223,11 +233,10 @@ export default function AutomotiveBookingForm() {
             {/* Random Match Option */}
             <div
               onClick={() => setMechanic("random")}
-              className={`min-w-[200px] cursor-pointer flex-shrink-0 rounded-xl p-4 border transition ${
-                mechanic === "random"
-                  ? "bg-white border-[#FF6E31] shadow"
-                  : "bg-gray-100 border-transparent hover:bg-gray-200"
-              }`}
+              className={`min-w-[200px] cursor-pointer flex-shrink-0 rounded-xl p-4 border transition ${mechanic === "random"
+                ? "bg-white border-[#FF6E31] shadow"
+                : "bg-gray-100 border-transparent hover:bg-gray-200"
+                }`}
             >
               <div className="flex flex-col items-center text-center">
                 <FaUserCheck className="text-green-500 text-3xl mb-2" />
@@ -268,11 +277,10 @@ export default function AutomotiveBookingForm() {
               <div
                 key={m.name}
                 onClick={() => setMechanic(m.name)}
-                className={`min-w-[200px] cursor-pointer flex-shrink-0 rounded-xl p-4 border transition ${
-                  mechanic === m.name
-                    ? "bg-white border-[#845FF1] shadow"
-                    : "bg-gray-100 border-transparent hover:bg-gray-200"
-                }`}
+                className={`min-w-[200px] cursor-pointer flex-shrink-0 rounded-xl p-4 border transition ${mechanic === m.name
+                  ? "bg-white border-[#845FF1] shadow"
+                  : "bg-gray-100 border-transparent hover:bg-gray-200"
+                  }`}
               >
                 <div className="flex flex-col items-center text-center">
                   <Image
@@ -302,12 +310,14 @@ export default function AutomotiveBookingForm() {
           value={serviceType}
           onChange={(e) => setServiceType(e.target.value)}
         >
-          <option>Oil Change</option>
-          <option>Tire Rotation</option>
-          <option>Brake Service</option>
-          <option>Engine Diagnostic</option>
+          {service.popularOptions?.map((option: { name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }, index: Key | null | undefined) => (
+            <option key={index} value={option.name != null ? String(option.name) : ""}>
+              {option.name}
+            </option>
+          ))}
         </select>
       </div>
+
 
       {/* Booking Summary */}
       <div className="mt-8 bg-gray-50 rounded-2xl p-6 shadow-md">
@@ -374,17 +384,17 @@ export default function AutomotiveBookingForm() {
       <div className="mt-8">
         <h4 className="text-sm font-semibold mb-2 text-gray-600">Popular:</h4>
         <div className="flex flex-wrap gap-4">
-          <span className="bg-gray-200 px-4 py-2 rounded-full text-sm">
-            🛢️ Oil Change
-          </span>
-          <span className="bg-gray-200 px-4 py-2 rounded-full text-sm">
-            🚗 Tire Rotation
-          </span>
-          <span className="bg-gray-200 px-4 py-2 rounded-full text-sm">
-            🛠️ Brake Service
-          </span>
+          {service.popularOptions?.map((option: { name: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }, index: Key | null | undefined) => (
+            <span
+              key={index}
+              className="bg-gray-200 px-4 py-2 rounded-full text-sm cursor-pointer"
+            >
+              {option.name}
+            </span>
+          ))}
         </div>
       </div>
+
     </div>
   );
 }

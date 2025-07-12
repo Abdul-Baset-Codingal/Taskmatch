@@ -1,14 +1,19 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import React, { useEffect, useState } from "react";
 import BannerCard from "./BannerCard";
-import Link from "next/link";
-
+import { FaSpa, FaCalendarAlt } from "react-icons/fa";
+import FindTaskersModal from "./FindTaskersModal";
+import { FaPlusCircle, FaSearch } from "react-icons/fa";
 const Banner = () => {
   const [clipPath, setClipPath] = useState(
     "polygon(0 0, 100% 0, 100% 210vh, 0 220vh)"
   );
   const [height, setHeight] = useState("120vh");
-
+  const [showOptions, setShowOptions] = useState(false);
+  const [option, setOption] = useState<"urgent" | "scheduled" | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   useEffect(() => {
     const updateClipPath = () => {
       if (window.innerWidth < 768) {
@@ -20,23 +25,23 @@ const Banner = () => {
       }
     };
 
-    updateClipPath(); // Run once on mount
-
+    updateClipPath();
     window.addEventListener("resize", updateClipPath);
     return () => window.removeEventListener("resize", updateClipPath);
   }, []);
 
+  const handleToggle = () => {
+    setShowOptions(!showOptions);
+    setOption(null);
+  };
+
   return (
     <div
       className="w-full bg-[#16161A] relative overflow-hidden"
-      style={{
-        height: height,
-        clipPath: clipPath,
-      }}
+      style={{ height: height, clipPath: clipPath }}
     >
       {/* Bubble Top Left */}
       <div className="absolute z-10 w-[450px] h-[450px] bg-purple-950 opacity-30 rounded-full top-[-60px] left-[-60px] blur-3xl animate-bubbleFloat"></div>
-
       {/* Bubble Bottom Right */}
       <div className="absolute z-10 w-[400px] h-[400px] bg-green-950 opacity-30 rounded-full bottom-[-80px] right-[80px] blur-2xl animate-bubbleFloat"></div>
 
@@ -45,14 +50,25 @@ const Banner = () => {
         <div className="flex items-center max-w-6xl mx-auto gap-16 w-full justify-center flex-col lg:flex-row px-4">
           {/* Left Text */}
           <div className="text-white max-w-lg">
-            <h1 className="text-6xl font-bold leading-snug">
-              Get help.
-              <br />
-              Get things done.
-            </h1>
-            <p className="text-lg font-semibold mt-3">
-              Connect with skilled professionals for any task, big or small.
-            </p>
+            <div className="space-y-3">
+              {/* Glass background small text */}
+              <div className="inline-block px-4 py-1 text-lg rounded-full backdrop-blur-md bg-white/10 border border-white/20  font-medium text-white shadow">
+                🍁 We are proudly Canadian
+              </div>
+
+              {/* Main heading */}
+              <h1 className="text-6xl font-bold leading-snug text-white">
+                Need a hand, eh?
+                <br />
+                We've got you covered.
+              </h1>
+
+              {/* Paragraph */}
+              <p className="text-lg font-semibold mt-3 text-white">
+                Your trusted local service network
+              </p>
+            </div>
+
 
             {/* Search Bar */}
             <div className="mt-6 relative w-full max-w-md">
@@ -71,23 +87,65 @@ const Banner = () => {
             <div className="flex justify-center mt-12">
               <p className="text-white font-bold mr-16">Choose an option:</p>
             </div>
+
             <div className="max-w-md mt-4">
-              ,
-              <Link href={'/post-a-task'}>
-                <button className="text-white w-full font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3  rounded-4xl  hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                  Post a Task
-                </button>
-              </Link>
-              <button className="text-white w-full mt-5  bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-6 py-3 font-bold rounded-4xl  hover:shadow-lg hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                Book Now
+              <button
+                onClick={handleToggle}
+                className="flex items-center justify-center gap-2 text-white w-full font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3 rounded-4xl hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer"
+              >
+                <FaPlusCircle className="text-white text-lg" />
+                Post a Task
               </button>
+
+              {!showOptions && (
+                <div>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="flex items-center justify-center gap-2 text-white w-full mt-5 bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-6 py-3 font-bold rounded-4xl hover:shadow-lg hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300 cursor-pointer"
+                  >
+                    <FaSearch className="text-white text-lg" />
+                    Find a Tasker
+                  </button>
+                  <FindTaskersModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+                </div>
+              )}
+              {showOptions && (
+                <div className="flex flex-col gap-4 mt-5">
+                  <div
+                    onClick={() => setOption("urgent")}
+                    className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"
+                  >
+                    <FaSpa className="text-pink-500 text-xl mt-1" />
+                    <div>
+                      <h4 className="font-semibold capitalize text-white">Urgent</h4>
+                      <p className="text-sm text-gray-400">
+                        Get pampered as soon as possible
+                      </p>
+                    </div>
+                  </div>
+                  <div
+                    onClick={() => setOption("scheduled")}
+                    className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"
+                  >
+                    <FaCalendarAlt className="text-pink-500 text-xl mt-1" />
+                    <div>
+                      <h4 className="font-semibold capitalize text-white">Scheduled</h4>
+                      <p className="text-sm text-gray-400">
+                        Pick a suitable date and time
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="flex justify-center mt-2">
               <p className="text-white text-sm mr-16">
                 Choose the option that works best for you
               </p>
             </div>
           </div>
+
           <div>
             <BannerCard />
           </div>
