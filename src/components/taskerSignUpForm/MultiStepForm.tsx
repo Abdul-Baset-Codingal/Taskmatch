@@ -37,9 +37,7 @@ const MultiStepForm = () => {
             case 4:
                 return <Step4RatesAvailability onNext={nextStep} onBack={prevStep} />;
             case 5:
-                return <Step5ReviewSubmit onBack={prevStep} onSubmit={function (): void {
-                    throw new Error("Function not implemented.");
-                }} />;
+                return <Step5ReviewSubmit onBack={prevStep} />;
             default:
                 return <div>Invalid step</div>;
         }
