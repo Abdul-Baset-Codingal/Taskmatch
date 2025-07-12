@@ -14,6 +14,12 @@ export const taskApi = createApi({
             return headers;
         },
     }),
+    // export const taskApi = createApi({
+    //     reducerPath: "taskApi",
+    //     baseQuery: fetchBaseQuery({
+    //         baseUrl: "https://taskmatch-backend-hiza.onrender.com/api",
+    //         credentials: "include",
+    //     }),
     tagTypes: ["Task"],
 
     endpoints: (builder) => ({
@@ -35,9 +41,8 @@ export const taskApi = createApi({
 
         // ✅ Get urgent tasks (with optional status)
         getUrgentTasks: builder.query({
-            query: (status = "") => {
-                const queryString = status ? `?status=${status}` : "";
-                return `/tasks/urgent${queryString}`;
+            query: () => {
+                return `/tasks/urgent`;
             },
         }),
 
