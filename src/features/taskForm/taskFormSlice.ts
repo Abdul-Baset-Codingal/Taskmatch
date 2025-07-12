@@ -25,6 +25,7 @@ const initialState: TaskFormState = {
     additionalInfo: "",
     photos: [],
     video: null,
+    price: ""
 };
 
 const taskFormSlice = createSlice({
