@@ -1,8 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useEffect, useState } from "react";
 import AutomotiveBookingForm from "../servicingDetails/automotive/AutomotiveBookingForm";
 
-const DetailsBanner = ({ service }) => {
+interface DetailsBannerProps {
+  service: any; // Replace 'any' with the actual type if known, e.g. 'Service'
+}
+
+const DetailsBanner: React.FC<DetailsBannerProps> = ({ service }) => {
   const [clipPath, setClipPath] = useState(
     "polygon(0 0, 100% 0, 100% 270vh, 0 280vh)"
   );
