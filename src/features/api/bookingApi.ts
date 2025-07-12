@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 export const bookingApi = createApi({
     reducerPath: 'bookingApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: 'http://localhost:5000/api', 
+        baseUrl: 'https://taskmatch-backend-hiza.onrender.com/api', 
         prepareHeaders: (headers) => {
             const token = Cookies.get('token');
             if (token) {
