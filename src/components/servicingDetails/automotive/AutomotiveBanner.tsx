@@ -94,7 +94,10 @@ const AutomotiveBanner = () => {
             </div>
           </div>
           <div className="w-full max-w-xl">
-            <AutomotiveBookingForm />
+            <AutomotiveBookingForm service={{
+              inputFields: [],
+              popularOptions: undefined
+            }} />
           </div>
         </div>
       </div>
