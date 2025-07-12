@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from "react";
 import { MdCheckCircle } from "react-icons/md";
 
@@ -55,7 +57,11 @@ const automotivePackages = [
   },
 ];
 
-const ServicePackages = () => {
+interface ServicePackagesProps {
+  service: any;
+}
+
+const ServicePackages: React.FC<ServicePackagesProps> = ({ service }) => {
   return (
     <div>
       {/* Section Header */}

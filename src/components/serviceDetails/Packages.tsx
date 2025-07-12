@@ -1,6 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { FaCheck, FaOilCan } from "react-icons/fa";
+interface PackagesProps {
+  service: any;
+}
 
-export default function Packages() {
+const Packages: React.FC<PackagesProps> = ({ service }) => {
   return (
     <div className="bg-gradient-to-r from-[#7F5AEF] to-[#6548B1] py-20 rounded-3xl">
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 px-6 lg:px-12">
@@ -144,9 +149,8 @@ export default function Packages() {
               ].map((addon, i) => (
                 <label
                   key={i}
-                  className={`flex items-center gap-3 ${
-                    i === 2 ? "w-full" : "w-[calc(50%-0.5rem)]"
-                  }`}
+                  className={`flex items-center gap-3 ${i === 2 ? "w-full" : "w-[calc(50%-0.5rem)]"
+                    }`}
                 >
                   <input type="checkbox" className="h-5 w-5 text-purple-500" />
                   <span className="text-gray-700">{addon}</span>
@@ -167,3 +171,4 @@ export default function Packages() {
     </div>
   );
 }
+export default Packages;
