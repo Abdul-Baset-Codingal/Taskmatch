@@ -1,7 +1,6 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 "use client"
 import Service from '@/components/routes/urgent-task/Service';
-import UrgentBanner from '@/components/routes/urgent-task/UrgentBanner';
 import UrgentTaskDetails from '@/components/routes/urgent-task/UrgentTaskDetails';
 import UrgentTaskSchedule from '@/components/routes/urgent-task/UrgentTaskSchedule';
 import Navbar from '@/shared/Navbar';
@@ -15,9 +14,9 @@ const page = () => {
       <div>
         <Navbar />
       </div>
-      <div>
+      {/* <div>
         <UrgentBanner/>
-      </div>
+      </div> */}
       <div className="mt-20">
         <div className="max-w-7xl mx-auto px-4 lg:px-10 py-10 text-black bg-orange-50 border-t-4 border-orange-500 rounded-2xl">
           {/* Step Indicator */}

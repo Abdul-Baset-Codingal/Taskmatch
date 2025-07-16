@@ -43,7 +43,7 @@ const BannerCard = () => {
       <div
         className={`bg-[#252531] rounded-2xl p-8 max-w-md w-full shadow-lg transform ${
           fade
-            ? "rotate-[-4deg] hover:rotate-0 opacity-100 translate-y-0"
+            ? "  opacity-100 translate-y-0"
             : "opacity-0 translate-y-4"
         } transition-all duration-500 ease-in-out`}
       >

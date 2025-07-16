@@ -2,7 +2,6 @@ import GettingDone from "@/components/gettingDone/GettingDone";
 import Banner from "@/components/home/Banner";
 import HowTaskMatchWorks from "@/components/howTaskMatchWorks/HowTaskMatchWorks";
 import PopularServices from "@/components/popularServices/PopularServices";
-import RecentlyCompleted from "@/components/recentlyCompleted/RecentlyCompleted";
 import TaskMatchApp from "@/components/taskMatchApp/TaskMatchApp";
 import Testimonials from "@/components/testimonials/Testimonials";
 import Navbar from "@/shared/Navbar";
@@ -25,9 +24,9 @@ export default function Home() {
       <div className="mt-28">
         <GettingDone />
       </div>
-      <div className="mt-28">
+      {/* <div className="mt-28">
         <RecentlyCompleted />
-      </div>
+      </div> */}
       <div>
         <Testimonials />
       </div>

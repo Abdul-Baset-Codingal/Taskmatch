@@ -115,51 +115,74 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
             </div>
 
             {/* 🕒 Offer Deadline Selection */}
-            <div className="mt-10">
-                <h3 className="text-lg font-bold mb-3 text-gray-800">Offer Deadline <span className="text-red-500">*</span></h3>
-                <p className="text-sm text-gray-600 mb-4">
-                    Set a deadline for taskers to submit their offers. This helps you get timely responses.
-                </p>
+            {timing !== "Urgent" && (
+                <div className="mt-10">
+                    <h3 className="text-lg font-bold mb-3 text-gray-800">
+                        Offer Deadline <span className="text-red-500">*</span>
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                        Set a deadline for taskers to submit their offers. This helps you get timely responses.
+                    </p>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                    {[
-                        { label: "1 Hour", icon: "⚡", note: "Quick turnaround" },
-                        { label: "3 Hours", icon: "🕒", note: "Good response time" },
-                        { label: "6 Hours", icon: "⏰", note: "More options" },
-                        { label: "12 Hours", icon: "📅", note: "Balanced" },
-                        { label: "24 Hours", icon: "🗓️", note: "Maximum choices" },
-                        { label: "Custom", icon: "✏️", note: "Set specific time" },
-                    ].map((item) => (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                        {[
+                            { label: "1 Hour", icon: "⚡", note: "Quick turnaround" },
+                            { label: "3 Hours", icon: "🕒", note: "Good response time" },
+                            { label: "6 Hours", icon: "⏰", note: "More options" },
+                            { label: "12 Hours", icon: "📅", note: "Balanced" },
+                            { label: "24 Hours", icon: "🗓️", note: "Maximum choices" },
+                            { label: "Custom", icon: "✏️", note: "Set specific time" },
+                        ].map((item) => (
+                            <button
+                                key={item.label}
+                                onClick={() => setOfferDeadline(item.label)}
+                                className={`border-2 rounded-xl p-4 text-left transition ${offerDeadline === item.label
+                                    ? "border-orange-500 bg-orange-100"
+                                    : "border-gray-300"
+                                    }`}
+                            >
+                                <div className="text-xl mb-1">{item.icon}</div>
+                                <div className="font-semibold">{item.label}</div>
+                                <p className="text-sm text-gray-600">{item.note}</p>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Custom DateTime Picker */}
+                    {offerDeadline === "Custom" && (
+                        <div className="mt-4 w-full mb-6 ">
+                            <label className="block text-sm font-medium mb-1">Select Deadline</label>
+                            <DatePicker
+                                selected={customDeadline}
+                                onChange={(date: Date | null) => setCustomDeadline(date)}
+                                showTimeSelect
+                                timeIntervals={15}
+                                dateFormat="Pp"
+                                className="lg:w-[1200px] border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                                placeholderText="Select custom deadline..."
+                            />
+                        </div>
+                    )}
+                </div>
+            )}
+            <div className="mb-6">
+                <h3 className="text-lg font-bold mb-3 text-gray-800">📍 Tell us where</h3>
+                <div className="flex gap-4 flex-wrap">
+                    {["At My Location", "Other", "Remote"].map((loc) => (
                         <button
-                            key={item.label}
-                            onClick={() => setOfferDeadline(item.label)}
-                            className={`border-2 rounded-xl p-4 text-left transition ${offerDeadline === item.label
+                            key={loc}
+                            onClick={() =>
+                                dispatch(updateTaskField({ field: "location", value: loc }))
+                            }
+                            className={`border-2 rounded-xl px-6 py-3 text-sm font-semibold ${taskForm.location === loc
                                 ? "border-orange-500 bg-orange-100"
                                 : "border-gray-300"
                                 }`}
                         >
-                            <div className="text-xl mb-1">{item.icon}</div>
-                            <div className="font-semibold">{item.label}</div>
-                            <p className="text-sm text-gray-600">{item.note}</p>
+                            {loc}
                         </button>
                     ))}
                 </div>
-
-                {/* Custom DateTime Picker */}
-                {offerDeadline === "Custom" && (
-                    <div className="mt-4 w-full mb-6 ">
-                        <label className="block text-sm font-medium mb-1">Select Deadline</label>
-                        <DatePicker
-                            selected={customDeadline}
-                            onChange={(date: Date | null) => setCustomDeadline(date)}
-                            showTimeSelect
-                            timeIntervals={15}
-                            dateFormat="Pp"
-                            className="lg:w-[1200px] border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                            placeholderText="Select custom deadline..."
-                        />
-                    </div>
-                )}
             </div>
 
 
@@ -256,8 +279,8 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
 
             {isSuccess && (
                 <p className="mt-4 text-green-600 font-semibold">
-                    Task posted successfully! 
-                    
+                    Task posted successfully!
+
                 </p>
             )}
             <ToastContainer position="top-right" autoClose={3000} />

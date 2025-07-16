@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation"; 
+import { FaPlusCircle } from "react-icons/fa";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -61,6 +62,15 @@ const Navbar = () => {
           className={`flex flex-col lg:flex-row gap-4 xs:gap-5 sm:gap-6 lg:gap-10 items-start lg:items-center absolute lg:static top-[110px] left-0 w-full lg:w-auto bg-[#1C1C2E] lg:bg-transparent px-4 xs:px-6 sm:px-8 lg:px-0 py-4 sm:py-6 lg:p-0 transition-all duration-300 ease-in-out ${isOpen ? "flex z-[60]" : "hidden lg:flex"
             }`}
         >
+          <li>
+            <Link href="/tasker-signup">
+              <button className="flex items-center justify-center gap-2 text-white w-full lg:w-auto font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3 rounded-4xl hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
+                <FaPlusCircle className="text-white text-lg" />
+                Become a Tasker
+              </button>
+            </Link>
+          </li>
+
           {/* Dashboard links */}
           <li>
             <Link href={"/dashboard/owner"}>

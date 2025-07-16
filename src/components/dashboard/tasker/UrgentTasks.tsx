@@ -4,7 +4,7 @@
 
 import { JSXElementConstructor, Key, ReactElement, ReactNode, ReactPortal, SetStateAction, useState } from "react";
 import { FaMapMarkerAlt, FaClock, FaCalendarAlt, FaDollarSign } from "react-icons/fa";
-import { MdAccessTime, MdOutlinePlayArrow } from "react-icons/md";
+import { MdAccessTime, MdOutlinePlayArrow, MdExpandLess } from "react-icons/md";
 import { useGetUrgentTasksQuery, useBidOnTaskMutation, useUpdateTaskMutation, useAcceptTaskMutation } from "@/features/api/taskApi";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -13,14 +13,41 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import { Navigation } from "swiper/modules";
+import Image from "next/image";
 
 export default function UrgentTaskCards() {
   const { data: urgentTasks = [], isLoading } = useGetUrgentTasksQuery({});
   const [bidOnTask, { isLoading: isBidding }] = useBidOnTaskMutation();
   const [updateTaskStatus, { isLoading: isUpdating }] = useUpdateTaskMutation();
   const [acceptTask, { isLoading: isAccepting }] = useAcceptTaskMutation();
+  const [showMedia, setShowMedia] = useState(false);
 
   console.log(urgentTasks)
+
+  const getFileUrl = (filename: string | null | undefined): string | undefined => {
+    if (!filename) return undefined;
+
+    if (filename.startsWith("http://") || filename.startsWith("https://")) {
+      return filename;
+    }
+
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "https://taskmatch-backend-hiza.onrender.com";
+    return `${baseUrl}/uploads/${filename}`;
+  };
+
+
+  const getVideoType = (filename: string): string => {
+    const extension = filename.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'mp4':
+      case 'webm':
+      case 'ogg':
+        return extension;
+      default:
+        return 'mp4';
+    }
+  };
+
 
   const [bidModalOpen, setBidModalOpen] = useState(false);
   const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
@@ -41,6 +68,9 @@ export default function UrgentTaskCards() {
     setConfirmModalOpen(false);
     setSelectedTaskId(null);
   };
+
+
+
 
   const confirmAcceptTask = async () => {
     if (!selectedTaskId) return;
@@ -186,9 +216,12 @@ export default function UrgentTaskCards() {
                 </p>
 
                 <div className="mt-5 flex justify-between items-center text-sm text-[#FF7B00] font-semibold">
-                  <div className="flex items-center gap-2 cursor-pointer hover:underline">
-                    <MdOutlinePlayArrow />
-                    View All Media ({task.photos.length + (task.video ? 1 : 0)})
+                  <div
+                    className="flex items-center gap-2 cursor-pointer hover:underline"
+                    onClick={() => setShowMedia(!showMedia)}
+                  >
+                    {showMedia ? <MdExpandLess /> : <MdOutlinePlayArrow />}
+                    {showMedia ? 'Hide Media' : `View All Media (${task.photos.length + (task.video ? 1 : 0)})`}
                   </div>
                   <div className="flex flex-col gap-2 text-sm text-gray-700">
                     <div className="flex items-center gap-2">
@@ -213,13 +246,64 @@ export default function UrgentTaskCards() {
                   </div>
 
                 </div>
+                {showMedia && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    {task?.photos?.length > 0 && (
+                      <div className="mb-4">
+                        <h4 className="font-medium mb-2">Photos</h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {Array.isArray(task.photos) &&
+                            task.photos.map((photo: string, index: Key | null | undefined) => {
+                              const imageUrl = getFileUrl(photo);
+                              return (
+                                <div key={index} className="relative w-full h-48 rounded-lg overflow-hidden">
+                                  {imageUrl && (
+                                    <Image
+                                      src={imageUrl}
+                                      alt={`Task photo ${typeof index === 'number' ? index + 1 : ''}`}
+                                      fill
+                                      className="object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => window.open(imageUrl, '_blank')}
+                                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                                      onError={(e) => {
+                                        console.error('Image failed to load:', imageUrl);
+                                        e.currentTarget.src = '/placeholder-image.jpg';
+                                      }}
+                                    />
+                                  )}
 
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </div>
+                    )}
+
+                    {task.video && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-medium mb-3">Video</h4>
+                        <video
+                          controls
+                          className="w-full max-w-md rounded-lg"
+                          preload="metadata"
+                        >
+                          <source
+                            src={getFileUrl(task.video)}
+                            type={`video/${getVideoType(task.video)}`}
+                          />
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    )}
+
+                  </div>
+                )}
                 <div className="mt-6 flex flex-wrap gap-3">
 
                   <button
                     onClick={() => openBidModal(String(task._id ?? ""))}
-                    disabled={task.status === "in progress" || task.status === "completed"}
-                    className={`px-4 py-2 rounded-xl font-semibold transition ${task.status === "in progress"
+                    disabled={task.status === "in progress" || task.status === "completed" || task.status === "requested"}
+                    className={`px-4 py-2 rounded-xl font-semibold transition ${task.status === "in progress" || task.status === "completed" || task.status === "requested"
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-[#FFF1D6] hover:bg-[#FFE5B4] text-[#A15500]"
                       }`}
@@ -229,16 +313,14 @@ export default function UrgentTaskCards() {
 
                   <button
                     onClick={() => openConfirmModal(task._id ? String(task._id) : null)}
-                    disabled={task.status === "in progress" || task.status === "completed"}
-                    className={`px-4 py-2 rounded-xl font-bold transition ${task.status === "in progress"
+                    disabled={task.status === "in progress" || task.status === "completed" || task.status === "requested"}
+                    className={`px-4 py-2 rounded-xl font-bold transition ${task.status === "in progress" || task.status === "completed" || task.status === "requested"
                       ? "bg-gray-400 text-white cursor-not-allowed"
                       : "bg-[#FF7B00] hover:bg-[#e76900] text-white"
                       }`}
                   >
                     Accept Now
                   </button>
-
-
                 </div>
               </div>
             </SwiperSlide>

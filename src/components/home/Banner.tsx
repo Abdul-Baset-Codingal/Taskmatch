@@ -8,21 +8,25 @@ import FindTaskersModal from "./FindTaskersModal";
 import { FaPlusCircle, FaSearch } from "react-icons/fa";
 import Link from "next/link";
 const Banner = () => {
-  const [clipPath, setClipPath] = useState(
-    "polygon(0 0, 100% 0, 100% 210vh, 0 220vh)"
-  );
+
   const [height, setHeight] = useState("120vh");
   const [showOptions, setShowOptions] = useState(false);
   const [option, setOption] = useState<"urgent" | "scheduled" | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clipPath, setClipPath] = useState(
+    "polygon(0 0, 100% 0, 100% 100%, 0 100%)"
+  );
+
   useEffect(() => {
     const updateClipPath = () => {
-      if (window.innerWidth < 768) {
-        setClipPath("polygon(0 0, 100% 0, 100% 190vh, 0 200vh)");
-        setHeight("200vh");
+      const width = window.innerWidth;
+
+      if (width < 640) {
+        setClipPath("polygon(0 0, 100% 0, 100% 100%, 0 100%)");
+      } else if (width >= 640 && width < 1024) {
+        setClipPath("polygon(0 0, 100% 0, 100% 100%, 0 100%)");
       } else {
-        setClipPath("polygon(0 0, 100% 0, 100% 210vh, 0 120vh)");
-        setHeight("120vh");
+        setClipPath("polygon(0 0, 100% 0, 100% 100%, 0 100%)");
       }
     };
 
@@ -31,6 +35,7 @@ const Banner = () => {
     return () => window.removeEventListener("resize", updateClipPath);
   }, []);
 
+
   const handleToggle = () => {
     setShowOptions(!showOptions);
     setOption(null);
@@ -38,8 +43,8 @@ const Banner = () => {
 
   return (
     <div
-      className="w-full bg-[#16161A] relative overflow-hidden"
-      style={{ height: height, clipPath: clipPath }}
+      className="w-full bg-[#16161A] relative overflow-hidden pt-20 pb-20"
+      style={{ clipPath: clipPath }}
     >
       {/* Bubble Top Left */}
       <div className="absolute z-10 w-[450px] h-[450px] bg-purple-950 opacity-30 rounded-full top-[-60px] left-[-60px] blur-3xl animate-bubbleFloat"></div>
@@ -75,7 +80,7 @@ const Banner = () => {
             <div className="mt-6 relative w-full max-w-md">
               <input
                 type="text"
-                placeholder="what pet service do you need?"
+                placeholder="what services do you need?"
                 className="w-full rounded-full py-3 px-5 pr-32 bg-[#252531] text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <button
@@ -90,56 +95,27 @@ const Banner = () => {
             </div>
 
             <div className="max-w-md mt-4">
-              <button
-                onClick={handleToggle}
-                className="flex items-center justify-center gap-2 text-white w-full font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3 rounded-4xl hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer"
-              >
-                <FaPlusCircle className="text-white text-lg" />
-                Post a Task
-              </button>
+              <Link href={'urgent-task'}>
+                <button
+                  onClick={handleToggle}
+                  className="flex items-center justify-center gap-2 text-white w-full font-bold bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-6 py-3 rounded-4xl hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer"
+                >
+                  <FaPlusCircle className="text-white text-lg" />
+                  Post a Task
+                </button>
 
-              {!showOptions && (
-                <div>
-                  <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center justify-center gap-2 text-white w-full mt-5 bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-6 py-3 font-bold rounded-4xl hover:shadow-lg hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300 cursor-pointer"
-                  >
-                    <FaSearch className="text-white text-lg" />
-                    Find a Tasker
-                  </button>
-                  <FindTaskersModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-                </div>
-              )}
-              {showOptions && (
-                <div className="flex flex-col gap-4 mt-5">
-                  <Link href={'/urgent-task'}>
-                    <div
-                      onClick={() => setOption("urgent")}
-                      className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"
-                    >
-                      <FaSpa className="text-pink-500 text-xl mt-1" />
-                      <div>
-                        <h4 className="font-semibold capitalize text-white">Urgent</h4>
-                        <p className="text-sm text-gray-400">
-                          Get pampered as soon as possible
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                  <div
-                    onClick={() => setOption("scheduled")}
-                    className="flex items-start gap-4 bg-[#252531] p-4 rounded-2xl cursor-pointer hover:shadow-lg transition"
-                  >
-                    <FaCalendarAlt className="text-pink-500 text-xl mt-1" />
-                    <div>
-                      <h4 className="font-semibold capitalize text-white">Scheduled</h4>
-                      <p className="text-sm text-gray-400">
-                        Pick a suitable date and time
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              </Link>
+              <div>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center justify-center gap-2 text-white w-full mt-5 bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-6 py-3 font-bold rounded-4xl hover:shadow-lg hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300 cursor-pointer"
+                >
+                  <FaSearch className="text-white text-lg" />
+                  Find a Tasker
+                </button>
+                <FindTaskersModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+              </div>
+
             </div>
 
             <div className="flex justify-center mt-2">
