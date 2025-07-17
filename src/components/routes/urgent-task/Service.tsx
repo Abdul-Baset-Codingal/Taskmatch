@@ -140,12 +140,14 @@ const Service = ({ onContinue }: Props) => {
                 </div>
             </div>
 
-            <button
-                onClick={handleContinue}
-                className="bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-8 py-4 rounded-2xl font-bold text-white mt-8 hover:shadow-xl hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300"
-            >
-                Continue
-            </button>
+            <div className="flex justify-end">  
+                <button
+                    onClick={handleContinue}
+                    className="bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-8 py-4 rounded-2xl font-bold text-white mt-8 hover:shadow-xl hover:shadow-[#FF8906] hover:-translate-y-1 transform transition duration-300"
+                >
+                    Continue
+                </button>
+            </div>
         </div>
     );
 };

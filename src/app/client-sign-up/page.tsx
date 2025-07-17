@@ -7,10 +7,12 @@ import Navbar from "@/shared/Navbar";
 import { useSignupMutation } from "@/features/auth/authApi"; // ⬅️ Make sure the path is correct
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useRouter } from "next/navigation";
 
 const ClientSignupPage = () => {
     const [agreed, setAgreed] = useState(false);
     const [signup, { isLoading }] = useSignupMutation();
+    const router = useRouter();
 
     const [formData, setFormData] = useState({
         fullName: "",
@@ -46,12 +48,15 @@ const ClientSignupPage = () => {
             const res = await signup(finalData).unwrap();
             toast.success("Account created successfully!");
             console.log("Signup success:", res);
-            // Optionally redirect here
+
+            // Navigate to home page
+            router.push("/");
         } catch (error: any) {
             console.error("Signup error:", error);
             toast.error("Signup failed. Please try again.");
         }
     };
+
 
 
     return (
