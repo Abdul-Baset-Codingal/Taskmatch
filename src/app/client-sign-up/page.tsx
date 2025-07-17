@@ -8,6 +8,7 @@ import { useSignupMutation } from "@/features/auth/authApi"; // ⬅️ Make sure
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const ClientSignupPage = () => {
     const [agreed, setAgreed] = useState(false);
@@ -46,14 +47,18 @@ const ClientSignupPage = () => {
 
         try {
             const res = await signup(finalData).unwrap();
+
+            // ✅ Set cookie like login
+            Cookies.set("token", res.token, { expires: 7, sameSite: "strict" });
+
             toast.success("Account created successfully!");
             console.log("Signup success:", res);
 
-            // Navigate to home page
-            router.push("/?openClientLogin=true");
+            // Redirect and open login modal (or skip modal since you're already logged in)
+            router.push("/");
         } catch (error: any) {
             console.error("Signup error:", error);
-            toast.error("Signup failed. Please try again.");
+            toast.error(error?.data?.message || "Signup failed. Please try again.");
         }
     };
 
