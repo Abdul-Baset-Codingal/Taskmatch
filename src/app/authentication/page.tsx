@@ -6,12 +6,22 @@ import ClientLoginModal from "@/components/authentication/ClientLoginModal";
 import TaskerLoginModal from "@/components/authentication/TaskerLoginModal";
 import TaskerSignupModal from "@/components/authentication/TaskerSignupModal";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { useEffect } from "react";
 
 const JoinTaskMatch = () => {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [isTaskerModalOpen, setIsTaskerModalOpen] = useState(false);
   const [isTaskerSignupModalOpen, setIsTaskerSignupModalOpen] = useState(false);
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const shouldOpen = searchParams.get("openClientLogin");
+    if (shouldOpen === "true") {
+      setIsClientModalOpen(true);
+    }
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-purple-50">

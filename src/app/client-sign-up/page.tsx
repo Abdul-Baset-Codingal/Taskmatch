@@ -50,7 +50,7 @@ const ClientSignupPage = () => {
             console.log("Signup success:", res);
 
             // Navigate to home page
-            router.push("/");
+            router.push("/?openClientLogin=true");
         } catch (error: any) {
             console.error("Signup error:", error);
             toast.error("Signup failed. Please try again.");
