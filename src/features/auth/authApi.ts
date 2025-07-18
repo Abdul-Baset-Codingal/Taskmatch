@@ -4,7 +4,12 @@ export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
         baseUrl: "https://taskmatch-backend-hiza.onrender.com/api",
-        credentials: "include", // if using cookies
+        credentials: "include", // ✅ This is correct
+        prepareHeaders: (headers) => {
+            // Ensure proper headers for CORS
+            headers.set('Content-Type', 'application/json');
+            return headers;
+        },
     }),
     endpoints: (builder) => ({
         signup: builder.mutation({
@@ -14,7 +19,7 @@ export const authApi = createApi({
                 body: userData,
             }),
         }),
-        
+
         login: builder.mutation({
             query: (userData) => ({
                 url: "/login",
