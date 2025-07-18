@@ -8,7 +8,6 @@ import { useSignupMutation } from "@/features/auth/authApi"; // ⬅️ Make sure
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 
 const ClientSignupPage = () => {
     const [agreed, setAgreed] = useState(false);
@@ -32,7 +31,6 @@ const ClientSignupPage = () => {
         const { id, value } = e.target;
         setFormData({ ...formData, [id]: value });
     };
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!agreed) {
@@ -40,30 +38,14 @@ const ClientSignupPage = () => {
             return;
         }
 
-        const finalData = {
-            ...formData,
-            role: "client",
-        };
-
         try {
-            const res = await signup(finalData).unwrap();
-
-            // ✅ Set cookie like login
-            Cookies.set("token", res.token, {
-                path: "/", // ✅ Required for cookie to be accessible everywhere
-                expires: 7,
-                sameSite: "Lax", // or 'Strict' if you're not doing cross-origin
-                secure: true,    // ✅ Required on HTTPS (Vercel is HTTPS)
-            });
-
+            const res = await signup({ ...formData, role: "client" }).unwrap();
 
             toast.success("Account created successfully!");
             console.log("Signup success:", res);
 
-            // Redirect and open login modal (or skip modal since you're already logged in)
             router.push("/");
         } catch (error: any) {
-            console.error("Signup error:", error);
             toast.error(error?.data?.message || "Signup failed. Please try again.");
         }
     };
