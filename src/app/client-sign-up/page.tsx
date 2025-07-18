@@ -50,10 +50,12 @@ const ClientSignupPage = () => {
 
             // ✅ Set cookie like login
             Cookies.set("token", res.token, {
+                path: "/", // ✅ Required for cookie to be accessible everywhere
                 expires: 7,
-                sameSite: "strict",
-                secure: process.env.NODE_ENV === "production",
+                sameSite: "Lax", // or 'Strict' if you're not doing cross-origin
+                secure: true,    // ✅ Required on HTTPS (Vercel is HTTPS)
             });
+
 
             toast.success("Account created successfully!");
             console.log("Signup success:", res);
