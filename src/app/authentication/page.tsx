@@ -1,5 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
-import React, { useState } from "react";
+export const dynamic = "force-dynamic"; // disables static rendering
+
+import React, { useState, useEffect, Suspense } from "react";
 import { FaHome, FaBriefcase, FaCheckCircle, FaStar, FaClock, FaShieldAlt, FaFire } from "react-icons/fa";
 import Navbar from "@/shared/Navbar";
 import ClientLoginModal from "@/components/authentication/ClientLoginModal";
@@ -7,13 +10,9 @@ import TaskerLoginModal from "@/components/authentication/TaskerLoginModal";
 import TaskerSignupModal from "@/components/authentication/TaskerSignupModal";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
 
-const JoinTaskMatch = () => {
-  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
-  const [isTaskerModalOpen, setIsTaskerModalOpen] = useState(false);
-  const [isTaskerSignupModalOpen, setIsTaskerSignupModalOpen] = useState(false);
-  const [activeModal, setActiveModal] = useState<string | null>(null);
+// Separate client-side search param logic
+const OpenClientLoginOnQuery = ({ setIsClientModalOpen }: { setIsClientModalOpen: (val: boolean) => void }) => {
   const searchParams = useSearchParams();
 
   useEffect(() => {
@@ -23,10 +22,22 @@ const JoinTaskMatch = () => {
     }
   }, [searchParams]);
 
+  return null;
+};
+
+const JoinTaskMatch = () => {
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [isTaskerModalOpen, setIsTaskerModalOpen] = useState(false);
+  const [isTaskerSignupModalOpen, setIsTaskerSignupModalOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState<string | null>(null);
+
   return (
     <div className="min-h-screen bg-purple-50">
       <Navbar />
       <div className="flex flex-col items-center justify-center px-4 sm:px-8 py-12 sm:py-16">
+        <Suspense fallback={null}>
+          <OpenClientLoginOnQuery setIsClientModalOpen={setIsClientModalOpen} />
+        </Suspense>
         <style>{`
           .fade-in { animation: fadeIn 1s ease-out; }
           .title-glow { animation: textGlow 2s ease-in-out infinite alternate; }

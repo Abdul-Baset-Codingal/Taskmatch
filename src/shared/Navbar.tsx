@@ -3,7 +3,7 @@ import Link from "next/link";
 import React, { useState, useEffect } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import Cookies from "js-cookie";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
 import { FaPlusCircle } from "react-icons/fa";
 
 const Navbar = () => {
@@ -13,18 +13,32 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
-  // Check if token cookie exists on mount
+
   useEffect(() => {
-    const token = Cookies.get("token");
-    setIsLoggedIn(!!token);
+    const isLoggedIn = Cookies.get("isLoggedIn");
+    console.log("isLoggedIn Cookie:", isLoggedIn); // ✅ Will show 'true' if set
+    setIsLoggedIn(!!isLoggedIn);
   }, []);
 
-  // Logout handler
-  const handleLogout = () => {
-    Cookies.remove("token");
-    setIsLoggedIn(false);
-    router.push("/"); 
+
+  const handleLogout = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        credentials: "include", // ✅ must be included to send cookies
+      });
+
+      if (res.ok) {
+        setIsLoggedIn(false);
+        router.push("/");
+      } else {
+        console.error("Logout failed");
+      }
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
   };
+
 
   return (
     <div className="relative w-full h-[110px] bg-[#1C1C2E] overflow-visible">
