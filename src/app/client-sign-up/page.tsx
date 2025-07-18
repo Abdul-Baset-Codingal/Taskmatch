@@ -49,7 +49,11 @@ const ClientSignupPage = () => {
             const res = await signup(finalData).unwrap();
 
             // ✅ Set cookie like login
-            Cookies.set("token", res.token, { expires: 7, sameSite: "strict" });
+            Cookies.set("token", res.token, {
+                expires: 7,
+                sameSite: "strict",
+                secure: process.env.NODE_ENV === "production",
+            });
 
             toast.success("Account created successfully!");
             console.log("Signup success:", res);
