@@ -23,7 +23,7 @@ const Navbar = () => {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/auth/logout", {
+      const res = await fetch("https://taskmatch-backend-hiza.onrender.com/api/auth/logout", {
         method: "POST",
         credentials: "include", // ✅ must be included to send cookies
       });
