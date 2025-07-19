@@ -1,8 +1,11 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
+
 export const servicesApi = createApi({
     reducerPath: 'servicesApi',
-    baseQuery: fetchBaseQuery({ baseUrl: 'https://taskmatch-backend-hiza.onrender.com/api' }),
+    baseQuery: fetchBaseQuery({
+        baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api`,
+    }),
     tagTypes: ['Services'],
     endpoints: (builder) => ({
         getServices: builder.query({

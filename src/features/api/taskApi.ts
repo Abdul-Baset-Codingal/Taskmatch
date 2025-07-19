@@ -1,10 +1,12 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import Cookies from 'js-cookie';
 
+;
+
 export const taskApi = createApi({
     reducerPath: "taskApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: "https://taskmatch-backend-hiza.onrender.com/api",
+        baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api`,
         credentials: "include", // keep if you want to send cookies too
         prepareHeaders: (headers) => {
             const token = Cookies.get("token"); // get your JWT token from cookies (or change source if needed)
