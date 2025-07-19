@@ -25,20 +25,39 @@ const Navbar = () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/logout`, {
         method: "POST",
-        credentials: "include", // ✅ must be included to send cookies
+        credentials: "include", // ✅ Include cookies
       });
 
       if (res.ok) {
+        // ✅ Clear cookies on frontend as well (backup)
+        Cookies.remove("isLoggedIn");
+        Cookies.remove("token"); // Even though it's httpOnly, this won't hurt
+
+        // ✅ Update state
         setIsLoggedIn(false);
+
+        // ✅ Redirect to home
         router.push("/");
+
+        console.log("Logout successful");
       } else {
-        console.error("Logout failed");
+        // ✅ Handle server errors
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Logout failed:", errorData.message || "Unknown error");
+
+        // Still clear frontend state if server fails
+        Cookies.remove("isLoggedIn");
+        setIsLoggedIn(false);
       }
     } catch (error) {
       console.error("Logout error:", error);
+
+      // ✅ Still clear frontend state even if request fails
+      Cookies.remove("isLoggedIn");
+      setIsLoggedIn(false);
+      router.push("/");
     }
   };
-
 
   return (
     <div className="relative w-full h-[110px] bg-[#1C1C2E] overflow-visible">
