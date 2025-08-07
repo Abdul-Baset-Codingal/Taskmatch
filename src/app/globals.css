@@ -7,3 +7,46 @@
   font-family: 'Bellota Text', sans-serif;
 }
 
+/* Marker styles */
+.custom-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Popup styles */
+.leaflet-popup-content {
+  margin: 12px !important;
+  min-width: 180px;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Scrollbar for the sidebar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #8560F1;
+  border-radius: 3px;
+}
+
+
+/* global.css or index.css */
+.custom-scrollbar-hidden {
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.custom-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}

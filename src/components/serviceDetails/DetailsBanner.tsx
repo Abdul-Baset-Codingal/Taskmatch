@@ -1,105 +1,66 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React, { useEffect, useState } from "react";
-import AutomotiveBookingForm from "../servicingDetails/automotive/AutomotiveBookingForm";
+import React from "react";
 
 interface DetailsBannerProps {
-  service: any; // Replace 'any' with the actual type if known, e.g. 'Service'
+  service: any; // You can refine this type
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const DetailsBanner: React.FC<DetailsBannerProps> = ({ service }) => {
-  const [clipPath, setClipPath] = useState(
-    "polygon(0 0, 100% 0, 100% 270vh, 0 280vh)"
-  );
-  const [height, setHeight] = useState("280vh");
-
-  useEffect(() => {
-    const updateClipPath = () => {
-      if (window.innerWidth < 768) {
-        setClipPath("polygon(0 0, 100% 0, 100% 440vh, 0 450vh)");
-        setHeight("450vh");
-      } else {
-        setClipPath("polygon(0 0, 100% 0, 100% 270vh, 0 280vh)");
-        setHeight("280vh");
-      }
-    };
-
-    updateClipPath(); // Run once on mount
-
-    window.addEventListener("resize", updateClipPath);
-    return () => window.removeEventListener("resize", updateClipPath);
-  }, []);
-
   return (
-    <div
-      className="w-full bg-[#16161A] relative overflow-hidden"
-      style={{
-        height: height,
-        clipPath: clipPath,
-      }}
-    >
-      {/* Bubble Top Left */}
+    <div className="w-full bg-[#16161A] relative overflow-hidden py-[100px]">
+      {/* Bubble Effects */}
       <div className="absolute z-10 w-[450px] h-[450px] bg-purple-950 opacity-30 rounded-full top-[-60px] left-[-60px] blur-3xl animate-bubbleFloat"></div>
-
-      {/* Bubble Bottom Right */}
       <div className="absolute z-10 w-[400px] h-[400px] bg-green-950 opacity-30 rounded-full bottom-[-80px] right-[80px] blur-2xl animate-bubbleFloat"></div>
 
-      {/* Content Container */}
-      <div className="relative z-20 flex justify-center items-center h-full w-full">
-        <div className="flex items-center max-w-6xl mx-auto gap-16 w-full justify-center flex-col lg:flex-row px-4">
-          {/* Left Text */}
-          <div className="text-white max-w-lg">
-            <h1 className="text-6xl font-bold leading-snug">
-              Professional <br />
+      {/* Content */}
+      <div className="relative z-20 flex justify-center items-center w-full px-4">
+        <div className="max-w-6xl mx-auto w-full">
+          {/* Heading Section */}
+          <div className="text-white max-w-2xl mx-auto text-center">
+            <h1 className="text-4xl md:text-6xl font-bold leading-snug">
+              Available{" "}
               <span className="bg-gradient-to-r from-[#FF8609] to-[#FF6C32] text-transparent bg-clip-text">
-                Automotive Services{" "}
+                Taskers
               </span>
             </h1>
-            <p className="text-lg font-semibold mt-3">
-              Expert auto mechanics and specialists ready to handle all your
-              vehicle maintenance and repair needs with professionalism and
-              care.
+            <p className="text-base md:text-lg font-medium mt-4 text-white/80">
+              Find experienced and trusted home cleaning professionals in your area.
+              Compare rates, read reviews, and book the perfect cleaner for your needs.
             </p>
-
-            <div className="flex flex-col md:flex-row gap-6 mt-10">
-              {/* Card 1 - Rating */}
-              <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-md w-full md:w-1/2">
-                <div className="text-yellow-400 text-3xl">⭐</div>
-                <div>
-                  <h3 className="text-white font-bold text-lg">4.9/5 Rating</h3>
-                  <p className="text-white/80 text-sm">
-                    Based on 2,500+ reviews
-                  </p>
-                </div>
-              </div>
-
-              {/* Card 2 - Guarantee */}
-              <div className="flex items-center gap-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-md w-full md:w-1/2">
-                <div className="text-green-400 text-3xl">✓</div>
-                <div>
-                  <h3 className="text-white font-bold text-lg">
-                    100% Guaranteed
-                  </h3>
-                  <p className="text-white/80 text-sm">
-                    Satisfaction or free reclean
-                  </p>
-                </div>
-              </div>
-            </div>
-            {/* buttons */}
-            <div>
-              <div className="mt-6 flex items-center gap-5">
-                <button className="text-white text-lg bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] px-10 py-5 font-semibold rounded-4xl  hover:shadow-lg hover:shadow-[#8560F1] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                  Book Now
-                </button>
-                <button className="text-white text-lg bg-transparent border border-[#28B584] px-10 py-5 font-semibold rounded-4xl  hover:shadow-lg hover:shadow-[#28B584] hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                  View Pricing
-                </button>
-              </div>
-            </div>
           </div>
-          <div className="w-full max-w-xl">
-            <AutomotiveBookingForm service ={ service} />
+
+          {/* Cards Section */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-12 px-4 md:px-0">
+            {/* Card 1 */}
+            <div className="flex items-start gap-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-md">
+              <div className="text-blue-400 text-3xl">👥</div>
+              <div>
+                <h3 className="text-white font-bold text-lg">487 Taskers</h3>
+                <p className="text-white/80 text-sm">Available in your area</p>
+              </div>
+            </div>
+
+            {/* Card 2 */}
+            <div className="flex items-start gap-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-md">
+              <div className="text-yellow-400 text-3xl">⭐</div>
+              <div>
+                <h3 className="text-white font-bold text-lg">4.9 Average Rating</h3>
+                <p className="text-white/80 text-sm">
+                  Trusted by hundreds of customers
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3 */}
+            <div className="flex items-start gap-4 bg-white/10 backdrop-blur-md p-6 rounded-2xl shadow-md">
+              <div className="text-green-400 text-3xl">⏰</div>
+              <div>
+                <h3 className="text-white font-bold text-lg">24/7 Availability</h3>
+                <p className="text-white/80 text-sm">Book anytime, any day</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>

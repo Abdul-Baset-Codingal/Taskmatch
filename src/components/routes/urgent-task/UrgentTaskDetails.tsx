@@ -82,7 +82,7 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                     </p>
                 </div>
 
-                {/* Location */}
+                {/* Location
                 <div>
                     <label className="block text-sm font-medium mb-1">
                         Location <span className="text-red-500">*</span>
@@ -99,7 +99,7 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                     <button className="mt-2 text-sm text-orange-600 hover:underline">
                         📍 Use my location
                     </button>
-                </div>
+                </div> */}
 
                 {/* Image Upload */}
                 <div>

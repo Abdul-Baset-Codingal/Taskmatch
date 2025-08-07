@@ -12,11 +12,13 @@ import {
   FaFilter,
   FaUser,
 } from "react-icons/fa";
-import { useGetAllUsersQuery, useDeleteUserMutation } from "@/features/auth/authApi"; // Adjust import path
+import { useGetAllUsersQuery, useDeleteUserMutation, useBlockUserMutation, } from "@/features/auth/authApi"; // Adjust import path
+import { toast } from "react-toastify";
 
 type UserStatus = "Active" | "Inactive" | "Suspended";
 
 interface User {
+  isBlocked: any;
   fullName: string;
   _id: string;
   name: string;
@@ -69,6 +71,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
   console.log(usersResponse)
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const [blockUser] = useBlockUserMutation();
 
   const users = usersResponse?.users || [];
   const totalUsers = usersResponse?.pagination?.totalUsers || 0;
@@ -87,11 +90,21 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
     }
   };
 
-  // Handle status toggle (you might need to add this to your API)
-  const handleStatusToggle = (user: User) => {
-    // This would require a status update mutation in your API
-    console.log("Toggle status for user:", user._id);
+  const handleToggleBlock = async (userId: string, currentStatus: any) => {
+    try {
+      const shouldBlock = !currentStatus;
+      await blockUser({ id: userId, block: shouldBlock }).unwrap();
+      toast.success("done changing the status")
+    } catch (err) {
+      console.error("Error blocking/unblocking user", err);
+    }
   };
+
+  // // Handle status toggle (you might need to add this to your API)
+  // const handleStatusToggle = (user: User) => {
+  //   // This would require a status update mutation in your API
+  //   console.log("Toggle status for user:", user._id);
+  // };
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -272,23 +285,25 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
                     >
                       <FaEdit />
                     </button>
-                    {user.status === "Suspended" ? (
+                    {user?.isBlocked ? (
                       <button
-                        onClick={() => handleStatusToggle(user)}
+                        onClick={() => handleToggleBlock(user._id, user.isBlocked)}
                         className="text-green-600 hover:text-green-800 transition"
-                        title="Activate User"
+                        title="Unblock User"
                       >
                         <FaCheck />
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleStatusToggle(user)}
+                        onClick={() => handleToggleBlock(user._id, user.isBlocked)}
                         className="text-yellow-500 hover:text-yellow-600 transition"
-                        title="Suspend User"
+                        title="Block User"
                       >
                         <FaExclamationTriangle />
                       </button>
                     )}
+
+
                     <button
                       onClick={() => setShowDeleteConfirm(user._id)}
                       className="text-red-600 hover:text-red-800 transition"

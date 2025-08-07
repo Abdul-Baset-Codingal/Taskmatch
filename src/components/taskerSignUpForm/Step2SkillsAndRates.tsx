@@ -6,13 +6,7 @@ import {
     FaWrench,
     FaBoxOpen,
     FaCouch,
-    FaBolt,
-    FaShower,
-    FaPaintRoller,
-    FaSeedling,
-    FaPaw,
-    FaSnowflake,
-    FaLaptopCode,
+
     FaPlus,
 } from "react-icons/fa";
 import { GiSkills } from "react-icons/gi";
@@ -20,27 +14,20 @@ import { useDispatch } from "react-redux";
 import { setStep2 } from "@/features/form/formSlice";
 
 const serviceCategories = [
-    { label: "Cleaning", value: "cleaning", icon: <FaBroom /> },
-    { label: "Handyman", value: "handyman", icon: <FaWrench /> },
-    { label: "Moving", value: "moving", icon: <FaBoxOpen /> },
-    { label: "Furniture Assembly", value: "furniture_assembly", icon: <FaCouch /> },
-    { label: "Electrical", value: "electrical", icon: <FaBolt /> },
-    { label: "Plumbing", value: "plumbing", icon: <FaShower /> },
-    { label: "Painting", value: "painting", icon: <FaPaintRoller /> },
-    { label: "Gardening", value: "gardening", icon: <FaSeedling /> },
-    { label: "Pet Care", value: "pet_care", icon: <FaPaw /> },
-    { label: "Snow Removal", value: "snow_removal", icon: <FaSnowflake /> },
-    { label: "Tech Help", value: "tech_help", icon: <FaLaptopCode /> },
-    { label: "Other", value: "other", icon: <FaPlus /> },
+    { label: "Home", value: "Home", icon: <FaBroom /> },
+    { label: "Personal", value: "Personal", icon: <FaWrench /> },
+    { label: "Transportations", value: "transportations", icon: <FaBoxOpen /> },
+    { label: "Family", value: "Family", icon: <FaCouch /> },
+
 ];
 
-const qualifications = [
-    "Red Seal Certification",
-    "Provincial Trade License",
-    "Health & Safety Certification",
-    "First Aid & CPR",
-    "WHMIS Certification",
-];
+// const qualifications = [
+//     "Red Seal Certification",
+//     "Provincial Trade License",
+//     "Health & Safety Certification",
+//     "First Aid & CPR",
+//     "WHMIS Certification",
+// ];
 
 const durations = [
     "Less than 1 hour",
@@ -67,7 +54,9 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
     const [skillsArray, setSkillsArray] = useState<string[]>([]);
     const [skillInput, setSkillInput] = useState<string>("");
     const [experience, setExperience] = useState("");
-    const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
+    // const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
+    const [qualifications, setQualifications] = useState('');
+
     const [services, setServices] = useState<Service[]>([
         { title: "", description: "", rate: "", duration: "" },
     ]);
@@ -81,11 +70,11 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
         );
     };
 
-    const toggleQualification = (qual: string) => {
-        setSelectedQualifications((prev) =>
-            prev.includes(qual) ? prev.filter((q) => q !== qual) : [...prev, qual]
-        );
-    };
+    // const toggleQualification = (qual: string) => {
+    //     setSelectedQualifications((prev) =>
+    //         prev.includes(qual) ? prev.filter((q) => q !== qual) : [...prev, qual]
+    //     );
+    // };
 
     const addSkill = () => {
         if (skillInput.trim()) {
@@ -128,12 +117,12 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
             serviceCategories: readableCategories,
             skills: skillsArray,
             experienceYears: experience,
-            qualifications: selectedQualifications,
+            qualifications: qualifications,
             services: formattedServices,
         };
 
-        dispatch(setStep2(payload)); 
-        onNext(payload); 
+        dispatch(setStep2(payload));
+        onNext(payload);
     };
 
     return (
@@ -216,21 +205,18 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
 
             {/* Qualifications */}
             <div className="mb-8">
-                <label className="block mb-3 font-semibold text-black text-lg">Professional Qualifications</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {qualifications.map((qual) => (
-                        <label key={qual} className="inline-flex items-center gap-2">
-                            <input
-                                type="checkbox"
-                                checked={selectedQualifications.includes(qual)}
-                                onChange={() => toggleQualification(qual)}
-                                className="form-checkbox text-[#1A4F93]"
-                            />
-                            {qual}
-                        </label>
-                    ))}
-                </div>
+                <label className="block mb-3 font-semibold text-black text-lg">
+                    Professional Qualifications <span className="text-sm text-gray-500">(if any)</span>
+                </label>
+                <input
+                    type="text"
+                    value={qualifications}
+                    onChange={(e) => setQualifications(e.target.value)}
+                    placeholder="Type your qualifications here"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1A4F93]"
+                />
             </div>
+
 
             {/* Services */}
             <div className="mb-8">

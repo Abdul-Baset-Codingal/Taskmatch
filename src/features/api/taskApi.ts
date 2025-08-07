@@ -22,7 +22,7 @@ export const taskApi = createApi({
     //         baseUrl: "https://taskmatch-backend-hiza.onrender.com/api",
     //         credentials: "include",
     //     }),
-    tagTypes: ["Task"],
+    tagTypes: ["Task", "TaskFilters"],
 
     endpoints: (builder) => ({
         // ✅ Create a task
@@ -35,10 +35,26 @@ export const taskApi = createApi({
             invalidatesTags: ["Task"],
         }),
 
-        // ✅ Get all tasks
         getAllTasks: builder.query({
-            query: () => "/tasks",
-            providesTags: ["Task"],
+            query: (params = {}) => {
+                const queryParams = new URLSearchParams();
+
+                // Add all parameters to query string
+                Object.keys(params).forEach(key => {
+                    if (params[key] !== undefined && params[key] !== '') {
+                        queryParams.append(key, params[key]);
+                    }
+                });
+
+                return `/tasks?${queryParams.toString()}`;
+            },
+            providesTags: ['Task'],
+        }),
+
+        // Get filter options
+        getTaskFilters: builder.query({
+            query: () => '/tasks/filters',
+            providesTags: ['TaskFilters'],
         }),
 
         // ✅ Get urgent tasks (with optional status)
@@ -145,6 +161,25 @@ export const taskApi = createApi({
             }),
             invalidatesTags: ["Task"],
         }),
+        // Delete single task
+        deleteTaskAdmin: builder.mutation({
+            query: (id) => ({
+                url: `/tasks/tasks/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['Task'],
+        }),
+
+        // Bulk delete tasks
+        
+        bulkDeleteTasks: builder.mutation({
+            query: (taskIds) => ({
+                url: '/tasks/bulk-delete',
+                method: 'POST',
+                body: { taskIds },
+            }),
+            invalidatesTags: ['Task'],
+        }),
     }),
 });
 
@@ -164,4 +199,7 @@ export const {
     useUpdateTaskStatusMutation,
     useUpdateTaskMutation,
     useDeleteTaskMutation,
+    useDeleteTaskAdminMutation,
+    useBulkDeleteTasksMutation,
+    useGetTaskFiltersQuery,
 } = taskApi;

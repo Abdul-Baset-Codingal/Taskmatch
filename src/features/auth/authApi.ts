@@ -8,6 +8,29 @@ interface GetAllUsersParams {
     role?: any;
     province?: any;
 }
+
+// interface GetTaskersParams {
+//     page?: number;
+//     limit?: number;
+//     search?: string;
+//     category?: string;
+//     province?: string;
+// }
+
+interface GetTaskersParams {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    province?: string;
+    availability?: string;
+    rating?: string;
+    experience?: string;
+    minPrice?: string;
+    maxPrice?: string;
+}
+
+
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
@@ -62,6 +85,37 @@ export const authApi = createApi({
             providesTags: ["User"], // ✅ For caching
         }),
 
+        // Get taskers with pagination and enhanced filters
+        getTaskers: builder.query<any, GetTaskersParams | void>({
+            query: ({
+                page = 1,
+                limit = 10,
+                search = "",
+                category = "",
+                province = "",
+                availability = "",
+                rating = "",
+                experience = "",
+                minPrice = "",
+                maxPrice = "",
+            } = {}) => {
+                const params = new URLSearchParams({
+                    page: page.toString(),
+                    limit: limit.toString(),
+                    ...(search && { search }),
+                    ...(category && { category }),
+                    ...(province && { province }),
+                    ...(availability && availability !== "All" && { availability }),
+                    ...(rating && rating !== "All Ratings" && { rating }),
+                    ...(experience && experience !== "All Levels" && { experience }),
+                    ...(minPrice && { minPrice }),
+                    ...(maxPrice && { maxPrice }),
+                });
+                return `/taskers?${params.toString()}`;
+            },
+            providesTags: ["User"],
+        }),
+
         // Get single user by ID
         getUserById: builder.query({
             query: (id) => `/users/${id}`,
@@ -80,6 +134,20 @@ export const authApi = createApi({
                 { type: "User", id }
             ],
         }),
+
+        // Block or unblock user (admin feature)
+        blockUser: builder.mutation({
+            query: ({ id, block }) => ({
+                url: `/users/block/${id}`,
+                method: "PATCH",
+                body: { block }, // { block: true } or { block: false }
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                "User",
+                { type: "User", id }
+            ],
+        }),
+
 
         // Delete user
         deleteUser: builder.mutation({
@@ -115,9 +183,12 @@ export const {
 
     // User management hooks
     useGetAllUsersQuery,
+    useGetTaskersQuery,
     useGetUserByIdQuery,
     useUpdateUserMutation,
     useDeleteUserMutation,
     useUpdatePasswordMutation,
     useGetUserStatsQuery,
+    useBlockUserMutation,
+
 } = authApi;

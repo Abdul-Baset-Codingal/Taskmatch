@@ -61,7 +61,9 @@ const PopularServices = () => {
           key={selectedCategory}
           className="mt-12 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 justify-center px-4 container mx-auto"
         >
-          {filteredServices.map((service: { icon: any; _id: any; photos: (string | StaticImport)[]; title: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; tags: any[]; description: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; price: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; }, index: number) => {
+          {filteredServices.map((service: {
+            basePrice: ReactNode; icon: any; _id: any; photos: (string | StaticImport)[]; title: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; tags: any[]; description: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; price: string | number | bigint | boolean | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | ReactPortal | Promise<string | number | bigint | boolean | ReactPortal | ReactElement<unknown, string | JSXElementConstructor<any>> | Iterable<ReactNode> | null | undefined> | null | undefined; 
+}, index: number) => {
             const Icon = service.icon || FaTools; 
             return (
               <div
@@ -101,7 +103,7 @@ const PopularServices = () => {
 
                   <div className="flex items-center justify-between mt-5">
                     <p className="text-lg text-[#8560F1] font-medium">
-                      From ${service.price}/hr
+                      From ${service.basePrice}/hr
                     </p>
                     <Link href={`/services/${service._id}`}>
                       <button className="bg-[#8560F1] px-4 text-sm font-bold text-white py-2 rounded-3xl hover:scale-110 transform transition duration-700 hover:bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] cursor-pointer">

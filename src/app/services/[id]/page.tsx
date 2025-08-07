@@ -5,8 +5,7 @@ import { useParams } from 'next/navigation'; // <-- Next 13 client router
 import { useGetServiceByIdQuery } from '@/features/api/servicesApi';
 import Navbar from '@/shared/Navbar';
 import DetailsBanner from '@/components/serviceDetails/DetailsBanner';
-import Packages from '@/components/serviceDetails/Packages';
-import ServicePackages from '@/components/serviceDetails/ServicePackages';
+import TaskerSlider from '@/components/routes/urgent-task/TaskerSlider';
 
 const Page = () => {
     const params = useParams();
@@ -24,11 +23,14 @@ const Page = () => {
         <div>
             <Navbar />
             <DetailsBanner service={service} />
-            <div className="mt-32">
+            {/* <div className="mt-32">
                 <Packages service={service} />
             </div>
             <div className="mt-32">
                 <ServicePackages service={service} />
+            </div> */}
+            <div>
+                <TaskerSlider service={service} />
             </div>
         </div>
     );

@@ -31,6 +31,7 @@ const Step1BasicInfo = ({
     const [fullName, setFullName] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     const [formData, setFormData] = useState({
 
@@ -61,6 +62,11 @@ const Step1BasicInfo = ({
 
 
     const handleNext = () => {
+        if (password !== confirmPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
+
         const finalData = {
             fullName,
             email: formData.email,
@@ -80,6 +86,7 @@ const Step1BasicInfo = ({
         dispatch(setStep1(finalData));
         onNext();
     };
+
 
 
     return (
@@ -166,6 +173,33 @@ const Step1BasicInfo = ({
                             </button>
                         </div>
                     </div>
+                    {/* Confirm Password Field */}
+                    <div>
+                        <label className="block text-black font-semibold mb-2">Confirm Password *</label>
+                        <div className="relative flex items-center border border-gray-300 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-[#1A4F93]">
+                            <FaLock className="text-gray-500 mr-3" />
+                            <input
+                                type={showPassword ? "text" : "password"}
+                                required
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                className="w-full outline-none text-black bg-transparent placeholder-gray-400"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 focus:outline-none text-gray-600"
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <FaEyeSlash /> : <FaEye />}
+                            </button>
+                        </div>
+                        {/* Error Message if passwords don't match */}
+                        {confirmPassword && confirmPassword !== password && (
+                            <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
+                        )}
+                    </div>
+
                 </div>
 
 

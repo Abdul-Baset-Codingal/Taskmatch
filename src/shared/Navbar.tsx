@@ -1,141 +1,75 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { FiMenu, FiX } from "react-icons/fi";
 import { FaPlusCircle } from "react-icons/fa";
-import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
+// import Cookies from "js-cookie";
 
 const Navbar = () => {
+
+
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState(null);
+  const [fullName, setFullName] = useState(null)
   const router = useRouter();
 
-  // Toggle mobile menu
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
+  const toggleMenu = () => setIsOpen(!isOpen);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        router.push("/"); // redirect if desired
+      } else {
+        console.error("Logout failed with status:", response.status);
+      }
+    } catch (error) {
+      console.error("Logout failed", error);
+    }
   };
 
-  // Check login status - FIXED: Only check isLoggedIn cookie since token is httpOnly
+
+  // ✅ Check login status
   const checkLoginStatus = async () => {
-    console.log("=== CHECKING LOGIN STATUS ===");
-    const loginCookie = Cookies.get("isLoggedIn");
-    console.log("isLoggedIn cookie:", loginCookie);
-    console.log("All cookies:", document.cookie);
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+        method: "GET",
+        credentials: "include",
+      });
 
-    if (loginCookie === "true") {
-      // Verify with backend that the httpOnly token is still valid
-      try {
-        const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
-          method: "GET",
-          credentials: "include", // This sends the httpOnly token cookie
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setIsLoggedIn(true);
-          setUserRole(data.user.role);
-          console.log("Token verified - user is logged in");
-          console.log("User role:", data.user.role);
-        } else {
-          // Token is invalid, clear the status cookie
-          console.log("Token invalid - clearing login status");
-          Cookies.remove("isLoggedIn", { path: "/" });
-          setIsLoggedIn(false);
-          setUserRole(null);
-        }
-      } catch (error) {
-        console.error("Token verification failed:", error);
-        // Network error or server down - clear login state
-        Cookies.remove("isLoggedIn", { path: "/" });
+      if (response.ok) {
+        const data = await response.json();
+        setIsLoggedIn(true);
+        setUserRole(data.user.role);
+        setFullName(data.user.fullName)
+        console.log(data)
+      } else {
         setIsLoggedIn(false);
         setUserRole(null);
       }
-    } else {
-      setIsLoggedIn(false);
-      setUserRole(null);
-    }
-
-    setLoading(false);
-    console.log("Final isLoggedIn state:", loginCookie === "true");
-    console.log("===============================");
-  };
-
-  // Handle logout
-  const handleLogout = async () => {
-    try {
-      console.log("Starting logout process...");
-
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-      console.log("Logout response:", data);
-
-      // Always clear frontend state regardless of backend response
-      Cookies.remove("isLoggedIn", { path: "/" });
-      setIsLoggedIn(false);
-      setUserRole(null);
-      setIsOpen(false);
-
-      // Notify other components
-      window.dispatchEvent(new Event("loginStateChanged"));
-
-      if (response.ok) {
-        console.log("Logout successful");
-      } else {
-        console.log("Backend logout failed, but frontend cleared");
-      }
-
-      router.push("/");
     } catch (error) {
-      console.error("Logout error:", error);
-      // Still clear frontend state even if request fails
-      Cookies.remove("isLoggedIn", { path: "/" });
       setIsLoggedIn(false);
       setUserRole(null);
-      setIsOpen(false);
-      router.push("/");
     }
   };
 
-  // Initial load and event listeners
+  // ✅ Run login check on load
   useEffect(() => {
-    checkLoginStatus();
-
-    // Listen for login state changes
-    const handleLoginStateChange = () => {
-      console.log("Login state change event received");
-      checkLoginStatus();
+    const fetchLogin = async () => {
+      await checkLoginStatus();
     };
-
-    window.addEventListener("loginStateChanged", handleLoginStateChange);
-    window.addEventListener("storage", handleLoginStateChange);
-
-    return () => {
-      window.removeEventListener("loginStateChanged", handleLoginStateChange);
-      window.removeEventListener("storage", handleLoginStateChange);
-    };
+    fetchLogin();
   }, []);
 
-  // Show loading spinner
-  if (loading) {
-    return (
-      <div className="w-full h-[110px] bg-[#1C1C2E] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
 
   return (
     <div className="relative w-full h-[110px] bg-[#1C1C2E] overflow-visible">
@@ -217,18 +151,19 @@ const Navbar = () => {
           </li>
 
           {/* Sign Up / Log In or Logout */}
+          {/* Login/Logout */}
           <li>
             {isLoggedIn ? (
               <button
                 onClick={handleLogout}
-                className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left"
+                className="bg-gradient-to-r from-[#F48B0C] to-[#39B376] text-white font-bold px-6 py-3 rounded-full hover:-translate-y-1 transition"
               >
                 Logout
               </button>
             ) : (
-              <Link href={"/authentication"}>
-                <button className="px-4 xs:px-5 sm:px-6 lg:px-6 py-2 xs:py-2.5 sm:py-3 lg:py-3 text-white font-bold rounded-2xl xs:rounded-3xl sm:rounded-3xl lg:rounded-3xl bg-gradient-to-r from-[#F48B0C] to-[#39B376] cursor-pointer hover:shadow-lg hover:shadow-[#F48B0C] hover:-translate-y-1 transform transition duration-300 w-full xs:w-auto text-left">
-                  Sign Up/Log In
+              <Link href="/authentication">
+                <button className="bg-gradient-to-r from-[#F48B0C] to-[#39B376] text-white font-bold px-6 py-3 rounded-full hover:-translate-y-1 transition">
+                  Sign Up / Login
                 </button>
               </Link>
             )}
@@ -237,7 +172,7 @@ const Navbar = () => {
           {/* Debug info */}
           <li className="text-xs text-gray-400">
             Status: {isLoggedIn ? "Logged In" : "Not Logged In"}
-            {userRole && ` (${userRole})`}
+            {fullName && ` (${fullName})`}
           </li>
         </ul>
       </div>

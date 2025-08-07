@@ -3,6 +3,7 @@ import ClientWelcomeSection from '@/components/dashboard/client/ClientWelcomeSec
 import Greeting from '@/components/dashboard/client/Greeting';
 import ReferralSection from '@/components/dashboard/client/ReferralSection';
 import SavingsAndRewards from '@/components/dashboard/client/SavingsAndRewards';
+import Tabs from '@/components/dashboard/client/Tabs';
 import TaskListSection from '@/components/dashboard/client/TaskListSection';
 import TaskMatchRewards from '@/components/dashboard/client/TaskMatchRewards';
 import Navbar from '@/shared/Navbar';
@@ -12,29 +13,39 @@ const page = () => {
     return (
         <div>
             <div>
-                <Navbar/>
+                <Navbar />
             </div>
             <div>
-                <ClientWelcomeSection/>
+                <ClientWelcomeSection />
             </div>
             <div>
-                <Greeting/>
+                <Greeting />
             </div>
             <div>
-                <ClientStats/>
+                <Tabs />
+            </div>
+            {/* <div className="mt-10">
+                <AllBookings />
             </div>
             <div>
-                <TaskMatchRewards/>
+                <RequestQuoteByUser />
+            </div> */}
+            <div className='mt-10'>
+                <TaskListSection />
             </div>
             <div>
-                <SavingsAndRewards/>
+                <ClientStats />
             </div>
             <div>
-                <ReferralSection/>
+                <TaskMatchRewards />
             </div>
             <div>
-                <TaskListSection/>
+                <SavingsAndRewards />
             </div>
+            <div>
+                <ReferralSection />
+            </div>
+
         </div>
     );
 };

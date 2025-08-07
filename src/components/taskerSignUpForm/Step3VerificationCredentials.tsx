@@ -135,7 +135,7 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
 
             <div className="mb-8 w-full max-w-full">
                 <label className="block mb-3 font-semibold text-black text-lg w-full">
-                    Professional Certifications
+                    Professional Certifications 
                 </label>
                 <p className="mb-2 text-gray-600">
                     Upload any relevant certifications, licenses, or qualifications for your services
