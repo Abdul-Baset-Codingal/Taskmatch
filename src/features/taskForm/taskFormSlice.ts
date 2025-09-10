@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// features/taskForm/taskFormSlice.ts
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 interface TaskFormState {
+    customDeadline: boolean;
+    offerDeadline: any;
     price: string;
     serviceId: string;
     serviceTitle: string;
@@ -11,8 +12,9 @@ interface TaskFormState {
     location: string;
     schedule: string;
     additionalInfo: string;
-    photos: File[]; // array of File objects
+    photos: File[];
     video: File | null;
+    estimatedTime: string;
 }
 
 const initialState: TaskFormState = {
@@ -25,7 +27,10 @@ const initialState: TaskFormState = {
     additionalInfo: "",
     photos: [],
     video: null,
-    price: ""
+    price: "",
+    estimatedTime: "",
+    customDeadline: false,
+    offerDeadline: undefined
 };
 
 const taskFormSlice = createSlice({

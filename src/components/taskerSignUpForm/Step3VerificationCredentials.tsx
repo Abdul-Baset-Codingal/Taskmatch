@@ -13,14 +13,25 @@ type Props = {
 const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
     const dispatch = useDispatch();
 
-    const [govID, setGovID] = useState<File | null>(null);
+    const [idType, setIdType] = useState<"passport" | "governmentID" | null>(null);
+    const [passport, setPassport] = useState<File | null>(null);
+    const [govIDFront, setGovIDFront] = useState<File | null>(null);
+    const [govIDBack, setGovIDBack] = useState<File | null>(null);
     const [certifications, setCertifications] = useState<File[]>([]);
     const [sin, setSin] = useState("");
     const [backgroundCheckConsent, setBackgroundCheckConsent] = useState(false);
     const [hasInsurance, setHasInsurance] = useState(false);
 
-    const handleGovIdChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files?.[0]) setGovID(e.target.files[0]);
+    const handlePassportChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) setPassport(e.target.files[0]);
+    };
+
+    const handleGovIDFrontChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) setGovIDFront(e.target.files[0]);
+    };
+
+    const handleGovIDBackChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files?.[0]) setGovIDBack(e.target.files[0]);
     };
 
     const handleCertificationsChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -40,16 +51,20 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
         );
 
         const data = await res.json();
-        return data.data.url; // ✅ return uploaded image URL
+        return data.data.url;
     };
 
     const handleNext = async () => {
         try {
             let govIDUrl = "";
+            let govIDBackUrl = "";
             let certUrls: string[] = [];
 
-            if (govID) {
-                govIDUrl = await uploadToImgBB(govID); // ✅ Upload and get URL
+            if (idType === "passport" && passport) {
+                govIDUrl = await uploadToImgBB(passport);
+            } else if (idType === "governmentID" && govIDFront && govIDBack) {
+                govIDUrl = await uploadToImgBB(govIDFront);
+                govIDBackUrl = await uploadToImgBB(govIDBack);
             }
 
             if (certifications.length > 0) {
@@ -57,20 +72,21 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
             }
 
             const payload = {
-                govID: govIDUrl, // ✅ now it's a string URL
+                idType,
+                govID: govIDUrl,
+                govIDBack: govIDBackUrl,
                 certifications: certUrls,
                 sin,
                 backgroundCheckConsent,
                 hasInsurance,
             };
 
-            dispatch(setStep3(payload)); // ✅ Now safe for Redux
+            dispatch(setStep3(payload));
             onNext();
         } catch (err) {
             console.error("File upload failed", err);
         }
     };
-
 
     return (
         <div className="max-w-7xl mx-auto bg-white rounded-3xl shadow-lg p-10 text-black">
@@ -86,32 +102,118 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
 
             <div className="mb-8 w-full max-w-full">
                 <label className="block mb-3 font-semibold text-black text-lg w-full">
-                    Government-Issued ID *
+                    Select the type of ID you wish to upload *
                 </label>
-                <p className="mb-2 text-gray-600">
-                    Upload a valid Canadian government-issued photo ID (driver's license, passport, or provincial ID)
-                </p>
-                <label
-                    htmlFor="govIdUpload"
-                    className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#1A4F93] transition relative"
-                >
-                    <FaFileAlt className="text-4xl text-gray-400 mb-2" />
-                    <span className="text-gray-500 mb-1">
-                        Drag & drop your ID document or click to browse
-                    </span>
-                    <span className="text-gray-400 text-sm">
-                        Supported formats: JPG, PNG, or PDF (max 5MB)
-                    </span>
-                    <input
-                        id="govIdUpload"
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={handleGovIdChange}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                </label>
-                {govID && (
-                    <p className="mt-2 text-green-600 font-semibold">Selected file: {govID.name}</p>
+
+                <div className="flex gap-4 mb-4">
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="idType"
+                            value="passport"
+                            checked={idType === "passport"}
+                            onChange={() => setIdType("passport")}
+                            className="form-radio text-[#1A4F93]"
+                        />
+                        <span>Passport</span>
+                    </label>
+                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                            type="radio"
+                            name="idType"
+                            value="governmentID"
+                            checked={idType === "governmentID"}
+                            onChange={() => setIdType("governmentID")}
+                            className="form-radio text-[#1A4F93]"
+                        />
+                        <span>Government ID (Front & Back)</span>
+                    </label>
+                </div>
+
+                {idType === "passport" && (
+                    <div>
+                        <label
+                            htmlFor="passportUpload"
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#1A4F93] transition relative"
+                        >
+                            <FaFileAlt className="text-4xl text-gray-400 mb-2" />
+                            <span className="text-gray-500 mb-1">
+                                Drag & drop your passport or click to browse
+                            </span>
+                            <span className="text-gray-400 text-sm">
+                                Supported formats: JPG, PNG, or PDF (max 5MB)
+                            </span>
+                            <input
+                                id="passportUpload"
+                                type="file"
+                                accept=".jpg,.jpeg,.png,.pdf"
+                                onChange={handlePassportChange}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            />
+                        </label>
+                        {passport && (
+                            <p className="mt-2 text-green-600 font-semibold">Selected file: {passport.name}</p>
+                        )}
+                    </div>
+                )}
+
+                {idType === "governmentID" && (
+                    <div className="space-y-6">
+                        <div>
+                            <label className="block mb-2 font-medium text-gray-700">
+                                Front of Government ID
+                            </label>
+                            <label
+                                htmlFor="govIDFrontUpload"
+                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#1A4F93] transition relative"
+                            >
+                                <FaFileAlt className="text-4xl text-gray-400 mb-2" />
+                                <span className="text-gray-500 mb-1">
+                                    Drag & drop the front of your ID or click to browse
+                                </span>
+                                <span className="text-gray-400 text-sm">
+                                    Supported formats: JPG, PNG, or PDF (max 5MB)
+                                </span>
+                                <input
+                                    id="govIDFrontUpload"
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    onChange={handleGovIDFrontChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                            </label>
+                            {govIDFront && (
+                                <p className="mt-2 text-green-600 font-semibold">Selected file: {govIDFront.name}</p>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block mb-2 font-medium text-gray-700">
+                                Back of Government ID
+                            </label>
+                            <label
+                                htmlFor="govIDBackUpload"
+                                className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-[#1A4F93] transition relative"
+                            >
+                                <FaFileAlt className="text-4xl text-gray-400 mb-2" />
+                                <span className="text-gray-500 mb-1">
+                                    Drag & drop the back of your ID or click to browse
+                                </span>
+                                <span className="text-gray-400 text-sm">
+                                    Supported formats: JPG, PNG, or PDF (max 5MB)
+                                </span>
+                                <input
+                                    id="govIDBackUpload"
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png,.pdf"
+                                    onChange={handleGovIDBackChange}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                />
+                            </label>
+                            {govIDBack && (
+                                <p className="mt-2 text-green-600 font-semibold">Selected file: {govIDBack.name}</p>
+                            )}
+                        </div>
+                    </div>
                 )}
             </div>
 
@@ -135,7 +237,7 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
 
             <div className="mb-8 w-full max-w-full">
                 <label className="block mb-3 font-semibold text-black text-lg w-full">
-                    Professional Certifications 
+                    Professional Certifications
                 </label>
                 <p className="mb-2 text-gray-600">
                     Upload any relevant certifications, licenses, or qualifications for your services
@@ -196,16 +298,6 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 </label>
             </div>
 
-            <div className="mt-12 p-6 bg-red-50 border-l-6 border-red-600 rounded-xl text-red-700 font-semibold max-w-full">
-                🌽 <strong>PIPEDA Compliance Notice:</strong> TaskMatch complies with Canada's Personal Information Protection and Electronic Documents Act (PIPEDA). We're committed to:
-                <ul className="list-disc list-inside mt-2 space-y-1 font-normal text-red-800">
-                    <li>Collecting only necessary information with your consent</li>
-                    <li>Securing your data with industry-standard encryption</li>
-                    <li>Providing access to your information upon request</li>
-                    <li>Only using your information for the purposes described in our Privacy Policy</li>
-                    <li>Storing data on Canadian servers, when possible</li>
-                </ul>
-            </div>
 
             <div className="flex justify-between mt-10">
                 <button

@@ -157,18 +157,8 @@ const Step4RatesAvailability = ({ onNext, onBack }: Props) => {
                             description: "Charge by the hour for your services",
                             popular: true,
                         },
-                        {
-                            value: "fixed",
-                            label: "Fixed Price",
-                            description: "Set prices for specific services",
-                            popular: false,
-                        },
-                        {
-                            value: "both",
-                            label: "Both Options",
-                            description: "Flexibility for different services",
-                            popular: false,
-                        },
+                
+                        
                     ].map(({ value, label, description, popular }) => (
                         <button
                             key={value}
@@ -333,11 +323,6 @@ const Step4RatesAvailability = ({ onNext, onBack }: Props) => {
                         );
                     })}
                 </div>
-
-                <p className="mt-2 text-gray-500 italic text-sm">
-                    💡 Tip: Select multiple areas to increase your earning opportunities.
-                    You can always adjust your service areas later in your profile settings.
-                </p>
             </section>
 
             {/* Buttons */}

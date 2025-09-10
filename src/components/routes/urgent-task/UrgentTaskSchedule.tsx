@@ -12,12 +12,14 @@ import "react-toastify/dist/ReactToastify.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { useRouter } from "next/navigation";
+import TaskConfirmationModal from "./TaskConfirmationModal";
 
 type Props = {
     onBack: () => void;
+    onContinue: () => void;
 };
 
-const UrgentTaskSchedule = ({ onBack }: Props) => {
+const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
     const dispatch = useDispatch();
     const router = useRouter();
     const taskForm = useSelector((state: RootState) => state.taskForm);
@@ -35,14 +37,15 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
 
     const [selectedLoc, setSelectedLoc] = useState("");
     const [customLocation, setCustomLocation] = useState("");
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // RTK mutation hook
     const [postTask, { isLoading, isError, isSuccess }] = usePostTaskMutation();
 
-    // ✅ Fetch login and user info
+    // Fetch login and user info
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
             });
@@ -52,7 +55,7 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
                 setIsLoggedIn(true);
                 setUserRole(data.user.role);
                 setFullName(data.user.fullName);
-                setUser(data.user); // Save user for postalCode
+                setUser(data.user);
             } else {
                 setIsLoggedIn(false);
                 setUserRole(null);
@@ -72,99 +75,19 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
         dispatch(updateTaskField({ field: "schedule", value: timing }));
         dispatch(updateTaskField({ field: "additionalInfo", value: info }));
         dispatch(updateTaskField({ field: "price", value: price }));
-    }, [timing, info, price, dispatch]);
-
-    // Handle Location Button Selection
-    const handleSelect = (loc: string) => {
-        setSelectedLoc(loc);
-
-        if (loc === "At My Location") {
-            dispatch(updateTaskField({ field: "location", value: user?.postalCode || "" }));
-        } else if (loc === "Remote") {
-            dispatch(updateTaskField({ field: "location", value: "Remote" }));
-        } else {
-            dispatch(updateTaskField({ field: "location", value: customLocation }));
+        if (customDeadline) {
+            dispatch(updateTaskField({ field: "customDeadline", value: customDeadline.toISOString() }));
         }
-    };
+    }, [timing, info, price, customDeadline, dispatch]);
 
-    const handleCustomInput = (value: string) => {
-        setCustomLocation(value);
-        dispatch(updateTaskField({ field: "location", value }));
-    };
-
-    // ✅ Submit Handler
-    const handleSubmit = async () => {
-        const formData = new FormData();
-
-        formData.append("serviceId", taskForm.serviceId);
-        formData.append("serviceTitle", taskForm.serviceTitle);
-        formData.append("taskTitle", taskForm.taskTitle);
-        formData.append("taskDescription", taskForm.taskDescription);
-        formData.append("location", taskForm.location);
-        formData.append("schedule", timing);
-        formData.append("extraCharge", (timing === "Urgent").toString());
-        formData.append("additionalInfo", info);
-        formData.append("price", price);
-
-        let finalDeadline: Date | null = null;
-        const now = new Date();
-
-        if (timing === "Today") {
-            switch (offerDeadline) {
-                case "1 Hour":
-                    finalDeadline = new Date(now.getTime() + 1 * 60 * 60 * 1000);
-                    break;
-                case "3 Hours":
-                    finalDeadline = new Date(now.getTime() + 3 * 60 * 60 * 1000);
-                    break;
-                case "6 Hours":
-                    finalDeadline = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-                    break;
-                case "12 Hours":
-                    finalDeadline = new Date(now.getTime() + 12 * 60 * 60 * 1000);
-                    break;
-                case "24 Hours":
-                    finalDeadline = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                    break;
-                default:
-                    finalDeadline = null;
-            }
-        } else if (timing === "Schedule" && customDeadline) {
-            finalDeadline = customDeadline;
-        }
-
-        if (finalDeadline) {
-            formData.append("offerDeadline", finalDeadline.toISOString());
-        }
-
-        taskForm.photos.forEach((file: string | Blob) => {
-            if (file instanceof Blob) {
-                formData.append("photos", file);
-            }
-        });
-
-        if (taskForm.video) {
-            formData.append("video", taskForm.video);
-        }
-
-        try {
-            await postTask(formData).unwrap();
-            toast.success("Task posted successfully!", {
-                onClose: () => router.push("/dashboard/client"),
-                autoClose: 2000,
-            });
-        } catch (err) {
-            toast.error("Failed to post task.", {
-                onClose: () => router.push("/authentication"),
-                autoClose: 2000,
-            });
-            console.error(err);
-        }
+    // Submit Handler (moved to UrgentTaskSummary)
+    const handleContinue = () => {
+        onContinue();
     };
 
     return (
         <div className="max-w-7xl mx-auto py-10 text-black bg-orange-50 rounded-b-2xl">
-            <h2 className="text-3xl font-bold mb-6">3. Schedule</h2>
+            <h2 className="text-3xl font-bold mb-6">2. Schedule</h2>
             <p className="text-lg mb-4">When do you need this done?</p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
@@ -179,16 +102,6 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
                 </button>
 
                 <button
-                    onClick={() => setTiming("Today")}
-                    className={`border-2 rounded-xl p-6 text-center ${timing === "Today" ? "border-orange-500 bg-orange-100" : "border-gray-300"
-                        }`}
-                >
-                    <div className="text-3xl mb-2">📅</div>
-                    <div className="text-lg font-semibold">Today</div>
-                    <p className="text-sm">Within 24h</p>
-                </button>
-
-                <button
                     onClick={() => setTiming("Schedule")}
                     className={`border-2 rounded-xl p-6 text-center ${timing === "Schedule" ? "border-orange-500 bg-orange-100" : "border-gray-300"
                         }`}
@@ -198,41 +111,6 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
                     <p className="text-sm">Custom time</p>
                 </button>
             </div>
-
-            {/* Offer Deadline Selection for "Today" */}
-            {timing === "Today" && (
-                <div className="mt-10">
-                    <h3 className="text-lg font-bold mb-3 text-gray-800">
-                        Offer Deadline <span className="text-red-500">*</span>
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                        Set a deadline for taskers to submit their offers. This helps you get timely responses.
-                    </p>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-                        {[
-                            { label: "1 Hour", icon: "⚡", note: "Quick turnaround" },
-                            { label: "3 Hours", icon: "🕒", note: "Good response time" },
-                            { label: "6 Hours", icon: "⏰", note: "More options" },
-                            { label: "12 Hours", icon: "📅", note: "Balanced" },
-                            { label: "24 Hours", icon: "🗓️", note: "Maximum choices" },
-                        ].map((item) => (
-                            <button
-                                key={item.label}
-                                onClick={() => setOfferDeadline(item.label)}
-                                className={`border-2 rounded-xl p-4 text-left transition ${offerDeadline === item.label
-                                    ? "border-orange-500 bg-orange-100"
-                                    : "border-gray-300"
-                                    }`}
-                            >
-                                <div className="text-xl mb-1">{item.icon}</div>
-                                <div className="font-semibold">{item.label}</div>
-                                <p className="text-sm text-gray-600">{item.note}</p>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             {/* Custom DateTime Picker for "Schedule" */}
             {timing === "Schedule" && (
@@ -259,45 +137,27 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
                 </div>
             )}
 
-
+            {/* Estimated Time */}
             <div>
-                {/* Location Selection UI */}
-                <div className="mb-6">
-                    <h3 className="text-lg font-bold mb-3 text-gray-800">📍 Tell us where</h3>
-                    <div className="flex gap-4 flex-wrap">
-                        {["At My Location", "Remote", "Other"].map((loc) => (
-                            <button
-                                key={loc}
-                                type="button"
-                                onClick={() => handleSelect(loc)}
-                                className={`border-2 rounded-xl px-6 py-3 text-sm font-semibold ${(loc === "At My Location" && taskForm.location === user?.postalCode) ||
-                                    taskForm.location === loc
-                                    ? "border-orange-500 bg-orange-100"
-                                    : "border-gray-300"
-                                    }`}
-                            >
-                                {loc}
-                            </button>
-                        ))}
-                    </div>
-
-                    {selectedLoc === "Other" && (
-                        <div className="mt-4">
-                            <input
-                                type="text"
-                                value={customLocation}
-                                onChange={(e) => handleCustomInput(e.target.value)}
-                                placeholder="Enter custom location"
-                                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                            />
-                        </div>
-                    )}
-                </div>
-
+                <label className="block text-sm font-medium mb-1">
+                    Estimated Time (hours) <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="number"
+                    min="1"
+                    value={taskForm.estimatedTime || ""}
+                    onChange={(e) =>
+                        dispatch(updateTaskField({ field: "estimatedTime", value: e.target.value }))
+                    }
+                    placeholder="e.g., 2"
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                    Estimate how long the task will take
+                </p>
             </div>
 
-
-            <div className="mb-6 bg-orange-100 border border-orange-500 p-4 rounded-lg shadow-sm">
+            <div className="my-6 bg-orange-100 border border-orange-500 p-4 rounded-lg shadow-sm">
                 <p className="text-lg font-semibold text-orange-500 mb-1">💰 Taskers will provide quotes</p>
                 <p className="text-sm text-gray-700">
                     Taskers will review your task description and provide competitive quotes based on the details you provide.
@@ -316,6 +176,7 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
                 />
                 <div className="text-sm text-gray-500 mt-1">{info.length} / 500</div>
             </div>
+
             <div className="mb-6">
                 <label className="block text-sm font-medium mb-1">
                     Desired Price ($) <span className="text-red-500">*</span>
@@ -331,54 +192,15 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
                 />
             </div>
 
-            <div className="bg-gradient-to-br from-white to-orange-50 p-6 rounded-2xl shadow-xl border border-orange-200 mb-8">
-                <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">📝 Task Summary</h3>
-
-                <div className="grid md:grid-cols-2 gap-6 text-gray-700 text-base">
-                    <div className="flex items-start gap-3">
-                        <span className="text-xl">🔧</span>
-                        <div>
-                            <p className="font-semibold">Service</p>
-                            <p className="text-orange-600">{taskForm.serviceTitle || "Not specified"}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                        <span className="text-xl">📍</span>
-                        <div>
-                            <p className="font-semibold">Location</p>
-                            <p className="text-gray-500">{taskForm.location || "Not specified"}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                        <span className="text-xl">⏱️</span>
-                        <div>
-                            <p className="font-semibold">Timing</p>
-                            <p className="text-orange-600 capitalize">{timing}</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-start gap-3">
-                        <span className="text-xl">💰</span>
-                        <div>
-                            <p className="font-semibold">Budget</p>
-                            <p className="text-gray-500">Taskers will provide quotes</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <div className="flex justify-between">
                 <button onClick={onBack} className="text-orange-600 font-bold hover:underline">
                     ← Back
                 </button>
                 <button
-                    onClick={handleSubmit}
-                    disabled={isLoading}
-                    className="bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-8 py-4 rounded-2xl font-bold text-white hover:shadow-lg hover:-translate-y-1 transition-transform duration-300 disabled:opacity-50"
+                    onClick={handleContinue}
+                    className="bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-8 py-4 rounded-2xl font-bold text-white hover:shadow-lg hover:-translate-y-1 transition-transform duration-300"
                 >
-                    {isLoading ? "Posting..." : "⚡ Post My URGENT Task"}
+                    Continue
                 </button>
             </div>
 
@@ -391,11 +213,19 @@ const UrgentTaskSchedule = ({ onBack }: Props) => {
             {isSuccess && (
                 <p className="mt-4 text-green-600 font-semibold">
                     Task posted successfully!
-
                 </p>
             )}
             <ToastContainer position="top-right" autoClose={3000} />
-
+            <TaskConfirmationModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onConfirm={() => { }}
+                taskForm={taskForm}
+                timing={timing}
+                price={price}
+                info={info}
+                isLoading={isLoading}
+            />
         </div>
     );
 };

@@ -1,15 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { useSignupMutation } from "@/features/auth/authApi";
 import { RootState } from "@/app/store";
+import { toast } from "react-toastify";
 
 type Props = {
     onBack: () => void;
 };
 
-const Step5ReviewSubmit = ({ onBack }: Props) => {
+const 
+
+Step5ReviewSubmit = ({ onBack }: Props) => {
     const [signup, { isLoading }] = useSignupMutation();
 
     // ✅ Use correct state key: 'form'
@@ -45,11 +49,17 @@ const Step5ReviewSubmit = ({ onBack }: Props) => {
         try {
             const response = await signup(finalData).unwrap();
             console.log("Submitted:", response);
-            alert("Profile submitted successfully!");
+            toast.success("Profile submitted successfully!");
+            console.log(finalData)
             // Optionally reset form or redirect
         } catch (err) {
             console.error("Submission error:", err);
-            alert("Something went wrong during submission.");
+            // Try to extract a message, fallback to a generic error
+            const errorMessage =
+                (err as any)?.data?.message ||
+                (err as any)?.message ||
+                "Submission failed. Please try again.";
+            toast.error(errorMessage);
         }
     };
 

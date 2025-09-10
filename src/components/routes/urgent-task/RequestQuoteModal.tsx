@@ -90,7 +90,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 animate-fade-in overflow-y-auto py-4">
+        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[9999] animate-fade-in overflow-y-auto py-4">
             <div className="bg-white rounded-3xl p-6 max-w-lg w-full mx-4 relative shadow-2xl transform transition-all duration-500 scale-100 hover:scale-105 sm:p-8">
                 <button
                     onClick={onClose}

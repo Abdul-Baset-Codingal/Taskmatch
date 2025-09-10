@@ -15,22 +15,22 @@ export default function Home() {
       <div>
         <Banner />
       </div>
-      <div className="mt-28">
+      <div className="mt-4">
         <PopularServices />
       </div>
-      <div className="mt-28">
+      <div className="mt-4 lg:mt-10">
         <HowTaskMatchWorks />
       </div>
-      <div className="mt-28">
+      <div className="mt-4 lg:mt-10">
         <GettingDone />
       </div>
       {/* <div className="mt-28">
         <RecentlyCompleted />
       </div> */}
-      <div>
+      <div className="mt-4 lg:mt-14">
         <Testimonials />
       </div>
-      <div className="mt-28">
+      <div className="mt-4 lg:mt-10">
         <TaskMatchApp />
       </div>
     </div>

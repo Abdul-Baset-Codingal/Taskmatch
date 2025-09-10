@@ -1,81 +1,180 @@
-/* eslint-disable react/no-unescaped-entities */
+"use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
-import { FiCheckCircle, FiStar, FiMessageSquare } from "react-icons/fi";
-import { useGetTasksByStatusQuery } from "@/features/api/taskApi"; // Adjust import path
+import {
+  FiCheckCircle,
+  FiMapPin,
+  FiClock,
+  FiCalendar,
+  FiInfo,
+  FiImage,
+} from "react-icons/fi";
+import { useGetTasksByStatusQuery } from "@/features/api/taskApi";
+import { FaUser } from "react-icons/fa";
 
 const CompletedTasks = () => {
-  // Fetch tasks with status 'completed'
-  const { data: tasks, error, isLoading } = useGetTasksByStatusQuery("completed");
+  const {
+    data: tasks = [],
+    isLoading,
+    isError,
+  } = useGetTasksByStatusQuery("completed");
 
-  if (isLoading) return <p className="text-center p-8">Loading completed tasks...</p>;
-  if (error) return <p className="text-center p-8 text-red-600">Failed to load completed tasks</p>;
+
+  if (isLoading)
+    return (
+      <div className="text-center py-16 text-gray-400 text-lg font-medium animate-pulse">
+        Loading completed tasks...
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="text-center py-16 text-red-400 text-lg font-medium">
+        Failed to load completed tasks.
+      </div>
+    );
 
   return (
-    <section className="max-w-6xl mx-auto bg-gradient-to-r from-purple-300 via-indigo-300 to-blue-300 bg-opacity-50 backdrop-blur-md rounded-xl p-8 shadow-lg text-gray-900">
-      <h2 className="text-3xl font-bold mb-10 text-center text-purple-800">Completed Tasks</h2>
+    <section className="max-w-7xl mx-auto py-16 px-6">
+      <h2 className="text-4xl font-bold  text-center mb-14">
+        ✅ Completed Tasks
+      </h2>
 
-      <div className="space-y-8">
-        {(!tasks || tasks.length === 0) && (
-          <p className="text-center text-gray-700">No completed tasks found.</p>
-        )}
-
-        {tasks?.map((task: any) => (
-          <div
-            key={task._id}
-            className="bg-white/80 rounded-xl shadow-lg border-t-4 border-purple-600 p-6 flex flex-col md:flex-row gap-6 hover:shadow-2xl transition"
-          >
-            {/* Tasker Image */}
-            <div className="relative w-24 h-24 rounded-full overflow-hidden flex-shrink-0 border-4 border-purple-500 shadow-md">
-              {task.taskerImageUrl ? (
-                <Image
-                  src={task.taskerImageUrl}
-                  alt={task.taskerName || "Tasker"}
-                  layout="fill"
-                  objectFit="cover"
-                />
-              ) : (
-                <div className="flex items-center justify-center w-full h-full bg-gray-300 text-gray-600">
-                  No Image
-                </div>
-              )}
-            </div>
-
-            {/* Task Info */}
-            <div className="flex flex-col justify-between flex-grow">
-              <div>
-                <h3 className="text-2xl font-bold text-purple-900">{task.title}</h3>
-                <p className="text-gray-700 mt-1 font-semibold">
-                  Completed on: {new Date(task.completedAt || task.updatedAt || task.createdAt).toLocaleDateString()}
-                </p>
-                <div className="flex items-center gap-2 mt-2">
-                  {[...Array(5)].map((_, i) => (
-                    <FiStar
-                      key={i}
-                      className={`text-xl ${i < (task.rating || 0) ? "text-yellow-400" : "text-gray-300"}`}
-                    />
-                  ))}
-                  <span className="text-gray-600 ml-2">({task.rating || 0} stars)</span>
-                </div>
-                <p className="text-gray-600 mt-3 italic">"{task.feedback || "No feedback provided"}"</p>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-col gap-3 justify-center">
-              <button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm transition">
-                <FiCheckCircle /> View Details
-              </button>
-              <button className="flex items-center gap-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-2 rounded-lg text-sm transition">
-                <FiMessageSquare /> Leave Feedback
-              </button>
-            </div>
-          </div>
+      <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
+        {tasks.map((task: any) => (
+          <CompletedTaskCard key={task._id} task={task} />
         ))}
       </div>
     </section>
   );
 };
+
+const CompletedTaskCard = ({ task }: { task: any }) => {
+  const [showImages, setShowImages] = useState(false);
+
+  return (
+    <div className="relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 overflow-hidden group">
+      {/* Completed Badge */}
+      <div className="absolute top-0 left-0 bg-gradient-to-r from-green-400 to-green-600 px-4 py-1 rounded-br-xl text-xs font-semibold text-white shadow-md">
+        <div className="flex items-center gap-1">
+          <FiCheckCircle /> Completed
+        </div>
+      </div>
+
+      {/* Price Badge */}
+      <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2 rounded-bl-xl text-lg font-bold text-white shadow-md">
+        ${task.price || "N/A"}
+      </div>
+
+      <div className="p-6 flex flex-col gap-5">
+        {/* Header */}
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 group-hover:text-indigo-500 transition-colors duration-300 line-clamp-2">
+            {task.taskTitle || "Untitled Task"}
+          </h3>
+          <p className="text-sm font-medium text-indigo-600 mt-1">
+            {task.serviceTitle || "Category N/A"}
+          </p>
+        </div>
+
+        {/* Description */}
+        <p className="text-sm text-gray-600 line-clamp-3">
+          {task.taskDescription || "No description provided"}
+        </p>
+
+        {/* Client Info */}
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-gray-200">
+            <FaUser className="w-6 h-6 text-gray-600" />
+          </div>
+
+          <div>
+            <p className="text-sm font-semibold text-gray-900">
+              {task.client?.fullName || "N/A"}
+            </p>
+            <p className="text-xs text-gray-500">
+              {task.client?.email || "N/A"}
+            </p>
+          </div>
+        </div>
+
+
+        {/* Gallery */}
+        {task.photos?.length > 0 && (
+          <div>
+            <button
+              onClick={() => setShowImages(!showImages)}
+              className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+            >
+              <FiImage />
+              {showImages
+                ? "Hide Images"
+                : `Show Images (${task.photos?.length})`}
+            </button>
+            {showImages && (
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {task.photos.slice(0, 3).map((photo: string, index: number) => (
+                  <div
+                    key={index}
+                    className="relative h-24 rounded-lg overflow-hidden group"
+                  >
+                    <Image
+                      src={photo}
+                      alt={`Task Image ${index + 1}`}
+                      layout="fill"
+                      objectFit="cover"
+                      className="transition-transform duration-300 group-hover:scale-110"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <InfoItem icon={<FiMapPin />} label={task.location || "N/A"} full />
+          <InfoItem
+            icon={<FiClock />}
+            label={`${task.estimatedTime || "N/A"} hr(s)`}
+          />
+          <InfoItem
+            icon={<FiCalendar />}
+            label={
+              task.offerDeadline
+                ? new Date(task.offerDeadline).toLocaleDateString()
+                : "N/A"
+            }
+          />
+          <InfoItem
+            icon={<FiInfo />}
+            label={`Extra Charge: ${task.extraCharge ? "Yes" : "No"}`}
+            full
+          />
+          
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const InfoItem = ({
+  icon,
+  label,
+  full = false,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  full?: boolean;
+}) => (
+  <div
+    className={`flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-gray-700 border border-gray-200 ${full ? "col-span-2" : ""
+      }`}
+  >
+    <span className="text-indigo-500">{icon}</span>
+    <span className="text-sm">{label}</span>
+  </div>
+);
 
 export default CompletedTasks;

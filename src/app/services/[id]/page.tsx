@@ -15,6 +15,8 @@ const Page = () => {
         skip: !id,
     });
 
+    console.log(service)
+
     if (!id) return <p>Loading...</p>;
     if (isLoading) return <p>Loading service details...</p>;
     if (error) return <p>Error loading service details</p>;
@@ -23,12 +25,7 @@ const Page = () => {
         <div>
             <Navbar />
             <DetailsBanner service={service} />
-            {/* <div className="mt-32">
-                <Packages service={service} />
-            </div>
-            <div className="mt-32">
-                <ServicePackages service={service} />
-            </div> */}
+            
             <div>
                 <TaskerSlider service={service} />
             </div>

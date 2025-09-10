@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React, { ReactNode, useState } from "react";
 import {
   FaEdit,
   FaTrash,
@@ -18,6 +18,8 @@ import { toast } from "react-toastify";
 type UserStatus = "Active" | "Inactive" | "Suspended";
 
 interface User {
+  lastName: ReactNode;
+  firstName: ReactNode;
   isBlocked: any;
   fullName: string;
   _id: string;
@@ -256,7 +258,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
                       <FaUser className="w-6 h-6 text-gray-600" />
                     </div>
                   </td>
-                  <td className="px-6 py-4 font-medium">{user?.fullName}</td>
+                  <td className="px-6 py-4 font-medium">{user?.firstName} {user?.lastName}</td>
                   <td className="px-6 py-4">{user.email}</td>
                   <td className="px-6 py-4">
                     <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">

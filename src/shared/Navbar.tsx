@@ -13,18 +13,19 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState(null);
-  const [fullName, setFullName] = useState(null)
+  const [firstName, setFirstName] = useState(null)
+  const [lastName, setLastName] = useState(null)
+
   const router = useRouter();
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/logout", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
-
       if (response.ok) {
         setIsLoggedIn(false);
         setUserRole(null);
@@ -41,7 +42,7 @@ const Navbar = () => {
   // ✅ Check login status
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
         method: "GET",
         credentials: "include",
       });
@@ -50,7 +51,9 @@ const Navbar = () => {
         const data = await response.json();
         setIsLoggedIn(true);
         setUserRole(data.user.role);
-        setFullName(data.user.fullName)
+        setFirstName(data.user.firstName)
+        setLastName(data.user.lastName)
+
         console.log(data)
       } else {
         setIsLoggedIn(false);
@@ -171,8 +174,8 @@ const Navbar = () => {
 
           {/* Debug info */}
           <li className="text-xs text-gray-400">
-            Status: {isLoggedIn ? "Logged In" : "Not Logged In"}
-            {fullName && ` (${fullName})`}
+
+            {firstName && ` ${firstName} ${lastName}`}
           </li>
         </ul>
       </div>

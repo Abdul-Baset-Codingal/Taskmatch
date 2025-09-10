@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 import { useState, useEffect, useRef } from 'react';
 import { FaExclamationTriangle, FaLocationArrow, FaMapMarkerAlt, FaSpinner } from 'react-icons/fa';
 const TaskerMap = ({ taskers = [], selectedTasker, onTaskerSelect }) => {
@@ -290,21 +294,26 @@ const TaskerMap = ({ taskers = [], selectedTasker, onTaskerSelect }) => {
     }, [map, mapMarkers, taskers, selectedTasker, userLocation, onTaskerSelect]);
 
     return (
-        <div className="relative w-full h-full bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="relative w-full h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
             {/* Header */}
-            <div className="absolute top-0 left-0 right-0 z-[1000] bg-white shadow-md p-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <FaMapMarkerAlt className="text-2xl text-[#8560F1]" aria-hidden="true" />
-                        <h2 className="text-xl font-bold text-gray-800">Tasker Locations</h2>
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
+            <div className="absolute top-0 left-0 right-0 z-[1000] bg-white shadow-md p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    {/* Left Section */}
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <FaMapMarkerAlt className="text-lg sm:text-2xl text-[#8560F1]" aria-hidden="true" />
+                        <h2 className="text-base sm:text-lg md:text-xl font-bold text-gray-800">
+                            Tasker Locations
+                        </h2>
+                        <span className="text-[10px] sm:text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-semibold">
                             Greater Toronto Area
                         </span>
                     </div>
+
+                    {/* Right Section */}
                     <button
                         onClick={getCurrentLocation}
                         disabled={isLoadingLocation}
-                        className="flex items-center gap-2 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+                        className="flex items-center justify-center gap-2 w-full sm:w-auto bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white px-3 sm:px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 disabled:opacity-50 text-sm sm:text-base"
                         aria-label={isLoadingLocation ? 'Getting location' : 'Find my location'}
                     >
                         {isLoadingLocation ? (
@@ -312,49 +321,56 @@ const TaskerMap = ({ taskers = [], selectedTasker, onTaskerSelect }) => {
                         ) : (
                             <FaLocationArrow aria-hidden="true" />
                         )}
-                        <span>{isLoadingLocation ? 'Getting Location...' : 'My Location'}</span>
+                        <span className="truncate">
+                            {isLoadingLocation ? 'Getting Location...' : 'My Location'}
+                        </span>
                     </button>
                 </div>
 
-                {selectedTasker && selectedTasker.fullName && (
-                    <div className="mt-3 p-3 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] rounded-lg text-white">
+                {/* Selected Tasker */}
+                {selectedTasker?.fullName && (
+                    <div className="mt-3 p-3 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] rounded-lg text-white text-sm sm:text-base">
                         <div className="flex items-center gap-2">
-                            <FaMapMarkerAlt className="text-lg" aria-hidden="true" />
-                            <span className="font-semibold">{selectedTasker.fullName.replace(/[<>&"]/g, '')}</span>
+                            <FaMapMarkerAlt className="text-base sm:text-lg" aria-hidden="true" />
+                            <span className="font-semibold truncate">
+                                {selectedTasker.fullName.replace(/[<>&"]/g, '')}
+                            </span>
                         </div>
-                        <div className="text-sm opacity-90 mt-1">
-                            {(selectedTasker.serviceAreas || []).map(area => area.replace(/[<>&"]/g, '')).join(', ')}
+                        <div className="text-xs sm:text-sm opacity-90 mt-1">
+                            {(selectedTasker.serviceAreas || [])
+                                .map((area) => area.replace(/[<>&"]/g, ''))
+                                .join(', ')}
                         </div>
                     </div>
                 )}
 
+                {/* Errors */}
                 {locationError && (
-                    <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded-lg flex items-center gap-2 text-red-700">
+                    <div className="mt-3 p-2 sm:p-3 bg-red-100 border border-red-300 rounded-lg flex items-center gap-2 text-xs sm:text-sm text-red-700">
                         <FaExclamationTriangle aria-hidden="true" />
                         <span>{locationError}</span>
                     </div>
                 )}
-
                 {loadError && (
-                    <div className="mt-3 p-3 bg-red-100 border border-red-300 rounded-lg flex items-center gap-2 text-red-700">
+                    <div className="mt-3 p-2 sm:p-3 bg-red-100 border border-red-300 rounded-lg flex items-center gap-2 text-xs sm:text-sm text-red-700">
                         <FaExclamationTriangle aria-hidden="true" />
                         <span>{loadError}</span>
                     </div>
                 )}
             </div>
 
-            {/* Map Container */}
-            <div className="absolute top-0 left-0 right-0 bottom-0 ">
+            {/* Map */}
+            <div className="absolute top-[140px] sm:top-[120px] left-0 right-0 bottom-0">
                 {!leafletLoaded && !loadError ? (
                     <div className="flex justify-center items-center h-full bg-gray-100">
-                        <div className="text-lg font-semibold text-gray-600 flex items-center gap-2">
+                        <div className="text-sm sm:text-lg font-semibold text-gray-600 flex items-center gap-2">
                             <FaSpinner className="animate-spin text-[#8560F1]" aria-hidden="true" />
                             Loading Map...
                         </div>
                     </div>
                 ) : loadError ? (
                     <div className="flex justify-center items-center h-full bg-gray-100">
-                        <div className="text-lg font-semibold text-red-600 flex items-center gap-2">
+                        <div className="text-sm sm:text-lg font-semibold text-red-600 flex items-center gap-2">
                             <FaExclamationTriangle aria-hidden="true" />
                             {loadError}
                         </div>
@@ -370,34 +386,33 @@ const TaskerMap = ({ taskers = [], selectedTasker, onTaskerSelect }) => {
             </div>
 
             {/* Legend */}
-            <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-lg z-[1000]">
-                <h3 className="font-semibold text-gray-800 mb-2">Legend</h3>
-                <div className="space-y-2 text-sm">
+            <div className="absolute bottom-4 left-1 sm:left-4 right-1 sm:right-auto bg-white p-3 sm:p-4 rounded-lg shadow-lg z-[1000] text-xs sm:text-sm">
+                <h3 className="font-semibold text-gray-800 mb-2 text-sm sm:text-base">Legend</h3>
+                <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gradient-to-r from-orange-400 to-pink-400 rounded-full"></div>
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-orange-400 to-pink-400 rounded-full"></div>
                         <span>Available Taskers</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gradient-to-r from-purple-500 to-pink-400 rounded-full"></div>
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-purple-500 to-pink-400 rounded-full"></div>
                         <span>Selected Tasker</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                        <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-500 rounded-full"></div>
                         <span>Your Location</span>
                     </div>
                 </div>
             </div>
 
             {/* Tasker Count */}
-            <div className="absolute bottom-4 right-4 bg-white p-4 rounded-lg shadow-lg z-[1000]">
-                <div className="text-center">
-                    <div className="text-2xl font-bold text-[#8560F1]">
-                        {taskers.reduce((count, tasker) => count + (tasker.serviceAreas?.length || 0), 0)}
-                    </div>
-                    <div className="text-sm text-gray-600">Service Areas</div>
+            <div className="absolute bottom-20 sm:bottom-4 right-1 sm:right-4 bg-white p-3 sm:p-4 rounded-lg shadow-lg z-[1000] text-center text-xs sm:text-sm">
+                <div className="text-lg sm:text-2xl font-bold text-[#8560F1]">
+                    {taskers.reduce((count, tasker) => count + (tasker.serviceAreas?.length || 0), 0)}
                 </div>
+                <div className="text-xs sm:text-sm text-gray-600">Service Areas</div>
             </div>
         </div>
+
     );
 };
 

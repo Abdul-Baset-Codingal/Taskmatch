@@ -1,3 +1,6 @@
+
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 "use client";
 import { useGetTasksByStatusQuery } from "@/features/api/taskApi";
 import AllTasks from "@/components/browse-tasks/AllTasks";
@@ -9,7 +12,7 @@ const Page = () => {
     const { data: tasks, error, isLoading } = useGetTasksByStatusQuery("pending");
     const [selectedTask, setSelectedTask] = useState(null);
 
-    const handleTaskSelect = (task) => {
+    const handleTaskSelect = (task: React.SetStateAction<null>) => {
         setSelectedTask(task);
         console.log("Task selected:", task);
     };

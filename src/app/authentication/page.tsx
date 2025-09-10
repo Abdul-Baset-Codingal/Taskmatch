@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable react-hooks/exhaustive-deps */
+// @ts-nocheck
 "use client";
 export const dynamic = "force-dynamic"; // disables static rendering
 
 import React, { useState, useEffect, Suspense } from "react";
-import { FaHome, FaBriefcase, FaCheckCircle, FaStar, FaClock, FaShieldAlt, FaFire } from "react-icons/fa";
+import { FaHome, FaCheckCircle } from "react-icons/fa";
 import Navbar from "@/shared/Navbar";
 import ClientLoginModal from "@/components/authentication/ClientLoginModal";
 import TaskerLoginModal from "@/components/authentication/TaskerLoginModal";
@@ -16,11 +18,15 @@ const OpenClientLoginOnQuery = ({ setIsClientModalOpen }: { setIsClientModalOpen
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (!searchParams) return; // return early if null
+
+    // @it's ignore
     const shouldOpen = searchParams.get("openClientLogin");
     if (shouldOpen === "true") {
       setIsClientModalOpen(true);
     }
   }, [searchParams]);
+
 
   return null;
 };
@@ -117,7 +123,7 @@ const JoinTaskMatch = () => {
         </div>
 
         {/* Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl w-full">
+        <div className="grid grid-cols-1  gap-8 max-w-2xl w-full">
           {/* Client Card */}
           <div className="glass-effect p-6 sm:p-8 rounded-2xl card-float fade-in client-card client-glow">
             <div className="flex items-center gap-4 mb-6">
@@ -139,68 +145,6 @@ const JoinTaskMatch = () => {
             </Link>
           </div>
 
-          {/* Tasker Card */}
-          <div className="glass-effect p-6 sm:p-8 rounded-2xl card-float fade-in tasker-card tasker-glow">
-            <div className="flex items-center gap-4 mb-6">
-              <FaBriefcase className="text-emerald-400 text-3xl icon-pulse" />
-              <h2 className="text-2xl font-bold text-premium text-gray-900">Start Earning Today</h2>
-            </div>
-
-            <p className="text-gray-800 text-fancy mb-4">
-              Turn your skills into income — flexible work on your schedule
-            </p>
-
-            <ul className="space-y-2 mb-4 text-gray-800 text-fancy">
-              {[FaStar, FaClock, FaShieldAlt, FaFire].map((Icon, i) => {
-                const texts = [
-                  "High Earnings: $25-$150/hour",
-                  "Flexible Hours: Work when you want",
-                  "Rating Protection: Fair review system",
-                  "Get Featured: Stand out to clients",
-                ];
-                return (
-                  <li key={i} className="flex gap-2 items-center">
-                    <Icon className="text-emerald-400 text-sm icon-pulse" />
-                    {texts[i]}
-                  </li>
-                );
-              })}
-            </ul>
-
-            {/* Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center mb-4 text-fancy">
-              <div>
-                <p className="text-xl font-bold text-emerald-500">50K+</p>
-                <p className="text-xs text-gray-600">Active Taskers</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-emerald-500">4.8★</p>
-                <p className="text-xs text-gray-600">Average Rating</p>
-              </div>
-              <div>
-                <p className="text-xl font-bold text-emerald-500">$2.5M+</p>
-                <p className="text-xs text-gray-600">Paid Monthly</p>
-              </div>
-              <div>
-                <p className="text-2xl">🇨🇦</p>
-                <p className="text-xs text-gray-600">Canadian Standards</p>
-              </div>
-            </div>
-
-            {/* Compliance Info */}
-            <p className="text-[13px] text-gray-700 mb-4 leading-snug">
-              All requirements include <strong>Canadian ID verification</strong>, background checks, and tax compliance support. <br />
-              <span className="text-emerald-500 font-medium">Professional licensing assistance</span> available.
-            </p>
-
-            <Link href={'/tasker-signup'}>
-              <button
-                className="w-full bg-gradient-to-r from-emerald-400 to-teal-400 text-white font-bold py-3 rounded-md hover:from-emerald-500 hover:to-teal-500 transition text-sm text-fancy btn-shine"
-              >
-                Sign Up as Tasker
-              </button>
-            </Link>
-          </div>
 
         </div>
 

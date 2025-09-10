@@ -39,7 +39,13 @@ export const taskerApi = createApi({
             query: (userId) => `/bookings/user/${userId}`,
             providesTags: (result, error, userId) => [{ type: "Booking", id: userId }],
         }),
-
+        addReview: builder.mutation({
+            query: ({ bookingId, rating, message }) => ({
+                url: "/reviews",
+                method: "POST",
+                body: { bookingId, rating, message },
+            }),
+        }),
 
         // Update Booking
         updateBooking: builder.mutation({
@@ -116,6 +122,7 @@ export const {
     useGetAllBookingsQuery,
     useGetUserBookingsQuery,
     useUpdateBookingMutation,
+    useAddReviewMutation,
     useDeleteBookingMutation,
     useCreateRequestQuoteMutation,
     useGetAllRequestQuotesQuery,

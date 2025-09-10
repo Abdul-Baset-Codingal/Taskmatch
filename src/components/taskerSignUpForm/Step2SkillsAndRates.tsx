@@ -6,7 +6,6 @@ import {
     FaWrench,
     FaBoxOpen,
     FaCouch,
-
     FaPlus,
 } from "react-icons/fa";
 import { GiSkills } from "react-icons/gi";
@@ -14,20 +13,13 @@ import { useDispatch } from "react-redux";
 import { setStep2 } from "@/features/form/formSlice";
 
 const serviceCategories = [
-    { label: "Home", value: "Home", icon: <FaBroom /> },
-    { label: "Personal", value: "Personal", icon: <FaWrench /> },
-    { label: "Transportations", value: "transportations", icon: <FaBoxOpen /> },
-    { label: "Family", value: "Family", icon: <FaCouch /> },
-
+    { label: "Complete Cleaning", value: "Complete Cleaning", icon: <FaBroom /> },
+    { label: "Pet Services", value: "Pet Services", icon: <FaWrench /> },
+    { label: "Handyman, Renovation & Moving Help ", value: "Handyman, Renovation & Moving Help", icon: <FaBoxOpen /> },
+    { label: "Plumbing, Electrical & HVAC (PEH)", value: "Plumbing, Electrical & HVAC (PEH)", icon: <FaCouch /> },
+    { label: "Beauty & Wellness ", value: "Beauty & Wellness ", icon: <FaWrench /> },
+    { label: "Everything Else", value: "Everything Else", icon: <FaWrench /> },
 ];
-
-// const qualifications = [
-//     "Red Seal Certification",
-//     "Provincial Trade License",
-//     "Health & Safety Certification",
-//     "First Aid & CPR",
-//     "WHMIS Certification",
-// ];
 
 const durations = [
     "Less than 1 hour",
@@ -40,8 +32,8 @@ const durations = [
 type Service = {
     title: string;
     description: string;
-    rate: string;
-    duration: string;
+    hourlyRate: string;
+    estimatedDuration: string;
 };
 
 type Props = {
@@ -54,27 +46,21 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
     const [skillsArray, setSkillsArray] = useState<string[]>([]);
     const [skillInput, setSkillInput] = useState<string>("");
     const [experience, setExperience] = useState("");
-    // const [selectedQualifications, setSelectedQualifications] = useState<string[]>([]);
-    const [qualifications, setQualifications] = useState('');
-
+    const [qualifications, setQualifications] = useState("");
     const [services, setServices] = useState<Service[]>([
-        { title: "", description: "", rate: "", duration: "" },
+        { title: "", description: "", hourlyRate: "", estimatedDuration: "" },
     ]);
 
     const dispatch = useDispatch();
 
-
     const toggleCategory = (value: string) => {
-        setSelectedCategories((prev) =>
-            prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-        );
+        console.log("Toggled category:", value); // Debug
+        setSelectedCategories((prev) => {
+            const newCategories = prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value];
+            console.log("Updated selectedCategories:", newCategories); // Debug
+            return newCategories;
+        });
     };
-
-    // const toggleQualification = (qual: string) => {
-    //     setSelectedQualifications((prev) =>
-    //         prev.includes(qual) ? prev.filter((q) => q !== qual) : [...prev, qual]
-    //     );
-    // };
 
     const addSkill = () => {
         if (skillInput.trim()) {
@@ -88,7 +74,7 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
     };
 
     const addService = () => {
-        setServices([...services, { title: "", description: "", rate: "", duration: "" }]);
+        setServices([...services, { title: "", description: "", hourlyRate: "", estimatedDuration: "" }]);
     };
 
     const removeService = (index: number) => {
@@ -104,13 +90,13 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
     const handleNext = () => {
         const readableCategories = serviceCategories
             .filter((cat) => selectedCategories.includes(cat.value))
-            .map((cat) => cat.label.replace(/^[^\w\s]|_/g, '').trim()); // remove emoji for cleaner value if needed
+            .map((cat) => cat.label.replace(/^[^\w\s]|_/g, '').trim());
 
         const formattedServices = services.map((s) => ({
             title: s.title,
             description: s.description,
-            rate: parseFloat(s.rate),
-            duration: s.duration,
+            hourlyRate: parseFloat(s.hourlyRate),
+            estimatedDuration: s.estimatedDuration,
         }));
 
         const payload = {
@@ -142,12 +128,13 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
                             key={value}
                             type="button"
                             onClick={() => toggleCategory(value)}
-                            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition 
-                                ${selectedCategories.includes(value)
+                            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-semibold border transition text-left h-full
+                ${selectedCategories.includes(value)
                                     ? "bg-gradient-to-r from-[#C9303C] to-[#1A4F93] text-white border-transparent"
                                     : "border-gray-300 text-gray-700 hover:border-[#1A4F93]"}`}
                         >
-                            <span className="text-lg">{icon}</span> {label}
+                            <span className="text-lg shrink-0">{icon}</span>
+                            <span className="flex-1 break-words leading-snug">{label}</span>
                         </button>
                     ))}
                 </div>
@@ -217,7 +204,6 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
                 />
             </div>
 
-
             {/* Services */}
             <div className="mb-8">
                 <label className="block mb-3 font-semibold text-black text-lg">Your Services *</label>
@@ -249,14 +235,14 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
                             <input
                                 type="number"
                                 min={15}
-                                placeholder="Rate (CAD)"
-                                value={service.rate}
-                                onChange={(e) => updateService(i, "rate", e.target.value)}
+                                placeholder="Hourly Rate (CAD)"
+                                value={service.hourlyRate}
+                                onChange={(e) => updateService(i, "hourlyRate", e.target.value)}
                                 className="rounded-xl border px-4 py-2"
                             />
                             <select
-                                value={service.duration}
-                                onChange={(e) => updateService(i, "duration", e.target.value)}
+                                value={service.estimatedDuration}
+                                onChange={(e) => updateService(i, "estimatedDuration", e.target.value)}
                                 className="rounded-xl border px-4 py-2"
                             >
                                 <option value="">Select duration</option>

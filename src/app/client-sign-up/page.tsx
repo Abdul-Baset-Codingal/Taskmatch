@@ -5,7 +5,7 @@ import React, { useState } from "react";
 import { FaUserPlus } from "react-icons/fa";
 import Link from "next/link";
 import Navbar from "@/shared/Navbar";
-import { useSignupMutation } from "@/features/auth/authApi"; // ⬅️ Make sure the path is correct
+import { useSignupMutation } from "@/features/auth/authApi";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useRouter } from "next/navigation";
@@ -22,28 +22,26 @@ const ClientSignupPage = () => {
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
     };
+
     const [formData, setFormData] = useState({
-        fullName: "",
+        firstName: "",
+        lastName: "",
         email: "",
         phone: "",
         postalCode: "",
         password: "",
     });
 
-
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { id, value } = e.target;
         setFormData({ ...formData, [id]: value });
     };
 
-
     const checkLoginStatus = async () => {
         try {
-            // Call backend to verify token (cookie sent automatically)
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
                 method: "GET",
-                credentials: "include", // important to send httpOnly cookie
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -51,24 +49,20 @@ const ClientSignupPage = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                // Set login state true, and set user role from backend response
                 setIsLoggedIn(true);
                 setUserRole(data.user.role);
                 console.log("Token verified. User logged in:", data.user);
             } else {
-                // Token invalid or expired, clear login state
                 setIsLoggedIn(false);
                 setUserRole(null);
                 console.log("Token verification failed. User logged out.");
             }
         } catch (error) {
-            // Network or other error - consider user logged out
             setIsLoggedIn(false);
             setUserRole(null);
             console.error("Error verifying token:", error);
         }
     };
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -83,15 +77,12 @@ const ClientSignupPage = () => {
             toast.success("Account created successfully!");
             console.log("Signup success:", res);
 
-            await checkLoginStatus(); // Update isLoggedIn and userRole states
-
-            router.push("/"); // Redirect after login state update
+            await checkLoginStatus();
+            router.push("/");
         } catch (error: any) {
             toast.error(error?.data?.message || "Signup failed. Please try again.");
         }
     };
-
-
 
     return (
         <div>
@@ -111,29 +102,60 @@ const ClientSignupPage = () => {
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-5">
-                        <div>
-                            <label htmlFor="fullName" className="block text-sm mb-1 text-gray-900">Full Name</label>
-                            <input id="fullName" type="text" required placeholder="Your full name"
-                                value={formData.fullName}
-                                onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400" />
+                        {/* First Name and Last Name in a grid */}
+                        <div className="grid grid-cols-1  gap-4">
+                            <div>
+                                <label htmlFor="firstName" className="block text-sm mb-1 text-gray-900">First Name</label>
+                                <input
+                                    id="firstName"
+                                    type="text"
+                                    required
+                                    placeholder="First name"
+                                    value={formData.firstName}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="lastName" className="block text-sm mb-1 text-gray-900">Last Name</label>
+                                <input
+                                    id="lastName"
+                                    type="text"
+                                    required
+                                    placeholder="Last name"
+                                    value={formData.lastName}
+                                    onChange={handleChange}
+                                    className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400"
+                                />
+                            </div>
                         </div>
 
                         <div>
                             <label htmlFor="email" className="block text-sm mb-1 text-gray-900">Email Address</label>
-                            <input id="email" type="email" required placeholder="example@email.com"
+                            <input
+                                id="email"
+                                type="email"
+                                required
+                                placeholder="example@email.com"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400" />
+                                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400"
+                            />
                         </div>
 
                         <div>
                             <label htmlFor="phone" className="block text-sm mb-1 text-gray-900">Phone Number</label>
-                            <input id="phone" type="tel" required placeholder="+1 (555) 123-4567"
+                            <input
+                                id="phone"
+                                type="tel"
+                                required
+                                placeholder="+1 (555) 123-4567"
                                 value={formData.phone}
                                 onChange={handleChange}
-                                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400" />
+                                className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400"
+                            />
                         </div>
+
                         <div>
                             <label htmlFor="postalCode" className="block text-sm mb-1 text-gray-900">
                                 Postal Code
@@ -141,7 +163,6 @@ const ClientSignupPage = () => {
                             <input
                                 type="text"
                                 id="postalCode"
-                                name="postalCode"
                                 required
                                 value={formData.postalCode}
                                 onChange={handleChange}
@@ -149,7 +170,6 @@ const ClientSignupPage = () => {
                                 className="w-full p-3 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-amber-400"
                             />
                         </div>
-
 
                         <div className="relative">
                             <label htmlFor="password" className="block text-sm mb-1 text-gray-900">
@@ -177,7 +197,13 @@ const ClientSignupPage = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <input id="terms" type="checkbox" required checked={agreed} onChange={() => setAgreed(!agreed)} />
+                            <input
+                                id="terms"
+                                type="checkbox"
+                                required
+                                checked={agreed}
+                                onChange={() => setAgreed(!agreed)}
+                            />
                             <label htmlFor="terms" className="text-xs text-gray-700">
                                 I agree to the{" "}
                                 <Link href="/terms" className="text-amber-500 hover:underline">Terms of Service</Link> and{" "}
@@ -188,7 +214,7 @@ const ClientSignupPage = () => {
                         <button
                             type="submit"
                             disabled={isLoading}
-                            className="w-full bg-amber-400 text-white font-bold py-3 rounded-md hover:bg-amber-500 transition text-sm"
+                            className="w-full bg-amber-400 text-white font-bold py-3 rounded-md hover:bg-amber-500 transition text-sm disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {isLoading ? "Creating Account..." : "Create Account"}
                         </button>
@@ -203,7 +229,6 @@ const ClientSignupPage = () => {
                 </div>
             </div>
             <ToastContainer position="top-center" autoClose={3000} />
-
         </div>
     );
 };

@@ -12,7 +12,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   return (
     <div className="px-4">
       <div className="w-full flex justify-center">
-        <h2 className="text-3xl md:text-5xl font-bold custom-font text-center">
+        <h2 className="text-xl sm:text-3xl md:text-4xl font-bold custom-font text-center">
           {title}
         </h2>
       </div>

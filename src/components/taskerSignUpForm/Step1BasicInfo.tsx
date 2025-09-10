@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Image from "next/image";
@@ -28,13 +27,28 @@ const Step1BasicInfo = ({
 }) => {
     const dispatch = useDispatch();
 
-    const [fullName, setFullName] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [confirmPassword, setConfirmPassword] = useState("");
+    const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null); // Store ImgBB URL
 
-    const [formData, setFormData] = useState({
+    type FormDataType = {
+        email: string;
+        phone: string;
+        dob: string;
+        address: string;
+        city: string;
+        province: string;
+        postalCode: string;
+        language: string;
+        about: string;
+        travelDistance: string;
+        profilePicture: File | null;
+    };
 
+    const [formData, setFormData] = useState<FormDataType>({
         email: "",
         phone: "",
         dob: "",
@@ -45,21 +59,51 @@ const Step1BasicInfo = ({
         language: "",
         about: "",
         travelDistance: "",
-        profilePicture: "",
+        profilePicture: null,
     });
-
 
     const [preview, setPreview] = useState<string | null>(null);
 
-    const handleProfilePicChange = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const url = URL.createObjectURL(file);
-            setPreview(url);
-            setFormData({ ...formData, profilePicture: url });
+    const uploadToImgBB = async (file: File): Promise<string> => {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const res = await fetch(
+            `https://api.imgbb.com/1/upload?key=8b35d4601167f12207fbc7c8117f897e`,
+            {
+                method: 'POST',
+                body: formData,
+            }
+        );
+
+        const data = await res.json();
+        if (!data.success) {
+            throw new Error(data.error.message || 'Image upload failed');
         }
+        return data.data.url; // Return the ImgBB URL
     };
 
+
+
+
+    const handleProfilePicChange = async (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            console.log('Selected File:', file);
+            const url = URL.createObjectURL(file); // For local preview
+            setPreview(url);
+            setFormData({ ...formData, profilePicture: file });
+
+            try {
+                const imageUrl = await uploadToImgBB(file); // Upload to ImgBB
+                setProfilePictureUrl(imageUrl); // Store the URL
+                console.log('Profile Picture URL:', imageUrl);
+            } catch (err) {
+                console.error('Profile Picture Upload Failed:', err);
+                alert('Failed to upload profile picture');
+            }
+        }
+    };
 
     const handleNext = () => {
         if (password !== confirmPassword) {
@@ -68,7 +112,8 @@ const Step1BasicInfo = ({
         }
 
         const finalData = {
-            fullName,
+            firstName,
+            lastName,
             email: formData.email,
             password,
             phone: formData.phone,
@@ -80,8 +125,9 @@ const Step1BasicInfo = ({
             language: formData.language,
             about: formData.about,
             travelDistance: formData.travelDistance,
-            profilePicture: formData.profilePicture,
+            profilePicture: profilePictureUrl || '', // Send ImgBB URL
         };
+
 
         dispatch(setStep1(finalData));
         onNext();
@@ -130,27 +176,49 @@ const Step1BasicInfo = ({
                             className="hidden"
                         />
                     </label>
+
                     <p className="mt-4 text-sm text-gray-500 max-w-xs text-center">
                         Professional photo recommended. JPG or PNG, max 5MB.
                     </p>
+
+                    {/* Show required message if no preview */}
+                    {!preview && (
+                        <p className="mt-1 text-xs text-red-500 font-medium">
+                            * Profile picture is required
+                        </p>
+                    )}
                 </div>
 
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    {/* Full Name Field */}
+                    {/* First Name Field */}
                     <div>
-                        <label className="block text-black font-semibold mb-2">Full Name *</label>
+                        <label className="block text-black font-semibold mb-2">First Name *</label>
                         <div className="relative flex items-center border border-gray-300 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-[#1A4F93]">
                             <FaUser className="text-gray-500 mr-3" />
                             <input
                                 type="text"
                                 required
-                                value={fullName}
-                                onChange={(e) => setFullName(e.target.value)}
+                                value={firstName}
+                                onChange={(e) => setFirstName(e.target.value)}
                                 className="w-full outline-none text-black bg-transparent placeholder-gray-400"
                             />
                         </div>
                     </div>
-
+                    {/* Last Name Field */}
+                    <div>
+                        <label className="block text-black font-semibold mb-2">Last Name *</label>
+                        <div className="relative flex items-center border border-gray-300 rounded-xl px-4 py-3 focus-within:ring-2 focus-within:ring-[#1A4F93]">
+                            <FaUser className="text-gray-500 mr-3" />
+                            <input
+                                type="text"
+                                required
+                                value={lastName}
+                                onChange={(e) => setLastName(e.target.value)}
+                                className="w-full outline-none text-black bg-transparent placeholder-gray-400"
+                            />
+                        </div>
+                    </div>
                     {/* Password Field */}
                     <div>
                         <label className="block text-black font-semibold mb-2">Password *</label>
@@ -199,9 +267,7 @@ const Step1BasicInfo = ({
                             <p className="text-red-500 text-sm mt-1">Passwords do not match</p>
                         )}
                     </div>
-
                 </div>
-
 
                 {/* Email and Phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
@@ -230,10 +296,7 @@ const Step1BasicInfo = ({
                     { value: "50", label: "Up to 50 km" },
                 ]} />
 
-                {/* Notice */}
-                <div className="mt-12 p-6 bg-red-50 border-l-6 border-red-600 rounded-xl text-red-700">
-                    🍁 <strong>PIPEDA Compliance Notice:</strong> Your personal information is protected under Canada's PIPEDA law.
-                </div>
+            
 
                 {/* Buttons */}
                 <div className="flex justify-between mt-12">

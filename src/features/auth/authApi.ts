@@ -42,7 +42,7 @@ export const authApi = createApi({
             return headers;
         },
     }),
-    tagTypes: ["User"], // ✅ For cache invalidation
+    tagTypes: ["User", "Review"], // ✅ For cache invalidation
     endpoints: (builder) => ({
         // ===== AUTHENTICATION =====
         signup: builder.mutation({
@@ -84,7 +84,6 @@ export const authApi = createApi({
             },
             providesTags: ["User"], // ✅ For caching
         }),
-
         // Get taskers with pagination and enhanced filters
         getTaskers: builder.query<any, GetTaskersParams | void>({
             query: ({
@@ -116,9 +115,13 @@ export const authApi = createApi({
             providesTags: ["User"],
         }),
 
+        getTopTaskerReviews: builder.query({
+            query: () => "/top-reviews",
+            providesTags: ["User"],
+        }),
         // Get single user by ID
         getUserById: builder.query({
-            query: (id) => `/users/${id}`,
+            query: (id) => `/users/single/${id}`,
             providesTags: (result, error, id) => [{ type: "User", id }],
         }),
 
@@ -166,6 +169,18 @@ export const authApi = createApi({
                 body: { currentPassword, newPassword },
             }),
         }),
+        // Submit a rating for a tasker
+        submitRating: builder.mutation({
+            query: ({ taskerId, taskId, rating, comment }) => ({
+                url: "/ratings",
+                method: "POST",
+                body: { taskerId, taskId, rating, comment },
+            }),
+            invalidatesTags: (result, error, { taskerId }) => [
+                "Review",
+                { type: "User", id: taskerId },
+            ],
+        }),
 
         // Get user statistics
         getUserStats: builder.query({
@@ -180,7 +195,8 @@ export const {
     useSignupMutation,
     useLoginMutation,
     useLogoutMutation,
-
+    useGetTopTaskerReviewsQuery,
+    useSubmitRatingMutation,
     // User management hooks
     useGetAllUsersQuery,
     useGetTaskersQuery,

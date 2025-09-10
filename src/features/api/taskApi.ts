@@ -64,6 +64,20 @@ export const taskApi = createApi({
             },
         }),
 
+        // ✅ Get schedule tasks (with optional status)
+        getScheduleTasks: builder.query({
+            query: () => {
+                return `/tasks/schedule`;
+            },
+        }),
+        // ✅ Get completed and in progress tasks
+        getCompletedAndInProgressTasks: builder.query({
+            query: () => '/tasks/completedAndInProgress',
+            providesTags: ['Task'],
+        }),
+
+
+
         // ✅ Get tasks by status (e.g., "in progress", "completed")
         getTasksByStatus: builder.query({
             query: (status) => `/tasks/filter?status=${encodeURIComponent(status)}`,
@@ -76,6 +90,7 @@ export const taskApi = createApi({
         }),
 
 
+
         // ✅ Get tasks by the logged-in client
         getTasksByClient: builder.query({
             query: () => "/tasks/client",
@@ -86,6 +101,14 @@ export const taskApi = createApi({
         getTaskById: builder.query({
             query: (taskId) => `/tasks/${taskId}`,
             providesTags: (result, error, taskId) => [{ type: "Task", id: taskId }],
+        }),
+        addTaskReview: builder.mutation({
+            query: ({ taskId, rating, message }) => ({
+                url: "/tasks/reviews",
+                method: "POST",
+                body: { taskId, rating, message },
+            }),
+            invalidatesTags: ["Task"],
         }),
 
         addComment: builder.mutation({
@@ -123,6 +146,18 @@ export const taskApi = createApi({
             }),
             invalidatesTags: ["Task"],
         }),
+
+
+        // accept bid by the client
+        acceptBid: builder.mutation({
+            query: ({ taskId, taskerId }) => ({
+                url: `/tasks/${taskId}/accept-bid`,
+                method: "PATCH",
+                body: { taskerId },
+            }),
+            invalidatesTags: ["Task"],
+        }),
+
         // Add inside endpoints:
         replyToComment: builder.mutation({
             query: ({ taskId, commentId, message }) => ({
@@ -171,7 +206,7 @@ export const taskApi = createApi({
         }),
 
         // Bulk delete tasks
-        
+
         bulkDeleteTasks: builder.mutation({
             query: (taskIds) => ({
                 url: '/tasks/bulk-delete',
@@ -187,14 +222,18 @@ export const {
     usePostTaskMutation,
     useGetAllTasksQuery,
     useGetUrgentTasksQuery,
+    useGetCompletedAndInProgressTasksQuery,
+    useGetScheduleTasksQuery,
     useGetTasksByStatusQuery,
     useGetTasksExcludingStatusQuery,
     useGetTasksByClientQuery,
+    useAddTaskReviewMutation,
     useRequestCompletionMutation,
     useGetTaskByIdQuery,
     useAddCommentMutation,
     useBidOnTaskMutation,
     useAcceptTaskMutation,
+    useAcceptBidMutation,
     useReplyToCommentMutation,
     useUpdateTaskStatusMutation,
     useUpdateTaskMutation,

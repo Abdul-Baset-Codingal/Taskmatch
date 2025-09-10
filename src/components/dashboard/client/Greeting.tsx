@@ -1,32 +1,88 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
-import React from "react";
-import { FiBell } from "react-icons/fi";
+import { useGetTasksByClientQuery } from "@/features/api/taskApi";
+import { useGetUserByIdQuery } from "@/features/auth/authApi";
+import Link from "next/link";
+import React, { useEffect, useState } from "react";
+import { FaTasks } from "react-icons/fa";
 
 const Greeting = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+
+  // Check login status
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setIsLoggedIn(true);
+        setUser({ _id: data.user._id, role: data.user.role });
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error checking login status:", error);
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  // Fetch full user details
+  const { data: userDetails } = useGetUserByIdQuery(user?._id, {
+    skip: !user?._id,
+  });
+
+  // ✅ Fetch tasks by logged-in client
+  const { data: clientTasks, isLoading: tasksLoading } = useGetTasksByClientQuery(undefined, {
+    skip: !isLoggedIn, // only fetch if logged in
+  });
+
+  // ✅ Filter "in progress" tasks
+  const inProgressTasks = clientTasks?.filter((task: any) => task.status === "in progress") || [];
+
   return (
-    <section className="max-w-6xl mt-10 mx-auto bg-gradient-to-tr from-pink-100 via-orange-100 to-yellow-100 rounded-3xl shadow-xl p-10  text-gray-900">
-      <div className="grid md:grid-cols-3 gap-8 items-center">
+    <section className="relative mx-auto px-6 md:px-12 py-6 rounded-[2rem] overflow-hidden bg-[#0f1123] shadow-[0_0_60px_#2e2c61] border border-white/10">
+      {/* Background gradient blobs */}
+      <div className="absolute -top-32 -left-32 w-[400px] h-[400px] bg-[#8f94fb] opacity-20 rounded-full blur-[120px] z-0"></div>
+      <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] bg-[#4e54c8] opacity-20 rounded-full blur-[120px] z-0"></div>
+
+      {/* Content */}
+      <div className="relative z-10 grid md:grid-cols-3 gap-8 items-center">
         {/* Info Block */}
-        <div className="col-span-2">
-          <h2 className="text-4xl font-extrabold text-orange-700 mb-3">
-            Welcome back, <span className="text-pink-700">Michael!</span>
+        <div className="col-span-2 bg-white/5 rounded-3xl p-8 shadow-[0_0_30px_rgba(255,255,255,0.05)] border border-white/10 hover:scale-[1.02] transition-all duration-300">
+          <h2 className="text-4xl font-extrabold text-[#8f94fb] mb-3">
+            Welcome back,{" "}
+            <span className="text-[#4e54c8]">{userDetails?.fullName}!</span>
           </h2>
-          <p className="text-lg text-gray-800">
+
+          <p className="text-lg text-gray-200">
             🎯 You have{" "}
-            <span className="font-bold text-orange-600">2 tasks</span> scheduled
-            this week
+            <span className="font-bold text-[#8f94fb]">
+              {tasksLoading ? "..." : inProgressTasks.length}
+            </span>{" "}
+            tasks in progress
             <br />
-            📬 And <span className="font-bold text-pink-600">1 new bid</span> on
-            your moving task.
           </p>
         </div>
 
         {/* Button Block */}
         <div className="flex justify-center md:justify-end">
-          <button className="flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl text-lg shadow-lg transition-all duration-300">
-            <FiBell size={20} />
-            View Updates
-          </button>
+          <Link href={"/urgent-task"}>
+            <button className="flex items-center gap-2 bg-gradient-to-r from-[#8f94fb] to-[#4e54c8] text-white px-6 py-3 rounded-full font-bold shadow-xl hover:scale-105 transition">
+              <FaTasks size={20} />
+              Post a Task
+            </button>
+          </Link>
         </div>
       </div>
     </section>

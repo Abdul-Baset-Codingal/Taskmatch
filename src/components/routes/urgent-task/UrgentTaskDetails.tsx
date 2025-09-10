@@ -1,25 +1,87 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import Image from "next/image";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
     updateTaskField,
     setPhotos,
-    setVideo,
 } from "@/features/taskForm/taskFormSlice";
 import { RootState } from "@/app/store";
+import { useSearchParams } from "next/navigation";
 
 type Props = {
     onBack: () => void;
     onContinue: () => void;
 };
 
+const servicesData = {
+    SelectYourService: {
+        title: "Select Your Service",
+    },
+    handyMan: {
+        title: "Handyman, Renovation & Moving Help",
+    },
+    PetServices: {
+        title: "Pet Services",
+    },
+    CompleteCleaning: {
+        title: "Complete Cleaning",
+    },
+    automotiveServices: {
+        title: "Plumbing, Electrical & HVAC (PEH)",
+    },
+    rideServices: {
+        title: "Beauty & Wellness",
+    },
+    beautyWellness: {
+        title: "Everything Else",
+    },
+
+
+} as const;
+
+
+type ServiceKey = keyof typeof servicesData;
+
 const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
     const dispatch = useDispatch();
     const taskForm = useSelector((state: RootState) => state.taskForm);
-
+    const [selectedService, setSelectedService] = useState<ServiceKey>(
+        (taskForm.serviceId as ServiceKey) || "automotive"
+    );
     const [images, setImages] = useState<File[]>(taskForm.photos || []);
-    const [video, setLocalVideo] = useState<File | null>(taskForm.video);
+    const [customLocation, setCustomLocation] = useState("");
+    const searchParams = useSearchParams();
+    const searchQuery = searchParams ? searchParams.get("search") || "" : "";
+    const [taskInput, setTaskInput] = useState(searchQuery); // State to manage input field
+    const [inputValue, setInputValue] = useState(searchQuery);
+
+    // Update input field when searchQuery changes
+    useEffect(() => {
+        setTaskInput(searchQuery);
+    }, [searchQuery]);
+
+    // Update taskTitle with searchQuery
+    const isGeneralService =
+        searchQuery?.toLowerCase() === "general service";
+
+    // Reset input only when searchQuery changes to "general service"
+    useEffect(() => {
+        if (isGeneralService) {
+            setInputValue(""); // start empty
+        } else {
+            dispatch(updateTaskField({ field: "taskTitle", value: searchQuery }));
+        }
+    }, [searchQuery, dispatch, isGeneralService]);
+
+    // Keep redux in sync with input when typing
+    useEffect(() => {
+        if (isGeneralService) {
+            dispatch(updateTaskField({ field: "taskTitle", value: inputValue }));
+        }
+    }, [inputValue, dispatch, isGeneralService]);
+
 
     const handleImageUpload = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         if (!e.target.files) return;
@@ -29,39 +91,84 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
         dispatch(setPhotos(newImages));
     };
 
-    const handleVideoUpload = (e: ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            const file = e.target.files[0];
-            setLocalVideo(file);
-            dispatch(setVideo(file));
-        }
+    const handleServiceChange = (e: ChangeEvent<HTMLSelectElement>) => {
+        const serviceKey = e.target.value as ServiceKey;
+        setSelectedService(serviceKey);
+        dispatch(updateTaskField({ field: "serviceId", value: serviceKey }));
+        dispatch(updateTaskField({ field: "serviceTitle", value: servicesData[serviceKey].title }));
     };
 
     const handleContinue = () => {
-        onContinue(); // all dispatches are already done in onChange
+        onContinue();
     };
+
+    const handleCustomInput = (value: string) => {
+        setCustomLocation(value);
+        dispatch(updateTaskField({ field: "location", value }));
+    };
+
+
 
     return (
         <div>
-            <h2 className="text-3xl font-bold mb-6">2. Task Details</h2>
-            <p className="text-lg mb-4">Tell us about your task</p>
 
             <div className="space-y-6">
-                {/* Task Title */}
+
+
+
+                {/* Location Selection UI */}
+                <div className="mb-6">
+                    <label className="block text-sm font-medium mb-1">
+                        Service Title <span className="text-red-500">*</span>
+                    </label>
+
+                    <>
+                        {isGeneralService ? (
+                            <input
+                                type="text"
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 mb-4"
+                            />
+                        ) : (
+                            <h2 className="text-3xl font-bold mb-6 capitalize">
+                                {searchQuery}
+                            </h2>
+                        )}
+                    </>
+
+                    <h3 className="text-sm font-bold mb-3 text-gray-800">📍 Tell us where</h3>
+
+
+                    <div className="mt-4">
+                        <input
+                            type="text"
+                            value={customLocation}
+                            onChange={(e) => handleCustomInput(e.target.value)}
+                            placeholder="Enter Your location"
+                            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        />
+                    </div>
+                </div>
+                {/* Service Selection */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
-                        Task Title <span className="text-red-500">*</span>
+                        Service <span className="text-red-500">*</span>
                     </label>
-                    <input
-                        type="text"
-                        value={taskForm.taskTitle}
-                        onChange={(e) =>
-                            dispatch(updateTaskField({ field: "taskTitle", value: e.target.value }))
-                        }
-                        placeholder="e.g., Fix My Car Brakes"
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    />
+                    <select
+                        className="w-full p-3 rounded-lg border border-gray-300 text-base focus:outline-none focus:ring-2 focus:ring-orange-400"
+                        value={selectedService}
+                        onChange={handleServiceChange}
+                    >
+                        {Object.keys(servicesData).map((key) => (
+                            <option key={key} value={key}>
+                                {servicesData[key as ServiceKey].title}
+                            </option>
+                        ))}
+                    </select>
                 </div>
+
+
 
                 {/* Description */}
                 <div>
@@ -82,24 +189,7 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                     </p>
                 </div>
 
-                {/* Location
-                <div>
-                    <label className="block text-sm font-medium mb-1">
-                        Location <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        value={taskForm.location}
-                        onChange={(e) =>
-                            dispatch(updateTaskField({ field: "location", value: e.target.value }))
-                        }
-                        placeholder="Dhaka, Bangladesh"
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    />
-                    <button className="mt-2 text-sm text-orange-600 hover:underline">
-                        📍 Use my location
-                    </button>
-                </div> */}
+
 
                 {/* Image Upload */}
                 <div>
@@ -131,33 +221,6 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                             </label>
                         ))}
                     </div>
-                </div>
-
-                {/* Video Upload */}
-                <div className="mt-6">
-                    <label className="block text-sm font-medium mb-2">
-                        🎥 Video (max 5 seconds)
-                    </label>
-                    <label className="border-2 border-dashed border-gray-300 rounded-lg h-32 flex justify-center items-center text-gray-400 cursor-pointer hover:border-orange-400 relative overflow-hidden">
-                        {video ? (
-                            <video
-                                src={URL.createObjectURL(video)}
-                                controls
-                                className="w-full h-full object-cover"
-                            />
-                        ) : (
-                            <span>🎬 Add 5-second video</span>
-                        )}
-                        <input
-                            type="file"
-                            accept="video/*"
-                            onChange={handleVideoUpload}
-                            className="absolute inset-0 opacity-0 cursor-pointer"
-                        />
-                    </label>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Show your task in action
-                    </p>
                 </div>
 
                 {/* Buttons */}

@@ -32,7 +32,8 @@ export default function RootLayout({
       >
         <Providers>
           {children}
-          <ToastContainer position="top-center" autoClose={3000} />
+          <ToastContainer position="top-center" autoClose={3000} style={{ zIndex: 999999 }}
+          />
         </Providers>
       </body>
     </html>

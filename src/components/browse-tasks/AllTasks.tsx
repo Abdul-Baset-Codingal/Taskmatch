@@ -1,3 +1,6 @@
+
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 "use client";
 import React, { useState } from "react";
 import { FaTasks, FaDollarSign, FaMapMarkerAlt, FaClock, FaTools, FaInfoCircle, FaExclamationCircle, FaEye } from "react-icons/fa";

@@ -63,7 +63,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
   const checkLoginStatus = async () => {
     try {
       // Call backend to verify token (cookie sent automatically)
-      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
         method: "GET",
         credentials: "include", // important to send httpOnly cookie
         headers: {
