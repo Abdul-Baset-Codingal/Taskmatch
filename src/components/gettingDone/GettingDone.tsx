@@ -65,37 +65,42 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
   return (
     <div
       key={task._id || index}
-      className="inline-block p-4 sm:p-6 md:p-8 mx-3 rounded-xl shadow-xl hover:scale-105 transition-transform duration-500 bg-white h-full w-[320px] sm:w-[350px] md:w-[380px] lg:w-[400px] marquee-card"
+      className="inline-block color3 backdrop-blur-md p-5 sm:p-6 md:p-7 mx-3 rounded-2xl shadow-lg hover:shadow-[#2CB67D]/40 hover:-translate-y-2 hover:scale-[1.03] transition-all duration-500 border border-white/30 w-[320px] sm:w-[350px] md:w-[380px] lg:w-[400px]"
     >
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm sm:text-base md:text-lg font-bold mb-2 truncate">
+        <h3 className="text-base sm:text-lg md:text-xl font-semibold text-[#063A41] truncate">
           {task.serviceTitle}
         </h3>
         <p
-          className={`px-3 sm:px-4 py-1.5 text-white font-bold rounded-3xl text-xs ${task.status === "in progress" ? "bg-[#FF8906]" : "bg-[#2CB67D]"
+          className={`px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold text-white rounded-full shadow-md ${task.status === "in progress"
+              ? "bg-[#FF8906]"
+              : "bg-[#2CB67D]"
             }`}
         >
           {formatStatus(task.status)}
         </p>
       </div>
 
-      <div className="mt-4 sm:mt-6 flex items-center justify-between">
-       
-        <p className="text-[#72757E] text-xs flex items-center gap-1">
-          <BiTimeFive className="text-base" />
-          {task.status === "in progress"
-            ? `Started ${formatTimeAgo(task.updatedAt)}`
-            : formatTimeAgo(task.updatedAt)}
-        </p>
-      </div>
-
-      {/* Clamp description to avoid breaking layout */}
-      <p className="mt-4 sm:mt-6 mb-3 font-medium text-xs sm:text-sm md:text-base line-clamp-2">
-        {task.taskTitle}: {task.taskDescription}
+      {/* Description */}
+      <p className="mt-4 text-sm sm:text-base text-gray-700 leading-relaxed line-clamp-2">
+        <span className="font-semibold text-[#109C3D]">{task.taskTitle}</span>: {task.taskDescription}
       </p>
 
-      <div className="flex items-center gap-3 mt-4 sm:mt-6">
-        <div className="w-10 sm:w-12 h-10 sm:h-12 relative border-4 border-white shadow-2xl shadow-purple-600 rounded-full overflow-hidden flex items-center justify-center bg-gray-100 text-gray-500">
+      {/* Time Info */}
+      <div className="mt-4 flex items-center gap-2 text-gray-500 text-xs sm:text-sm">
+        <BiTimeFive className="text-[#109C3D] text-base" />
+        {task.status === "in progress"
+          ? `Started ${formatTimeAgo(task.updatedAt)}`
+          : formatTimeAgo(task.updatedAt)}
+      </div>
+
+      {/* Divider Line */}
+      <div className="my-5 h-[1px] bg-gray-200"></div>
+
+      {/* Tasker Info */}
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 relative rounded-full overflow-hidden border-2 border-[#109C3D]/40 shadow-md flex items-center justify-center bg-gray-100">
           {taskerData?.profilePicture ? (
             <Image
               src={taskerData.profilePicture}
@@ -111,27 +116,31 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
           )}
         </div>
 
-        <div>
-          <p className="text-sm sm:text-base font-semibold">
+        <div className="flex flex-col">
+          <p className="text-sm sm:text-base font-semibold text-[#063A41]">
             {taskerData?.fullName}
           </p>
           <div className="flex items-center mt-1">
             {[...Array(5)].map((_, starIndex) => (
               <FaStar
                 key={starIndex}
-                className="text-yellow-400 text-[8px] sm:text-[10px] mr-[2px]"
+                className="text-yellow-400 text-[10px] sm:text-[12px] mr-[2px]"
               />
             ))}
           </div>
         </div>
       </div>
 
+      {/* Price */}
       {task.price && (
-        <div className="mt-3 text-right">
-          <span className="text-lg font-bold text-green-600">${task.price}</span>
+        <div className="mt-5 text-right">
+          <span className="text-xl font-bold text-[#109C3D]">
+            ${task.price}
+          </span>
         </div>
       )}
     </div>
+
 
   );
 };

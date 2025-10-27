@@ -36,7 +36,7 @@ const GetMobileApp = () => {
           </h2>
         </div>
         <div className="flex justify-center mt-5">
-          <div className="flex rounded-md justify-center h-[4px] w-[90px] bg-gradient-to-r from-[#8F60D3] to-[#F18420]"></div>
+          <div className="flex rounded-md justify-center h-[4px] w-[90px] color1"></div>
         </div>
         <div className="flex justify-center mt-3  text-center">
           <p className="w-[600px] text-lg text-[#7B809E]">

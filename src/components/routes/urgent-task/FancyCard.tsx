@@ -1,11 +1,15 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
 import Image from "next/image";
 import { useState } from "react";
-import { FaEnvelope, FaShieldAlt, FaStar, FaUser } from "react-icons/fa";
+import { FaClock, FaEnvelope, FaShieldAlt, FaStar, FaUser } from "react-icons/fa";
 import BookServiceModal from "./BookServiceModal";
 import RequestQuoteModal from "./RequestQuoteModal";
 import TaskerProfileModal from "./TaskerProfileModal";
-import client from "../../../../public/Images/clientImage1.jpg";
+import Link from "next/link";
+
 
 interface Tasker {
     rating: any;
@@ -31,7 +35,10 @@ interface Tasker {
     serviceAreas: string[];
     services: { title: string; description: string; hourlyRate: number; estimatedDuration: string }[];
     distance?: number;
-    reviews?: { rating: number; count: number; comment: string; clientName?: string; clientEmail?: string; clientImage?: string };
+    reviews?: {
+        length: number;
+        reduce(arg0: (sum: any, review: any) => any, arg1: number): unknown; rating: number; count: number; comment: string; clientName?: string; clientEmail?: string; clientImage?: string
+    };
 }
 
 const FancyCard = ({ tasker, isSelected, onClick }: {
@@ -43,162 +50,198 @@ const FancyCard = ({ tasker, isSelected, onClick }: {
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-    const bgColors = [
-        "bg-blue-100 text-blue-800",
-        "bg-green-100 text-green-800",
-        "bg-purple-100 text-purple-800",
-        "bg-pink-100 text-pink-800",
-        "bg-yellow-100 text-yellow-800",
-        "bg-red-100 text-red-800",
-        "bg-indigo-100 text-indigo-800",
-        "bg-teal-100 text-teal-800",
-    ];
 
+
+    console.log(tasker)
     return (
-        <>
-            <div
-                className={`relative bg-white border-t shadow-sm p-4 sm:p-6 rounded-lg cursor-pointer transition-all duration-200 ${isSelected ? "border-l-4 border-[#8560F1] shadow-md" : "border-gray-200 hover:shadow-md"
-                    } w-full max-w-2xl mx-auto`}
-                onClick={onClick}
-            >
-                <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
-                    {/* Profile Picture */}
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-sm relative flex-shrink-0">
-                        {tasker.profilePicture ? (
-                            <Image
-                                src={client}
-                                alt={`${tasker.firstName} ${tasker.lastName}`}
-                                width={96}
-                                height={96}
-                                className="object-cover w-full h-full"
-                                priority
-                            />
-                        ) : (
-                            <div className="flex items-center justify-center w-full h-full bg-gray-100">
-                                <FaUser className="text-gray-400 text-xl sm:text-2xl" />
-                            </div>
-                        )}
-                        <FaShieldAlt className="absolute bottom-0 right-0 text-blue-500 bg-white rounded-full p-1 text-sm sm:text-base shadow-sm" />
-                    </div>
 
-                    {/* Tasker Info */}
-                    <div className="flex-1 w-full">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-y-2">
-                            <h3 className="text-lg sm:text-xl md:text-2xl font-semibold text-gray-800 truncate">
+
+        <div
+            className={`relative bg-white border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-lg ${isSelected ? "border-[#8560F1] shadow-lg" : "border-gray-200"} w-full`}
+            onClick={onClick}
+        >
+            <div className="flex flex-col sm:flex-row w-full">
+                <div className="flex flex-col items-center sm:items-start">
+                    {/* Header with Profile and Basic Info */}
+                    <div className="px-3 sm:px-4 pt-3 sm:pt-4 pb-2 items-center sm:items-start gap-3 sm:gap-4">
+                        {/* Profile Picture - Top Left */}
+                        <div className="w-[100px] sm:w-16 md:w-[150px] h-[100px] sm:h-16 md:h-[150px] rounded-full overflow-hidden flex-shrink-0">
+                            {tasker.profilePicture ? (
+                                <Image
+                                    src={tasker.profilePicture}
+                                    alt={`${tasker.firstName} ${tasker.lastName}`}
+                                    width={150}
+                                    height={150}
+                                    className="object-cover w-full h-full"
+                                    priority
+                                />
+                            ) : (
+                                <div className="flex items-center justify-center w-full h-full bg-gray-100">
+                                    <FaUser className="text-gray-400 text-lg sm:text-xl md:text-2xl" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex justify-center">
+                            <div className="flex justify-center">
+                                <Link
+                                    href={`/taskers/${tasker._id}`}
+                                    className="font-bold text-green-800 cursor-pointer p-2 text-sm sm:text-base hover:text-green-600 transition-colors"
+                                >
+                                    View Profile
+                                </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="w-full">
+                    {/* Service Categories */}
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b w-full border-gray-100">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between">
+                            <h3 className="text-lg sm:text-xl md:text-3xl font-bold text-gray-900 truncate">
                                 {tasker.firstName} {tasker.lastName}
                             </h3>
-                            <div className="text-base sm:text-lg md:text-xl font-semibold text-[#8560F1]">
-                                {tasker.rate ? `$${tasker.rate}/hr` : "Rate not available"}
+                            <span className="text-sm sm:text-base md:text-2xl font-bold text-gray-900 mt-1 sm:mt-0">
+                                ${tasker.rate}/hr
+                            </span>
+                        </div>
+
+                        {/* All Other Info - Right Side */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 sm:gap-5 lg:gap-7 mt-1 sm:mt-2 flex-wrap">
+                                <div className="flex items-center gap-1">
+                                    {tasker.reviews && tasker.reviews.length > 0 ? (
+                                        <>
+                                            <FaStar className="text-yellow-400 text-sm sm:text-base md:text-lg" />
+                                            <span className="text-sm sm:text-base md:text-lg font-medium text-gray-700">
+                                                {((tasker.reviews.reduce((sum: number, review: { rating: number }) => sum + review.rating, 0) as number) / tasker.reviews.length).toFixed(1)}
+                                            </span>
+                                            <span className="text-xs sm:text-sm md:text-base text-gray-500">({tasker.reviews.length})</span>
+                                        </>
+                                    ) : (
+                                        <span className="text-sm sm:text-base md:text-lg text-gray-500">No reviews</span>
+                                    )}
+                                </div>
+                                <span className="text-xs sm:text-sm md:text-base text-gray-500">
+                                    {tasker.experience === "1_3" ? "1-3 years exp" : tasker.experience}
+                                </span>
+                                {(tasker.hasInsurance || tasker.backgroundCheckConsent) && (
+                                    <span className="text-green-700 flex items-center gap-1 text-xs sm:text-sm md:text-base">
+                                        <FaShieldAlt className="text-xs sm:text-sm md:text-base" />
+                                        Verified
+                                    </span>
+                                )}
                             </div>
                         </div>
-                        <div className="flex flex-wrap gap-2 mt-2 sm:mt-3">
-                            {tasker.serviceAreas?.map((area, index) => {
-                                const randomColor = bgColors[Math.floor(Math.random() * bgColors.length)];
-                                return (
-                                    <span
-                                        key={index}
-                                        className={`px-2 py-1 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-medium ${randomColor}`}
-                                    >
-                                        {area}
-                                    </span>
-                                );
-                            })}
+                        <h4 className="text-xs font-medium text-gray-500 mb-1 sm:mb-2 mt-2 sm:mt-4">Services:</h4>
+                        <div className="flex flex-wrap gap-1">
+                            {tasker.categories?.slice(0, 3).map((category, index) => (
+                                <span
+                                    key={index}
+                                    className="px-2 py-1 bg-[#d8e7e6] text-[#2F6F69] rounded text-xs font-medium border border-blue-200"
+                                >
+                                    {category}
+                                </span>
+                            ))}
+                            {tasker.categories && tasker.categories.length > 3 && (
+                                <span className="px-2 py-1 text-gray-500 text-xs">
+                                    +{tasker.categories.length - 3} more
+                                </span>
+                            )}
                         </div>
                     </div>
-                </div>
 
-                {/* Rating */}
-                <div className="flex items-center gap-2 mt-3 sm:mt-4">
-                    <div className="flex items-center gap-1">
-                        {tasker.rating ? (
-                            Array.from({ length: 5 }).map((_, index) => (
-                                <FaStar
+                    {/* Service Areas */}
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100">
+                        <h4 className="text-xs font-medium text-gray-500 mb-1 sm:mb-2">Areas:</h4>
+                        <div className="flex flex-wrap gap-1">
+                            {tasker.serviceAreas?.map((area, index) => (
+                                <span
                                     key={index}
-                                    className={`text-xs sm:text-sm ${index < Math.floor(tasker?.rating ?? 0) ? "text-yellow-400" : "text-gray-300"
-                                        }`}
-                                />
-                            ))
+                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium"
+                                >
+                                    {area}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Primary Service Description */}
+                    <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100">
+                        {tasker.services && tasker.services.length > 0 ? (
+                            <div>
+                                <h4 className="text-xs sm:text-sm font-medium text-gray-900 capitalize mb-1">
+                                    {tasker.services[0].title}
+                                </h4>
+                                <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 mb-1">
+                                    {tasker.services[0].description}
+                                </p>
+                                <div className="flex items-center gap-1 text-xs text-gray-500">
+                                    <FaClock className="text-xs" />
+                                    <span>{tasker.services[0].estimatedDuration}</span>
+                                </div>
+                            </div>
                         ) : (
-                            Array.from({ length: 5 }).map((_, index) => (
-                                <FaStar key={index} className="text-xs sm:text-sm text-gray-300" />
-                            ))
+                            <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">
+                                {tasker.description !== "No description available." ? tasker.description : `Professional ${tasker.service} services`}
+                            </p>
                         )}
                     </div>
-                    <span className="text-xs sm:text-sm font-semibold text-gray-800">
-                      {tasker.rating}
-                    </span>
-                </div>
 
-                {/* Service Description */}
-                <p className="text-xs sm:text-sm text-gray-600 italic mt-1 line-clamp-2">{tasker.service}</p>
-
-                {/* Testimonial */}
-                <div className="flex items-start gap-2 sm:gap-3 mt-3 sm:mt-4">
-                    {tasker.reviews?.clientImage ? (
-                        <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-gray-200 flex-shrink-0">
-                            <Image
-                                src={tasker.reviews.clientImage}
-                                alt="Client"
-                                fill
-                                className="object-cover"
-                                priority={false}
-                                sizes="40px"
-                            />
-                        </div>
-                    ) : (
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-100 flex items-center justify-center border border-gray-200 flex-shrink-0">
-                            <FaUser className="text-gray-400 text-sm sm:text-base" />
+                    {/* Latest Review */}
+                    {tasker.reviews && tasker.reviews.length > 0 && (
+                        <div className="px-3 sm:px-4 py-2 sm:py-3 border-b border-gray-100 bg-gray-100 mx-3 sm:mx-4">
+                            <div className="flex items-start gap-2">
+                                <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                                    <FaUser className="text-gray-400 text-xs" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1 mb-1">
+                                        {Array.from({ length: 5 }).map((_, index) => (
+                                            <FaStar
+                                                key={index}
+                                                className={`text-xs ${index < tasker.reviews[0].rating ? "text-yellow-400" : "text-gray-300"}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-600 italic line-clamp-2">
+                                        &quot;{tasker.reviews[0].message}&quot;
+                                    </p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        — Recent client review
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
-                    <div className="flex-1">
-                        <p className="text-xs sm:text-sm text-gray-700 italic line-clamp-2">
-                            &quot;{tasker.reviews?.comment || "No testimonial available."}&quot;
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                            — {tasker.reviews?.clientName || "Anonymous Client"}{" "}
-                            {tasker.reviews?.clientEmail && `(${tasker.reviews.clientEmail})`}
-                        </p>
+
+                    {/* Action Buttons */}
+                    <div className="p-3 sm:p-4">
+                        <div className="space-y-2">
+                            <div className="flex flex-col sm:flex-row w-full gap-2">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsBookModalOpen(true);
+                                    }}
+                                    className="color1 text-white w-full sm:w-[50%] text-sm py-2 sm:py-2.5 rounded font-medium hover:bg-[#7451E8] transition-colors duration-200"
+                                >
+                                    Select & Continue
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsQuoteModalOpen(true);
+                                    }}
+                                    className="flex-1 bg-white border border-gray-300 text-gray-700 text-sm py-2 rounded font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-1"
+                                >
+                                    <FaEnvelope className="text-xs" />
+                                    Quote
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-
-                {/* Action Buttons */}
-                <div className="mt-4 sm:mt-5">
-                    <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-2 sm:gap-4 mt-4 sm:mt-5">
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsBookModalOpen(true);
-                            }}
-                            className="w-40 sm:w-44 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white text-xs sm:text-sm py-2 sm:py-3 rounded-full font-semibold hover:opacity-90 transition-all duration-200"
-                        >
-                            Book Now
-                        </button>
-
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsProfileModalOpen(true);
-                            }}
-                            className="w-40 sm:w-44 bg-gray-100 text-gray-800 text-xs sm:text-sm py-2 sm:py-3 rounded-full font-semibold hover:bg-gray-200 transition-all duration-200"
-                        >
-                            View Profile
-                        </button>
-
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                setIsQuoteModalOpen(true);
-                            }}
-                            className="w-40 sm:w-44 bg-gray-100 text-gray-800 text-xs sm:text-sm py-2 sm:py-3 rounded-full font-semibold hover:bg-gray-200 transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                            <FaEnvelope className="text-sm sm:text-base" />
-                            <span>Request Quote</span>
-                        </button>
-                    </div>
-
-                </div>
-
-
             </div>
 
             {/* Modals */}
@@ -216,11 +259,8 @@ const FancyCard = ({ tasker, isSelected, onClick }: {
                 tasker={{ ...tasker, fullName: `${tasker.firstName} ${tasker.lastName}` }}
                 isOpen={isProfileModalOpen}
                 onClose={() => setIsProfileModalOpen(false)}
-
-
-
             />
-        </>
+        </div>
     );
 };
 

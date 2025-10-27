@@ -5,7 +5,7 @@
 "use client";
 import { useGetTaskersQuery } from "@/features/auth/authApi";
 import React, { useState } from "react";
-import { FaSearch, FaUser, FaMap, FaList, FaStar, FaEnvelope, FaShieldAlt } from "react-icons/fa";
+import { FaSearch, FaSort } from "react-icons/fa";
 import BookServiceModal from "./BookServiceModal";
 import RequestQuoteModal from "./RequestQuoteModal";
 import TaskerProfileModal from "./TaskerProfileModal";
@@ -44,7 +44,6 @@ interface DetailsBannerProps {
     service?: { category: string };
 }
 
-// Map normalized values to database values
 const categoryMap: { [key: string]: string } = {
     Handyman_Renovation_Moving_Help: "Handyman, Renovation & Moving Help",
     Pet_Services: "Pet Services",
@@ -53,31 +52,54 @@ const categoryMap: { [key: string]: string } = {
     Beauty_Wellness: "Beauty & Wellness",
 };
 
+const availabilityOptions = ["All", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const ratingOptions = ["All Ratings", "4", "3", "2", "1"];
+const experienceOptions = ["All Levels", "1", "3", "5", "10"];
+const sortOptions = [
+    { label: "Newest First", value: "createdAt-desc" },
+    { label: "Highest Rated", value: "rating-desc" },
+    { label: "Price: Low to High", value: "hourlyRate-asc" },
+    { label: "Price: High to Low", value: "hourlyRate-desc" },
+    { label: "Experience: High to Low", value: "yearsOfExperience-desc" },
+];
+
 const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [province, setProvince] = useState("");
     const [serviceType, setServiceType] = useState(service?.category || "");
+    const [availability, setAvailability] = useState("All");
+    const [rating, setRating] = useState("All Ratings");
+    const [experience, setExperience] = useState("All Levels");
+    const [minPrice, setMinPrice] = useState("");
+    const [maxPrice, setMaxPrice] = useState("");
+    const [sort, setSort] = useState("createdAt-desc");
     const [viewMode, setViewMode] = useState<"split" | "list">("split");
     const [selectedTasker, setSelectedTasker] = useState<string | null>(null);
 
-    // Transform normalized serviceType to database-compatible value
     const apiCategory = categoryMap[serviceType] || serviceType;
 
-    const { data, isLoading, error } = useGetTaskersQuery({
+    const queryParams = {
         category: apiCategory,
         page,
         limit: 20,
         search,
         province,
-    });
+        availability,
+        rating: rating === "All Ratings" ? "" : rating,
+        experience: experience === "All Levels" ? "" : experience,
+        minPrice,
+        maxPrice,
+        sort,
+    };
 
-    console.log("Query parameters:", { category: apiCategory, page, limit: 20, search, province });
+    const { data, isLoading, error } = useGetTaskersQuery(queryParams);
+
+    console.log("Query parameters:", queryParams);
     console.log("API response:", data);
 
     const taskers: Tasker[] = (data?.taskers || []).map((tasker: any) => {
         const serviceAreas = tasker.serviceAreas?.filter((area: string) => area && typeof area === "string") || [];
-        console.log(`Tasker ${tasker.firstName} serviceAreas:`, serviceAreas);
         return {
             _id: tasker._id || "unknown",
             firstName: tasker.firstName || "Unknown",
@@ -86,7 +108,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
             phone: tasker.phone || "N/A",
             profilePicture: tasker.profilePicture || "https://via.placeholder.com/150",
             city: tasker.address?.city || "Unknown",
-            province: tasker.address?.postalCode?.startsWith("M") ? "ON" : "Unknown",
+            province: tasker.address?.province || "Unknown",
             service: tasker.services?.[0]?.title || "General Services",
             description: tasker.about || "No description available.",
             skills: tasker.skills || [],
@@ -101,7 +123,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
             serviceAreas,
             services: tasker.services || [],
             distance: tasker.distance || Math.random() * 10,
-            reviews: tasker.reviews || { rating: 5.0, count: 0, comment: "Great service!" },
+            reviews: tasker.reviews || { rating: tasker.rating || 0, count: tasker.reviews?.length || 0, comment: "Great service!" },
         };
     }).filter((tasker) => {
         const hasServiceAreas = tasker.serviceAreas.length > 0;
@@ -112,8 +134,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
     });
 
     const totalTaskers = data?.pagination?.totalTaskers || 0;
-
-    console.log("Processed taskers:", taskers);
+    const totalPages = data?.pagination?.totalPages || 1;
 
     if (isLoading) {
         return (
@@ -138,30 +159,26 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
     }
 
     return (
-        <div className="bg-gray-50 min-h-screen py-6 px-4 sm:px-6 lg:px-8 font-sans">
-            <div className="">
-                {/* Responsive Container for Sidebar and Main Content */}
-                <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex justify-center bg-[#FEFDF8]">
+            <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8 font-sans">
+                <div className="flex flex-col lg:flex-row lg:gap-2 gap-6 lg:w-6xl bg-[#FEFDF8]">
                     {/* Left Sidebar - Filters */}
-                    <div className="w-full lg:w-80 bg-white rounded-lg shadow-sm p-4 sm:p-6">
+                    <div className="w-full lg:w-[30%] bg-white rounded-lg shadow-sm p-4 sm:p-6">
                         <h2 className="text-lg font-semibold text-gray-800 mb-4">Find a match</h2>
                         <div className="space-y-4">
                             <div>
-                                <label className="text-sm font-medium text-gray-600 mb-1 block">I&apos;m looking for:</label>
+                                <label className="text-sm font-medium text-gray-600 mb-1 block">Service Type</label>
                                 <select
                                     value={serviceType}
-                                    onChange={(e) => {
-                                        console.log("Selected serviceType:", e.target.value);
-                                        setServiceType(e.target.value);
-                                    }}
+                                    onChange={(e) => setServiceType(e.target.value)}
                                     className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
                                 >
                                     <option value="">Select Service</option>
-                                    <option value="Handyman_Renovation_Moving_Help">Handyman, Renovation & Moving Help</option>
-                                    <option value="Pet_Services">Pet Services</option>
-                                    <option value="Complete_Cleaning">Complete Cleaning</option>
-                                    <option value="Plumbing_Electrical_HVAC_PEH">Plumbing, Electrical & HVAC (PEH)</option>
-                                    <option value="Beauty_Wellness">Beauty & Wellness</option>
+                                    {Object.keys(categoryMap).map((key) => (
+                                        <option key={key} value={key}>
+                                            {categoryMap[key]}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div>
@@ -177,36 +194,95 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                     />
                                 </div>
                             </div>
+                           
                             <div>
-                                <label className="text-sm font-medium text-gray-600 mb-1 block">Province</label>
+                                <label className="text-sm font-medium text-gray-600 mb-1 block">Availability</label>
                                 <select
-                                    value={province}
-                                    onChange={(e) => setProvince(e.target.value)}
+                                    value={availability}
+                                    onChange={(e) => setAvailability(e.target.value)}
                                     className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
                                 >
-                                    <option value="">All Provinces</option>
-                                    <option value="ON">Ontario</option>
-                                    <option value="BC">British Columbia</option>
-                                    <option value="AB">Alberta</option>
-                                    <option value="QC">Quebec</option>
+                                    {availabilityOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
-                            <button
-                                onClick={() => setViewMode(viewMode === "split" ? "list" : "split")}
-                                className="w-full bg-[#8560F1] text-white px-4 py-2 rounded-md font-medium hover:bg-green-600 transition-all duration-300 text-sm flex items-center justify-center"
-                            >
-                                {viewMode === "split" ? <FaList className="mr-2" /> : <FaMap className="mr-2" />}
-                                {viewMode === "split" ? "List View" : "Map View"}
-                            </button>
+                            <div>
+                                <label className="text-sm font-medium text-gray-600 mb-1 block">Minimum Rating</label>
+                                <select
+                                    value={rating}
+                                    onChange={(e) => setRating(e.target.value)}
+                                    className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
+                                >
+                                    {ratingOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-600 mb-1 block">Minimum Experience (Years)</label>
+                                <select
+                                    value={experience}
+                                    onChange={(e) => setExperience(e.target.value)}
+                                    className="w-full p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
+                                >
+                                    {experienceOptions.map((option) => (
+                                        <option key={option} value={option}>
+                                            {option}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium text-gray-600 mb-1 block">Price Range ($/hr)</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        placeholder="Min"
+                                        value={minPrice}
+                                        onChange={(e) => setMinPrice(e.target.value)}
+                                        className="w-1/2 p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
+                                    />
+                                    <input
+                                        type="number"
+                                        placeholder="Max"
+                                        value={maxPrice}
+                                        onChange={(e) => setMaxPrice(e.target.value)}
+                                        className="w-1/2 p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {/* Main Content */}
-                    <div className="flex-1">
+                    <div className="flex-1 w-full lg:w-[60%]">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-lg font-semibold text-gray-800 ml-5">
+                                {totalTaskers} Tasker{totalTaskers !== 1 ? "s" : ""} Found
+                            </h2>
+                            <div className="flex items-center gap-2">
+                                <select
+                                    value={sort}
+                                    onChange={(e) => setSort(e.target.value)}
+                                    className="p-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] text-sm"
+                                >
+                                    {sortOptions.map((option) => (
+                                        <option key={option.value} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                             
+                            </div>
+                        </div>
                         {viewMode === "split" ? (
                             <div className="flex flex-col lg:flex-row h-[calc(100vh-6rem)]">
-                                {/* Tasker List */}
-                                <div className="w-full lg:w-1/2 overflow-y-auto max-h-[calc(100vh-6rem)] custom-scrollbar-hidden">
+                                <div className="w-full overflow-y-auto max-h-[calc(100vh-6rem)] custom-scrollbar-hidden">
                                     {taskers.length ? (
                                         <div className="space-y-4 p-4">
                                             {taskers.map((tasker) => (
@@ -221,20 +297,6 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                     ) : (
                                         <div className="text-center text-gray-600 text-sm sm:text-base py-8">
                                             No service providers found for the selected filters.
-                                        </div>
-                                    )}
-                                </div>
-                                {/* Map View - Hidden on smaller screens */}
-                                <div className="w-full lg:w-1/2 bg-white rounded-lg shadow-sm overflow-hidden hidden lg:block">
-                                    {taskers.length ? (
-                                        <TaskerMap
-                                            taskers={taskers}
-                                            selectedTasker={selectedTasker}
-                                            onTaskerSelect={setSelectedTasker}
-                                        />
-                                    ) : (
-                                        <div className="h-full flex items-center justify-center text-gray-600 text-sm sm:text-base">
-                                            No service provider locations available to display.
                                         </div>
                                     )}
                                 </div>
@@ -257,25 +319,46 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                 )}
                             </div>
                         )}
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="flex justify-center gap-2 mt-4">
+                                <button
+                                    onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+                                    disabled={page === 1}
+                                    className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <span className="px-4 py-2">
+                                    Page {page} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+                                    disabled={page === totalPages}
+                                    className="px-4 py-2 bg-gray-200 rounded-md disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
-            </div>
 
-            {/* Custom CSS for Scrollbar and Additional Responsiveness */}
-            <style jsx>{`
-        .custom-scrollbar-hidden::-webkit-scrollbar {
-          display: none;
-        }
-        .custom-scrollbar-hidden {
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
-        }
-        @media (max-width: 640px) {
-          .custom-scrollbar-hidden {
-            max-height: calc(100vh - 12rem);
+                <style jsx>{`
+          .custom-scrollbar-hidden::-webkit-scrollbar {
+            display: none;
           }
-        }
-      `}</style>
+          .custom-scrollbar-hidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+          }
+          @media (max-width: 640px) {
+            .custom-scrollbar-hidden {
+              max-height: calc(100vh - 12rem);
+            }
+          }
+        `}</style>
+            </div>
         </div>
     );
 };

@@ -97,7 +97,7 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
     return (
         <div className="w-full bg-white rounded-lg shadow-md border-none overflow-hidden">
             {/* Header */}
-            <div className="bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white p-4 flex items-center justify-between">
+            <div className="color1 text-white p-4 flex items-center justify-between">
                 <button
                     onClick={() => navigateMonth(-1)}
                     className="p-1 hover:bg-white/20 rounded transition-all duration-200"
@@ -133,7 +133,7 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
                             aspect-square flex items-center justify-center text-sm font-medium cursor-pointer transition-all duration-200 border-r border-b border-gray-100 last:border-r-0
                             ${!date ? 'cursor-default' : ''}
                             ${date && isToday(date) ? 'bg-[#FF8609] text-white font-bold' : ''}
-                            ${date && isSelected(date) ? 'bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white font-bold' : ''}
+                            ${date && isSelected(date) ? 'color1 text-white font-bold' : ''}
                             ${date && !isToday(date) && !isSelected(date) && isDateAvailable(date) ? 'text-gray-800 hover:bg-[#E7B6FE]/30' : ''}
                             ${date && !isDateAvailable(date) ? 'text-gray-300 cursor-not-allowed' : ''}
                             ${!date ? '' : isDateAvailable(date) ? 'hover:scale-95' : ''}
@@ -324,10 +324,8 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
                                 getAvailableSlots(selectedDate).map((slot, index) => (
                                     <div
                                         key={index}
-                                        className={`p-2 text-center rounded-lg text-[#8560F1] font-medium cursor-pointer transition-all duration-200 text-sm ${selectedSlot === slot
-                                            ? 'bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white'
-                                            : 'bg-gradient-to-r from-[#E7B6FE]/20 to-[#8560F1]/20 hover:bg-[#8560F1]/30'
-                                            }`}
+                                        className={`p-2 text-center rounded-lg font-medium cursor-pointer transition-all duration-200 text-sm 
+   ${selectedSlot === slot ? 'color1 text-white' : 'border-[#2F6F69] border text1'}`}
                                         onClick={() => handleSlotSelection(slot)}
                                     >
                                         {slot}
@@ -382,7 +380,7 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
                 )}
                 <button
                     onClick={handleConfirmBooking}
-                    className="w-full mt-4 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] text-white py-2 rounded-lg font-semibold shadow-md hover:from-[#FF8609] hover:to-[#FF6C32] transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                    className="w-full mt-4 color1 text-white py-2 rounded-lg font-semibold shadow-md hover:from-[#FF8609] hover:to-[#FF6C32] transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
                     disabled={!selectedService || !selectedDate || !selectedSlot || isLoading || !tasker.services || tasker.services.length === 0}
                 >
                     {isLoading ? 'Booking...' : 'Confirm Booking'}

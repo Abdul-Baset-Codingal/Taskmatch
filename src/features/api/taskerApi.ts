@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// src/features/api/taskerApi.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import Cookies from 'js-cookie';
 
@@ -14,8 +16,6 @@ export const taskerApi = createApi({
             return headers;
         },
     }),
-
-
     tagTypes: ['Booking', 'RequestQuote'],
     endpoints: (builder) => ({
         // Create Booking
@@ -37,12 +37,39 @@ export const taskerApi = createApi({
         // Get Booking By ID
         getUserBookings: builder.query({
             query: (userId) => `/bookings/user/${userId}`,
-            providesTags: (result, error, userId) => [{ type: "Booking", id: userId }],
+            providesTags: (result, error, userId) => [{ type: 'Booking', id: userId }],
         }),
+
+        // Get Quotes by Tasker ID
+        getQuotesByTaskerId: builder.query({
+            query: (taskerId) => ({
+                url: `/quotes/tasker/${taskerId}`,
+                method: 'GET',
+            }),
+            providesTags: (result) =>
+                result?.quotes && Array.isArray(result.quotes)
+                    ? [
+                        ...result.quotes.map((quote: { _id: any }) => ({ type: 'RequestQuote', id: quote._id })),
+                        { type: 'RequestQuote', id: 'LIST' },
+                    ]
+                    : [{ type: 'RequestQuote', id: 'LIST' }],
+        }),
+
+        // Update Task Status
+        updateTaskStatus: builder.mutation({
+            query: ({ taskId, status }) => ({
+                url: `/quotes/${taskId}`,
+                method: 'PUT',
+                body: { status },
+            }),
+            invalidatesTags: ['RequestQuote'],
+        }),
+
+        // Add Review
         addReview: builder.mutation({
             query: ({ bookingId, rating, message }) => ({
-                url: "/reviews",
-                method: "POST",
+                url: '/reviews',
+                method: 'POST',
                 body: { bookingId, rating, message },
             }),
         }),
@@ -79,28 +106,32 @@ export const taskerApi = createApi({
         // Get All Request Quotes
         getAllRequestQuotes: builder.query({
             query: () => '/request-quotes',
-            providesTags: ['RequestQuote'],
-        }),
-
-        // Get Request Quote By ID
-        getRequestQuotesByClientId: builder.query({
-            query: (clientId) => `/request-quotes/client/${clientId}`,
-
             providesTags: (result) =>
                 result
                     ? [
-                        ...result.map((quote: { _id: string }) => ({ type: "RequestQuote" as const, id: quote._id })),
-                        { type: "RequestQuote", id: "LIST" },
+                        ...result.map((quote: { _id: any }) => ({ type: 'RequestQuote', id: quote._id })),
+                        { type: 'RequestQuote', id: 'LIST' },
                     ]
-                    : [{ type: "RequestQuote", id: "LIST" }],
+                    : [{ type: 'RequestQuote', id: 'LIST' }],
         }),
 
+        // Get Request Quotes By Client ID
+        getRequestQuotesByClientId: builder.query({
+            query: (clientId) => `/request-quotes/client/${clientId}`,
+            providesTags: (result) =>
+                result
+                    ? [
+                        ...result.map((quote: { _id: any }) => ({ type: 'RequestQuote', id: quote._id })),
+                        { type: 'RequestQuote', id: 'LIST' },
+                    ]
+                    : [{ type: 'RequestQuote', id: 'LIST' }],
+        }),
 
         // Update Request Quote
         updateRequestQuote: builder.mutation({
             query: ({ id, ...data }) => ({
-                url: `/request-quotes/${id}`,
-                method: 'PATCH',
+                url: `/quotes/${id}`,
+                method: 'PUT',
                 body: data,
             }),
             invalidatesTags: (result, error, { id }) => [{ type: 'RequestQuote', id }],
@@ -125,8 +156,11 @@ export const {
     useAddReviewMutation,
     useDeleteBookingMutation,
     useCreateRequestQuoteMutation,
+    useGetQuotesByTaskerIdQuery,
+    useUpdateTaskStatusMutation,
     useGetAllRequestQuotesQuery,
-    useLazyGetRequestQuotesByClientIdQuery,
+    useGetRequestQuotesByClientIdQuery,
+    useLazyGetRequestQuotesByClientIdQuery, // Added lazy query hook
     useUpdateRequestQuoteMutation,
     useDeleteRequestQuoteMutation,
 } = taskerApi;

@@ -63,7 +63,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
   const checkLoginStatus = async () => {
     try {
       // Call backend to verify token (cookie sent automatically)
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
         method: "GET",
         credentials: "include", // important to send httpOnly cookie
         headers: {
@@ -135,7 +135,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
         <div className="bg-gradient-to-r from-amber-400 to-rose-400 pt-6 pb-8 text-center rounded-t-2xl fade-in">
           <h2 className="text-2xl sm:text-3xl text-white font-bold text-premium flex items-center justify-center gap-3">
             <FaUser className="text-xl sm:text-2xl" />
-            Client Login
+             Login
           </h2>
         </div>
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   FiMessageCircle,
@@ -13,8 +13,9 @@ import {
   FiCalendar,
   FiInfo,
   FiImage,
+  FiX,
 } from "react-icons/fi";
-import { useGetTasksByStatusQuery, useRequestCompletionMutation } from "@/features/api/taskApi";
+import { useDeclineByTaskerMutation, useGetTasksByStatusQuery, useGetTasksByTaskerIdAndStatusQuery, useRequestCompletionMutation } from "@/features/api/taskApi";
 import defaultAvatar from "../../../../public/Images/clientImage1.jpg"; // fallback
 
 type TaskStatus = "in progress" | "scheduled" | "completed" | "requested" | "not completed";
@@ -28,11 +29,50 @@ const statusColors: Record<TaskStatus, string> = {
 };
 
 const ActiveTasks = () => {
+
+  const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check login status and get user ID
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/verify-token`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const text = await response.text();
+      console.log("Verify token response:", text);
+      if (response.ok) {
+        const data = JSON.parse(text);
+        console.log("Parsed user data:", data);
+        setIsLoggedIn(true);
+        setUser({ _id: data.user._id, role: data.user.role });
+      } else {
+        console.error("Verify token failed:", response.status, text);
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error checking login status:", error);
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+
+
   const {
     data: tasks = [],
     isLoading,
-    isError,
-  } = useGetTasksByStatusQuery("in progress");
+    isError
+  } = useGetTasksByTaskerIdAndStatusQuery(
+    user?._id ? { taskerId: user._id, status: "in progress" } : { taskerId: "", status: "in progress" },
+    { skip: !user?._id } // Skip query until user._id is available
+  );
 
   console.log(tasks);
 
@@ -67,6 +107,7 @@ const ActiveTasks = () => {
 const TaskCard = ({ task }: { task: any }) => {
   const [showImages, setShowImages] = useState(false);
   const [requestCompletion, { isLoading: isRequesting, error: requestError }] = useRequestCompletionMutation();
+  const [declineByTasker, { isLoading: isDeclining, error: declineError }] = useDeclineByTaskerMutation();
 
   const handleRequestCompletion = async () => {
     try {
@@ -79,16 +120,40 @@ const TaskCard = ({ task }: { task: any }) => {
     }
   };
 
+  const handleDecline = async () => {
+    try {
+      await declineByTasker(task._id).unwrap();
+      // Success feedback (optional, since the query refetches automatically)
+      alert("Task declined successfully!");
+    } catch (err) {
+      // Error feedback
+      alert(`Failed to decline task: ${(err as any)?.data?.error || "Unknown error"}`);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl shadow-md overflow-hidden transform hover:scale-105 transition-transform duration-300">
       {/* Card Header */}
-      <div className="p-6 border-b border-gray-200">
-        <h3 className="text-xl font-semibold text-gray-800">
-          {task.taskTitle || "Untitled Task"}
-        </h3>
-        <p className="text-sm font-medium text-gray-600 mt-1">
-          {task.serviceTitle || "Category N/A"}
-        </p>
+      <div className="p-6 border-b border-gray-200 flex justify-between items-start">
+        <div>
+          <h3 className="text-xl font-semibold text-gray-800">
+            {task.taskTitle || "Untitled Task"}
+          </h3>
+          <p className="text-sm font-medium text-gray-600 mt-1">
+            {task.serviceTitle || "Category N/A"}
+          </p>
+        </div>
+        <button
+          onClick={handleDecline}
+          disabled={isDeclining}
+          className={`flex items-center gap-1 px-3 py-1 rounded-lg text-white font-medium transition text-sm ${isDeclining
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-red-600 hover:bg-red-700"
+            }`}
+        >
+          <FiX className="w-3 h-3" />
+          {isDeclining ? "Declining..." : "Decline"}
+        </button>
       </div>
 
       {/* Card Body */}
@@ -105,7 +170,8 @@ const TaskCard = ({ task }: { task: any }) => {
             </span>
             <p className="text-sm text-gray-600">
               <span className="font-semibold">Client:</span>{" "}
-              {task.client?.fullName || "N/A"}
+              {task.client?.firstName || "N/A"} {task.client?.lastName || "N/A"}
+
             </p>
           </div>
 
@@ -126,7 +192,7 @@ const TaskCard = ({ task }: { task: any }) => {
           {task.bids?.length > 0 && (
             <p className="text-sm text-gray-600">
               <span className="font-semibold">Bid:</span> ${task.bids[0].offerPrice}{" "}
-              ({task.bids[0].message})
+             
             </p>
           )}
 
@@ -146,10 +212,10 @@ const TaskCard = ({ task }: { task: any }) => {
                     <div
                       key={index}
                       className={`relative ${task.photos?.length === 1
-                          ? "col-span-3 h-32"
-                          : task.photos?.length === 2
-                            ? "col-span-1 h-32"
-                            : "col-span-1 h-20"
+                        ? "col-span-3 h-32"
+                        : task.photos?.length === 2
+                          ? "col-span-1 h-32"
+                          : "col-span-1 h-20"
                         } rounded-lg overflow-hidden`}
                     >
                       <Image
@@ -184,8 +250,8 @@ const TaskCard = ({ task }: { task: any }) => {
               <FiCalendar className="text-green-600" />
               <span>
                 Deadline:{" "}
-                {task.offerDeadline
-                  ? new Date(task.offerDeadline).toLocaleDateString()
+                {task.updatedAt
+                  ? new Date(task.updatedAt).toLocaleDateString()
                   : "N/A"}
               </span>
             </div>
@@ -201,8 +267,8 @@ const TaskCard = ({ task }: { task: any }) => {
               onClick={handleRequestCompletion}
               disabled={isRequesting}
               className={`mt-4 w-full py-2 px-4 rounded-lg text-white font-medium transition ${isRequesting
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-indigo-600 hover:bg-indigo-700"
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
                 }`}
             >
               {isRequesting ? "Requesting..." : "Request Completion"}

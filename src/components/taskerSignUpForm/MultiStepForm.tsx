@@ -1,11 +1,9 @@
 "use client";
 import React, { useState } from "react";
-import { FaUser, FaFileUpload, FaCogs, FaClock, FaCheckCircle } from "react-icons/fa";
+import { FaUser, FaCogs, FaCheckCircle } from "react-icons/fa";
 
 import Step1BasicInfo from "./Step1BasicInfo";
-import Step2SkillsAndRates from "./Step2SkillsAndRates";
 import Step3VerificationCredentials from "./Step3VerificationCredentials";
-import Step4RatesAvailability from "./Step4RatesAvailability";
 import Step5ReviewSubmit from "./Step5ReviewSubmit";
 // import Step2UploadDocs from "./Step2UploadDocs";
 // import Step3SkillsAndRates from "./Step3SkillsAndRates";
@@ -14,10 +12,10 @@ import Step5ReviewSubmit from "./Step5ReviewSubmit";
 
 const steps = [
     { id: 1, label: "Basic Info", icon: <FaUser /> },
-    { id: 2, label: "Skills & Services", icon: <FaFileUpload /> },
-    { id: 3, label: "Verifications", icon: <FaCogs /> },
-    { id: 4, label: "Availability", icon: <FaClock /> },
-    { id: 5, label: "Review & Submit", icon: <FaCheckCircle /> },
+    // { id: 2, label: "Skills & Services", icon: <FaFileUpload /> },
+    { id: 2, label: "Verifications", icon: <FaCogs /> },
+    // { id: 4, label: "Availability", icon: <FaClock /> },
+    { id: 3, label: "Review & Submit", icon: <FaCheckCircle /> },
 ];
 
 const MultiStepForm = () => {
@@ -30,13 +28,13 @@ const MultiStepForm = () => {
         switch (step) {
             case 1:
                 return <Step1BasicInfo onNext={nextStep} />;
+            // case 2:
+                // return <Step2SkillsAndRates onNext={nextStep} onBack={prevStep} />;
             case 2:
-                return <Step2SkillsAndRates onNext={nextStep} onBack={prevStep} />;
-            case 3:
                 return <Step3VerificationCredentials onNext={nextStep} onBack={prevStep} />;
-            case 4:
-                return <Step4RatesAvailability onNext={nextStep} onBack={prevStep} />;
-            case 5:
+            // case 4:
+                // return <Step4RatesAvailability onNext={nextStep} onBack={prevStep} />;
+            case 3:
                 return <Step5ReviewSubmit onBack={prevStep} />;
             default:
                 return <div>Invalid step</div>;

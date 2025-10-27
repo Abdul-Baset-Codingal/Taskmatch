@@ -125,17 +125,19 @@ export const authApi = createApi({
             providesTags: (result, error, id) => [{ type: "User", id }],
         }),
 
-        // Update user
         updateUser: builder.mutation({
-            query: ({ id, ...userData }) => ({
-                url: `/users/${id}`,
-                method: "PUT",
-                body: userData,
-            }),
-            invalidatesTags: (result, error, { id }) => [
-                "User",
-                { type: "User", id }
-            ],
+            query: ({ userId, ...userData }) => {
+                console.log('Sending update user request with data:', { userId, ...userData });
+                return {
+                    url: `/updateProfile/${userId}`,
+                    method: 'PUT',
+                    body: userData,
+                };
+            },
+            invalidatesTags: (result, error, { userId }) => {
+                console.log('Invalidating tags for user ID:', userId);
+                return userId ? [{ type: 'User', id: userId }, 'User'] : ['User'];
+            },
         }),
 
         // Block or unblock user (admin feature)

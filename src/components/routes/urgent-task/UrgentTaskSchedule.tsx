@@ -45,7 +45,7 @@ const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
     // Fetch login and user info
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
             });
@@ -91,15 +91,7 @@ const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
             <p className="text-lg mb-4">When do you need this done?</p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <button
-                    onClick={() => setTiming("Urgent")}
-                    className={`border-2 rounded-xl p-6 text-center ${timing === "Urgent" ? "border-orange-500 bg-orange-100" : "border-gray-300"
-                        }`}
-                >
-                    <div className="text-3xl mb-2">🔥</div>
-                    <div className="text-lg font-semibold">Urgent</div>
-                    <p className="text-sm">ASAP (+20% fee)</p>
-                </button>
+            
 
                 <button
                     onClick={() => setTiming("Schedule")}
@@ -109,6 +101,16 @@ const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
                     <div className="text-3xl mb-2">⏰</div>
                     <div className="text-lg font-semibold">Schedule</div>
                     <p className="text-sm">Custom time</p>
+                </button>
+
+                <button
+                    onClick={() => setTiming("Flexible")}
+                    className={`border-2 rounded-xl p-6 text-center ${timing === "Flexible" ? "border-orange-500 bg-orange-100" : "border-gray-300"
+                        }`}
+                >
+                    <div className="text-3xl mb-2">🕒</div>
+                    <div className="text-lg font-semibold">Flexible</div>
+                    <p className="text-sm">Anytime</p>
                 </button>
             </div>
 
@@ -150,17 +152,14 @@ const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
                         dispatch(updateTaskField({ field: "estimatedTime", value: e.target.value }))
                     }
                     placeholder="e.g., 2"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400
+             [appearance:textfield]
+             [&::-webkit-outer-spin-button]:appearance-none
+             [&::-webkit-inner-spin-button]:appearance-none"
                 />
+
                 <p className="text-sm text-gray-500 mt-1">
                     Estimate how long the task will take
-                </p>
-            </div>
-
-            <div className="my-6 bg-orange-100 border border-orange-500 p-4 rounded-lg shadow-sm">
-                <p className="text-lg font-semibold text-orange-500 mb-1">💰 Taskers will provide quotes</p>
-                <p className="text-sm text-gray-700">
-                    Taskers will review your task description and provide competitive quotes based on the details you provide.
                 </p>
             </div>
 
@@ -187,9 +186,18 @@ const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
                     placeholder="Enter your budget for the task"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                    required
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 
+             [appearance:textfield] 
+             [&::-webkit-outer-spin-button]:appearance-none 
+             [&::-webkit-inner-spin-button]:appearance-none"
                 />
+            </div>
+
+            <div className="my-6 bg-orange-100 border border-orange-500 p-4 rounded-lg shadow-sm">
+                <p className="text-lg font-semibold text-orange-500 mb-1">💰 Taskers will provide quotes</p>
+                <p className="text-sm text-gray-700">
+                    Taskers will review your task description and provide competitive quotes based on the details you provide.
+                </p>
             </div>
 
             <div className="flex justify-between">

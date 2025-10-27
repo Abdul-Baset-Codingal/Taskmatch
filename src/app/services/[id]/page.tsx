@@ -4,7 +4,6 @@ import React from 'react';
 import { useParams } from 'next/navigation'; // <-- Next 13 client router
 import { useGetServiceByIdQuery } from '@/features/api/servicesApi';
 import Navbar from '@/shared/Navbar';
-import DetailsBanner from '@/components/serviceDetails/DetailsBanner';
 import TaskerSlider from '@/components/routes/urgent-task/TaskerSlider';
 
 const Page = () => {
@@ -23,10 +22,12 @@ const Page = () => {
 
     return (
         <div>
-            <Navbar />
-            <DetailsBanner service={service} />
-            
-            <div>
+            <div className='z-[999]'>
+                <Navbar />
+            </div>
+            {/* <DetailsBanner service={service} /> */}
+
+            <div className='lg:mt-[100px]'>
                 <TaskerSlider service={service} />
             </div>
         </div>

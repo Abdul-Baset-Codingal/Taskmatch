@@ -1,17 +1,30 @@
 /* eslint-disable react/no-unescaped-entities */
 "use client";
-import React, { useState, ChangeEvent } from "react";
+import React, { useState, ChangeEvent, useEffect } from "react";
 import { FaLock, FaFileAlt } from "react-icons/fa";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setStep3 } from "@/features/form/formSlice";
+import { RootState } from "@/app/store";
+import { toast } from "react-toastify";
 
 type Props = {
     onNext: () => void;
     onBack: () => void;
 };
 
+type Step3Data = {
+    idType?: "passport" | "governmentID";
+    sin?: string;
+    backgroundCheckConsent?: boolean;
+    hasInsurance?: boolean;
+    govID?: string;
+    govIDBack?: string;
+    certifications?: string[];
+} | null;
+
 const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
     const dispatch = useDispatch();
+    const step3Data = useSelector((state: RootState) => state.form.step3 as Step3Data);
 
     const [idType, setIdType] = useState<"passport" | "governmentID" | null>(null);
     const [passport, setPassport] = useState<File | null>(null);
@@ -21,6 +34,23 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
     const [sin, setSin] = useState("");
     const [backgroundCheckConsent, setBackgroundCheckConsent] = useState(false);
     const [hasInsurance, setHasInsurance] = useState(false);
+
+    // States for persisted URLs
+    const [govIDUrl, setGovIDUrl] = useState<string>("");
+    const [govIDBackUrl, setGovIDBackUrl] = useState<string>("");
+    const [certUrls, setCertUrls] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (step3Data) {
+            setIdType(step3Data.idType || null);
+            setSin(step3Data.sin || "");
+            setBackgroundCheckConsent(step3Data.backgroundCheckConsent || false);
+            setHasInsurance(step3Data.hasInsurance || false);
+            setGovIDUrl(step3Data.govID || "");
+            setGovIDBackUrl(step3Data.govIDBack || "");
+            setCertUrls(step3Data.certifications || []);
+        }
+    }, [step3Data]);
 
     const handlePassportChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files?.[0]) setPassport(e.target.files[0]);
@@ -51,31 +81,56 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
         );
 
         const data = await res.json();
+        if (!data.success) {
+            throw new Error(data.error?.message || 'Upload failed');
+        }
         return data.data.url;
     };
 
     const handleNext = async () => {
+        if (!idType) {
+            toast.error("Please select an ID type.");
+            return;
+        }
+        if (!sin.trim()) {
+            toast.error("SIN is required.");
+            return;
+        }
+        if (!backgroundCheckConsent) {
+            toast.error("You must consent to the background check.");
+            return;
+        }
+
+        if (idType === "passport" && !passport && !govIDUrl) {
+            toast.error("Please upload your passport.");
+            return;
+        }
+        if (idType === "governmentID" && ((!govIDFront && !govIDUrl) || (!govIDBack && !govIDBackUrl))) {
+            toast.error("Please upload front and back of your government ID.");
+            return;
+        }
+
         try {
-            let govIDUrl = "";
-            let govIDBackUrl = "";
-            let certUrls: string[] = [];
+            let finalGovIDUrl = govIDUrl;
+            let finalGovIDBackUrl = govIDBackUrl;
+            let finalCertUrls = certUrls;
 
             if (idType === "passport" && passport) {
-                govIDUrl = await uploadToImgBB(passport);
-            } else if (idType === "governmentID" && govIDFront && govIDBack) {
-                govIDUrl = await uploadToImgBB(govIDFront);
-                govIDBackUrl = await uploadToImgBB(govIDBack);
+                finalGovIDUrl = await uploadToImgBB(passport);
+            } else if (idType === "governmentID") {
+                if (govIDFront) finalGovIDUrl = await uploadToImgBB(govIDFront);
+                if (govIDBack) finalGovIDBackUrl = await uploadToImgBB(govIDBack);
             }
 
             if (certifications.length > 0) {
-                certUrls = await Promise.all(certifications.map(uploadToImgBB));
+                finalCertUrls = await Promise.all(certifications.map(uploadToImgBB));
             }
 
             const payload = {
                 idType,
-                govID: govIDUrl,
-                govIDBack: govIDBackUrl,
-                certifications: certUrls,
+                govID: finalGovIDUrl,
+                govIDBack: finalGovIDBackUrl,
+                certifications: finalCertUrls,
                 sin,
                 backgroundCheckConsent,
                 hasInsurance,
@@ -85,6 +140,7 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
             onNext();
         } catch (err) {
             console.error("File upload failed", err);
+            alert("Upload failed. Please try again.");
         }
     };
 
@@ -154,6 +210,11 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                         {passport && (
                             <p className="mt-2 text-green-600 font-semibold">Selected file: {passport.name}</p>
                         )}
+                        {govIDUrl && !passport && (
+                            <p className="mt-2 text-blue-600 font-semibold">
+                                Already uploaded: <a href={govIDUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
+                            </p>
+                        )}
                     </div>
                 )}
 
@@ -185,6 +246,11 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                             {govIDFront && (
                                 <p className="mt-2 text-green-600 font-semibold">Selected file: {govIDFront.name}</p>
                             )}
+                            {govIDUrl && !govIDFront && (
+                                <p className="mt-2 text-blue-600 font-semibold">
+                                    Already uploaded: <a href={govIDUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block mb-2 font-medium text-gray-700">
@@ -211,6 +277,11 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                             </label>
                             {govIDBack && (
                                 <p className="mt-2 text-green-600 font-semibold">Selected file: {govIDBack.name}</p>
+                            )}
+                            {govIDBackUrl && !govIDBack && (
+                                <p className="mt-2 text-blue-600 font-semibold">
+                                    Already uploaded: <a href={govIDBackUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
+                                </p>
                             )}
                         </div>
                     </div>
@@ -269,6 +340,15 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                         ))}
                     </ul>
                 )}
+                {certUrls.length > 0 && certifications.length === 0 && (
+                    <ul className="mt-2 text-blue-600 font-semibold max-w-full list-disc list-inside">
+                        {certUrls.map((url, idx) => (
+                            <li key={idx}>
+                                <a href={url} target="_blank" rel="noopener noreferrer" className="underline">View Certification {idx + 1}</a>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             <div className="mb-8 w-full max-w-full">
@@ -316,7 +396,7 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 </button>
             </div>
         </div>
-    );
+    ); 
 };
 
 export default Step3VerificationCredentials;

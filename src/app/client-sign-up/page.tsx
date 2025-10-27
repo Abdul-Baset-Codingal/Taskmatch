@@ -39,7 +39,7 @@ const ClientSignupPage = () => {
 
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
                 headers: {
@@ -89,7 +89,7 @@ const ClientSignupPage = () => {
             <Navbar />
 
             <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#8B65F2] to-[#E4B3FF] px-4">
-                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 my-5">
+                <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 sm:p-8 my-5 mt-28">
 
                     <div className="text-center mb-6">
                         <h2 className="text-3xl font-bold text-amber-500 flex justify-center items-center gap-2">

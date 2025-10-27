@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import {
   FiCheckCircle,
@@ -10,17 +11,54 @@ import {
   FiInfo,
   FiImage,
 } from "react-icons/fi";
-import { useGetTasksByStatusQuery } from "@/features/api/taskApi";
+import { useGetTasksByStatusQuery, useGetTasksByTaskerIdAndStatusQuery } from "@/features/api/taskApi";
 import { FaUser } from "react-icons/fa";
 
 const CompletedTasks = () => {
+  const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Check login status and get user ID
+  const checkLoginStatus = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth/verify-token`, {
+        method: "GET",
+        credentials: "include",
+      });
+      const text = await response.text();
+      console.log("Verify token response:", text);
+      if (response.ok) {
+        const data = JSON.parse(text);
+        console.log("Parsed user data:", data);
+        setIsLoggedIn(true);
+        setUser({ _id: data.user._id, role: data.user.role });
+      } else {
+        console.error("Verify token failed:", response.status, text);
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    } catch (error) {
+      console.error("Error checking login status:", error);
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+  };
+
+  useEffect(() => {
+    checkLoginStatus();
+  }, []);
+
+  // Fetch tasks for the tasker with status "completed"
   const {
     data: tasks = [],
     isLoading,
-    isError,
-  } = useGetTasksByStatusQuery("completed");
+    isError
+  } = useGetTasksByTaskerIdAndStatusQuery(
+    user?._id ? { taskerId: user._id, status: "completed" } : { taskerId: "", status: "completed" },
+    { skip: !user?._id } // Skip query until user._id is available
+  );
 
-
+  console.log(tasks)
   if (isLoading)
     return (
       <div className="text-center py-16 text-gray-400 text-lg font-medium animate-pulse">
@@ -90,7 +128,7 @@ const CompletedTaskCard = ({ task }: { task: any }) => {
 
           <div>
             <p className="text-sm font-semibold text-gray-900">
-              {task.client?.fullName || "N/A"}
+              {task.client?.firstName || "N/A"}  {task.client?.lastName || "N/A"}
             </p>
             <p className="text-xs text-gray-500">
               {task.client?.email || "N/A"}
@@ -142,8 +180,8 @@ const CompletedTaskCard = ({ task }: { task: any }) => {
           <InfoItem
             icon={<FiCalendar />}
             label={
-              task.offerDeadline
-                ? new Date(task.offerDeadline).toLocaleDateString()
+              task.updatedAt
+                ? new Date(task.updatedAt).toLocaleDateString()
                 : "N/A"
             }
           />

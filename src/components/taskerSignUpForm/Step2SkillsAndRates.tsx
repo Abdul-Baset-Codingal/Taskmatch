@@ -21,19 +21,10 @@ const serviceCategories = [
     { label: "Everything Else", value: "Everything Else", icon: <FaWrench /> },
 ];
 
-const durations = [
-    "Less than 1 hour",
-    "1-2 hours",
-    "2-4 hours",
-    "4-8 hours",
-    "More than 8 hours",
-];
-
 type Service = {
     title: string;
     description: string;
     hourlyRate: string;
-    estimatedDuration: string;
 };
 
 type Props = {
@@ -43,12 +34,11 @@ type Props = {
 
 const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-    const [skillsArray, setSkillsArray] = useState<string[]>([]);
-    const [skillInput, setSkillInput] = useState<string>("");
+    const [skillsText, setSkillsText] = useState<string>("");
     const [experience, setExperience] = useState("");
     const [qualifications, setQualifications] = useState("");
     const [services, setServices] = useState<Service[]>([
-        { title: "", description: "", hourlyRate: "", estimatedDuration: "" },
+        { title: "", description: "", hourlyRate: "" },
     ]);
 
     const dispatch = useDispatch();
@@ -62,19 +52,10 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
         });
     };
 
-    const addSkill = () => {
-        if (skillInput.trim()) {
-            setSkillsArray([...skillsArray, skillInput.trim()]);
-            setSkillInput("");
-        }
-    };
-
-    const removeSkill = (index: number) => {
-        setSkillsArray(skillsArray.filter((_, i) => i !== index));
-    };
-
     const addService = () => {
-        setServices([...services, { title: "", description: "", hourlyRate: "", estimatedDuration: "" }]);
+        if (services.length < 3) {
+            setServices([...services, { title: "", description: "", hourlyRate: "" }]);
+        }
     };
 
     const removeService = (index: number) => {
@@ -96,12 +77,11 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
             title: s.title,
             description: s.description,
             hourlyRate: parseFloat(s.hourlyRate),
-            estimatedDuration: s.estimatedDuration,
         }));
 
         const payload = {
             serviceCategories: readableCategories,
-            skills: skillsArray,
+            skills: skillsText,
             experienceYears: experience,
             qualifications: qualifications,
             services: formattedServices,
@@ -145,33 +125,13 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
                 <label className="block mb-3 font-semibold text-black text-lg">
                     Specific Skills & Expertise
                 </label>
-                <div className="flex gap-4 mb-4">
-                    <input
-                        type="text"
-                        placeholder="Enter a skill"
-                        value={skillInput}
-                        onChange={(e) => setSkillInput(e.target.value)}
-                        className="flex-1 rounded-xl border border-gray-300 px-5 py-3"
-                    />
-                    <button
-                        type="button"
-                        onClick={addSkill}
-                        className="px-4 py-3 bg-[#1A4F93] text-white font-bold rounded-xl"
-                    >
-                        Add
-                    </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    {skillsArray.map((skill, i) => (
-                        <span
-                            key={i}
-                            className="bg-[#C9303C] text-white px-3 py-1 rounded-full text-sm flex items-center gap-2"
-                        >
-                            {skill}
-                            <button onClick={() => removeSkill(i)}>&times;</button>
-                        </span>
-                    ))}
-                </div>
+                <textarea
+                    rows={3}
+                    placeholder="Describe your skills and expertise here"
+                    value={skillsText}
+                    onChange={(e) => setSkillsText(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1A4F93]"
+                />
             </div>
 
             {/* Experience */}
@@ -231,32 +191,21 @@ const Step2SkillsAndRates = ({ onNext, onBack }: Props) => {
                             onChange={(e) => updateService(i, "description", e.target.value)}
                             className="w-full mb-3 rounded-xl border px-4 py-2"
                         />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <input
-                                type="number"
-                                min={15}
-                                placeholder="Hourly Rate (CAD)"
-                                value={service.hourlyRate}
-                                onChange={(e) => updateService(i, "hourlyRate", e.target.value)}
-                                className="rounded-xl border px-4 py-2"
-                            />
-                            <select
-                                value={service.estimatedDuration}
-                                onChange={(e) => updateService(i, "estimatedDuration", e.target.value)}
-                                className="rounded-xl border px-4 py-2"
-                            >
-                                <option value="">Select duration</option>
-                                {durations.map((d) => (
-                                    <option key={d} value={d}>{d}</option>
-                                ))}
-                            </select>
-                        </div>
+                        <input
+                            type="number"
+                            min={15}
+                            placeholder="Hourly Rate (CAD)"
+                            value={service.hourlyRate}
+                            onChange={(e) => updateService(i, "hourlyRate", e.target.value)}
+                            className="w-full rounded-xl border px-4 py-2"
+                        />
                     </div>
                 ))}
                 <button
                     type="button"
                     onClick={addService}
-                    className="mt-2 text-[#1A4F93] font-bold px-6 flex items-center gap-2 py-3 border-2 border-[#1A4F93] rounded-xl"
+                    disabled={services.length >= 3}
+                    className="mt-2 text-[#1A4F93] font-bold px-6 flex items-center gap-2 py-3 border-2 border-[#1A4F93] rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     <FaPlus /> Add Another Service
                 </button>

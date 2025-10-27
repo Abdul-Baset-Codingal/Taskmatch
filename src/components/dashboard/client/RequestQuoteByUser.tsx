@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import React, { useState, useEffect } from "react";
@@ -34,11 +36,13 @@ const RequestQuoteByUser: React.FC = () => {
     const [deleteRequestQuote, { isLoading: isDeleting }] =
         useDeleteRequestQuoteMutation();
 
+        console.log(quotes)
+
     useEffect(() => {
         const checkLoginStatus = async () => {
             try {
                 const response = await fetch(
-                    "https://taskmatch-backend.vercel.app/api/auth/verify-token",
+                    "http://localhost:5000/api/auth/verify-token",
                     {
                         method: "GET",
                         credentials: "include",

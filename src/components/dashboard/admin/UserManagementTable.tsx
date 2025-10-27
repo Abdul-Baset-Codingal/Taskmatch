@@ -1,19 +1,13 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+// @ts-nocheck
 "use client";
 
 import React, { ReactNode, useState } from "react";
-import {
-  FaEdit,
-  FaTrash,
-  FaExclamationTriangle,
-  FaCheck,
-  FaSpinner,
-  FaSearch,
-  FaFilter,
-  FaUser,
-} from "react-icons/fa";
+import {FaSpinner,FaSearch} from "react-icons/fa";
 import { useGetAllUsersQuery, useDeleteUserMutation, useBlockUserMutation, } from "@/features/auth/authApi"; // Adjust import path
 import { toast } from "react-toastify";
+import UsersTable from "./UsersTable";
 
 type UserStatus = "Active" | "Inactive" | "Suspended";
 
@@ -38,11 +32,7 @@ interface UserManagementTableProps {
   onViewUser?: (user: User) => void;
 }
 
-const statusColor: Record<UserStatus, string> = {
-  Active: "text-green-600 bg-green-100",
-  Inactive: "text-gray-600 bg-gray-200",
-  Suspended: "text-red-600 bg-red-100",
-};
+
 
 const UserManagementTable: React.FC<UserManagementTableProps> = ({
   onEditUser,
@@ -102,11 +92,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
     }
   };
 
-  // // Handle status toggle (you might need to add this to your API)
-  // const handleStatusToggle = (user: User) => {
-  //   // This would require a status update mutation in your API
-  //   console.log("Toggle status for user:", user._id);
-  // };
+  console.log(users)
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -222,7 +208,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
       </div>
 
       {/* Users Table */}
-      <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
+      {/* <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
         <table className="w-full text-left min-w-[900px]">
           <thead className="bg-gray-100 text-gray-700">
             <tr>
@@ -324,7 +310,8 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
             )}
           </tbody>
         </table>
-      </div>
+      </div> */}
+      <UsersTable users={users} handleToggleBlock={handleToggleBlock} setShowDeleteConfirm={setShowDeleteConfirm} onEditUser={onEditUser} formatDate={formatDate} isDeleting={isDeleting} />
 
       {/* Pagination */}
       {totalPages > 1 && (

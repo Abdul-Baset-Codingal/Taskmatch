@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import Image from "next/image";
-import React, { useState, ChangeEvent } from "react";
-import { useDispatch } from "react-redux";
+import React, { useState, ChangeEvent, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { setStep1 } from "@/features/form/formSlice";
+import { RootState } from "@/app/store";
 import {
     FaUser,
     FaEnvelope,
     FaPhone,
     FaMapMarkerAlt,
-    FaGlobe,
     FaRegSmile,
-    FaRoad,
     FaCamera,
     FaLock,
     FaEyeSlash,
     FaEye,
 } from "react-icons/fa";
+import { toast } from "react-toastify";
 
 const Step1BasicInfo = ({
     onNext,
@@ -25,7 +25,25 @@ const Step1BasicInfo = ({
     onNext: () => void;
     onBack?: () => void;
 }) => {
+    interface Step1Data {
+        firstName?: string;
+        lastName?: string;
+        password?: string;
+        email?: string;
+        phone?: string;
+        dob?: string;
+        address?: string;
+        city?: string;
+        province?: string;
+        postalCode?: string;
+        language?: string;
+        about?: string;
+        travelDistance?: string;
+        profilePicture?: string | null;
+    }
+
     const dispatch = useDispatch();
+    const step1Data = useSelector((state: RootState) => state.form.step1) as Partial<Step1Data> | null;
 
     const [firstName, setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
@@ -64,6 +82,33 @@ const Step1BasicInfo = ({
 
     const [preview, setPreview] = useState<string | null>(null);
 
+    useEffect(() => {
+        if (step1Data) {
+            setFirstName(step1Data.firstName || "");
+            setLastName(step1Data.lastName || "");
+            setPassword(step1Data.password || "");
+            setConfirmPassword(step1Data.password || "");
+            setFormData({
+                email: step1Data.email || "",
+                phone: step1Data.phone || "",
+                dob: step1Data.dob || "",
+                address: step1Data.address || "",
+                city: step1Data.city || "",
+                province: step1Data.province || "",
+                postalCode: step1Data.postalCode || "",
+                language: step1Data.language || "",
+                about: step1Data.about || "",
+                travelDistance: step1Data.travelDistance || "",
+                profilePicture: null, // No file to restore
+            });
+            const picUrl = step1Data.profilePicture || null;
+            setProfilePictureUrl(picUrl);
+            if (picUrl) {
+                setPreview(picUrl);
+            }
+        }
+    }, [step1Data]);
+
     const uploadToImgBB = async (file: File): Promise<string> => {
         const formData = new FormData();
         formData.append('image', file);
@@ -83,9 +128,6 @@ const Step1BasicInfo = ({
         return data.data.url; // Return the ImgBB URL
     };
 
-
-
-
     const handleProfilePicChange = async (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
@@ -100,14 +142,37 @@ const Step1BasicInfo = ({
                 console.log('Profile Picture URL:', imageUrl);
             } catch (err) {
                 console.error('Profile Picture Upload Failed:', err);
-                alert('Failed to upload profile picture');
+                toast.error('Failed to upload profile picture');
+                // Optionally revert preview and formData if upload fails
+                setPreview(null);
+                setFormData({ ...formData, profilePicture: null });
             }
         }
     };
 
+    const validateForm = (): string | null => {
+        if (!firstName.trim()) return 'First name is required';
+        if (!lastName.trim()) return 'Last name is required';
+        if (!password.trim()) return 'Password is required';
+        if (!confirmPassword.trim()) return 'Confirm password is required';
+        if (password !== confirmPassword) return 'Passwords do not match';
+        if (!formData.email.trim()) return 'Email is required';
+        if (!formData.phone.trim()) return 'Phone is required';
+        if (!formData.dob) return 'Date of birth is required';
+        if (!formData.address.trim()) return 'Address is required';
+        if (!formData.city.trim()) return 'City is required';
+        if (!formData.province) return 'Province is required';
+        if (!formData.postalCode.trim()) return 'Postal code is required';
+        const aboutText = formData.about.trim();
+        if (!aboutText || aboutText.length < 50) return 'About me must be at least 50 characters';
+        if (!profilePictureUrl) return 'Profile picture is required';
+        return null;
+    };
+
     const handleNext = () => {
-        if (password !== confirmPassword) {
-            alert("Passwords do not match.");
+        const error = validateForm();
+        if (error) {
+            toast.error(error);
             return;
         }
 
@@ -128,12 +193,9 @@ const Step1BasicInfo = ({
             profilePicture: profilePictureUrl || '', // Send ImgBB URL
         };
 
-
         dispatch(setStep1(finalData));
         onNext();
     };
-
-
 
     return (
         <div className="max-w-7xl mx-auto p-10 rounded-3xl shadow-xl bg-white font-sans text-black">
@@ -285,18 +347,13 @@ const Step1BasicInfo = ({
                     <Field label="Postal Code" icon={<FaMapMarkerAlt />} required value={formData.postalCode} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, postalCode: e.target.value })} />
                 </div>
 
-                <SelectField label="Language Preference" icon={<FaGlobe />} required value={formData.language} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, language: e.target.value })} options={["English", "French", "Bilingual"]} />
+
 
                 <TextAreaField label="About Me" icon={<FaRegSmile />} required rows={5} minLength={100} placeholder="Tell customers about yourself..." helperText="Minimum 100 characters." value={formData.about} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, about: e.target.value })} />
 
-                <SelectField label="How far are you willing to travel for tasks?" icon={<FaRoad />} required value={formData.travelDistance} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, travelDistance: e.target.value })} options={[
-                    { value: "5", label: "Up to 5 km" },
-                    { value: "10", label: "Up to 10 km" },
-                    { value: "20", label: "Up to 20 km" },
-                    { value: "50", label: "Up to 50 km" },
-                ]} />
 
-            
+
+
 
                 {/* Buttons */}
                 <div className="flex justify-between mt-12">

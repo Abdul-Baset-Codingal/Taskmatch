@@ -14,7 +14,7 @@ const Page = () => {
   return (
     <div>
       <Navbar />
-      <div className="mt-20">
+      <div className="mt-32">
         <div className="max-w-7xl mx-auto px-4 lg:px-10 py-10 text-black bg-orange-50 border-t-4 border-orange-500 rounded-2xl">
           {/* Step Indicator */}
           <div className="flex justify-between items-center mb-10 max-w-md mx-auto">

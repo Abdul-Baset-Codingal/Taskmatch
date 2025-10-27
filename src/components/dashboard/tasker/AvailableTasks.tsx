@@ -17,29 +17,39 @@ import {
   useAddCommentMutation,
   useRequestCompletionMutation,
   useGetScheduleTasksQuery,
+  useGetFlexibleTasksQuery,
 } from "@/features/api/taskApi";
 import { AiFillHourglass } from "react-icons/ai";
 import CommentItem from "./CommentItem";
 import TaskCostBreakdownModal from "./TaskCostBreakdownModal";
 
 const AvailableTasks = () => {
-  const { data: tasks = [], error, isLoading, refetch } = useGetScheduleTasksQuery({});
+  const { data: scheduleTasks = [], error: scheduleError, isLoading: scheduleLoading, refetch: refetchSchedule } = useGetScheduleTasksQuery({});
+  const { data: flexibleTasks = [], error: flexibleError, isLoading: flexibleLoading, refetch: refetchFlexible } = useGetFlexibleTasksQuery({});
 
+  const allTasks = [...scheduleTasks, ...flexibleTasks];
+
+  const isAnyLoading = scheduleLoading || flexibleLoading;
+  const hasAnyError = scheduleError || flexibleError;
+
+  const refetchAll = () => {
+    refetchSchedule();
+    refetchFlexible();
+  };
 
   console.log('🔍 Complete Debug Info:');
-  console.log('📊 Tasks:', tasks);
-  console.log('❌ Error:', error);
-  console.log('⏳ Loading:', isLoading);
+  console.log('📊 All Tasks:', allTasks);
+  console.log('❌ Schedule Error:', scheduleError);
+  console.log('❌ Flexible Error:', flexibleError);
+  console.log('⏳ Loading:', isAnyLoading);
 
-  if (error) {
-    console.log('🚨 Error type:', typeof error);
-    console.log('🚨 Error keys:', Object.keys(error));
-    console.log('🚨 Full error:', JSON.stringify(error, null, 2));
+  if (hasAnyError) {
+    console.log('🚨 Error details:', { scheduleError, flexibleError });
   }
 
-  console.log('📈 Tasks length:', tasks?.length);
-  console.log('📋 Tasks type:', typeof tasks);
-  console.log('🔢 Is array?', Array.isArray(tasks));
+  console.log('📈 All Tasks length:', allTasks?.length);
+  console.log('📋 All Tasks type:', typeof allTasks);
+  console.log('🔢 Is array?', Array.isArray(allTasks));
 
   const [requestCompletion] = useRequestCompletionMutation();
   const [expandedTaskId, setExpandedTaskId] = useState<string | null>(null);
@@ -64,6 +74,7 @@ const AvailableTasks = () => {
     setIsModalOpen(false);
     setSelectedTask(null);
   };
+
   const toggleComments = (id: string) => {
     setExpandedTaskId((prev) => (prev === id ? null : id));
   };
@@ -79,13 +90,13 @@ const AvailableTasks = () => {
     setCommentMessage("");
   };
 
-  if (isLoading) return (
+  if (isAnyLoading) return (
     <div className="flex justify-center items-center h-64">
       <p className="text-2xl font-semibold text-teal-600 animate-pulse">Loading tasks...</p>
     </div>
   );
 
-  if (error) return (
+  if (hasAnyError) return (
     <div className="flex justify-center items-center h-64">
       <p className="text-2xl font-semibold text-red-600">Error loading tasks</p>
     </div>
@@ -100,7 +111,7 @@ const AvailableTasks = () => {
       await addBid({ taskId, offerPrice: bidOfferPrice, message: bidMessage }).unwrap();
       alert("Bid placed successfully!");
       toggleBidForm(taskId);
-      refetch();
+      refetchAll();
     } catch (err) {
       alert("Failed to place bid");
       console.error(err);
@@ -112,7 +123,7 @@ const AvailableTasks = () => {
     try {
       await acceptTask(taskId).unwrap();
       alert("Task accepted!");
-      refetch();
+      refetchAll();
     } catch (err) {
       alert("Failed to accept task");
       console.error(err);
@@ -124,7 +135,7 @@ const AvailableTasks = () => {
     try {
       await requestCompletion(taskId).unwrap();
       alert("Completion request sent!");
-      refetch();
+      refetchAll();
     } catch (err) {
       console.error(err);
       alert("Failed to request completion.");
@@ -140,7 +151,7 @@ const AvailableTasks = () => {
       await addComment({ taskId, message: commentMessage }).unwrap();
       alert("Comment added!");
       toggleCommentForm(taskId);
-      refetch();
+      refetchAll();
     } catch (err) {
       alert("Failed to add comment");
       console.error(err);
@@ -154,12 +165,18 @@ const AvailableTasks = () => {
       </h2>
 
       <div className="grid gap-8">
-        {tasks?.length === 0 ? (
+        {allTasks?.length === 0 ? (
           <p className="text-center text-lg text-gray-500 font-medium">
             No tasks available right now.
           </p>
         ) : (
-          tasks.map((task: any) => {
+          allTasks.map((task: any) => {
+            const now = new Date();
+            const deadline = new Date(task.offerDeadline);
+            const diffInMs = deadline.getTime() - now.getTime();
+            const isUrgent = diffInMs > 0 && diffInMs < 24 * 60 * 60 * 1000;
+            const displaySchedule = isUrgent ? "Urgent" : task.schedule;
+            const primaryColor = isUrgent ? "red" : (task?.schedule === "Flexible" ? "orange" : "teal");
             const postedTime = new Date(task.createdAt).toLocaleString();
             const deadlineTime = new Date(task.offerDeadline).toLocaleString();
             const isOpen = expandedTaskId === task._id;
@@ -173,10 +190,10 @@ const AvailableTasks = () => {
                 className="grid grid-cols-1 lg:grid-cols-[240px_1fr] rounded-2xl bg-white border border-gray-200 shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden"
               >
                 {/* Sidebar */}
-                <div className="bg-gradient-to-br from-teal-500 to-teal-700 text-white flex flex-col justify-center items-center p-6 lg:p-8">
+                <div className={`bg-gradient-to-br from-${primaryColor}-500 to-${primaryColor}-700 text-white flex flex-col justify-center items-center p-6 lg:p-8`}>
                   <MdWorkOutline className="text-5xl mb-4" />
                   <span className="text-sm uppercase bg-white/20 px-4 py-1.5 rounded-full font-semibold tracking-wider">
-                    {task.schedule}D
+                    {displaySchedule}
                   </span>
                 </div>
 
@@ -187,14 +204,14 @@ const AvailableTasks = () => {
                     <h3 className="text-2xl font-bold text-gray-900 leading-snug">
                       {task.taskTitle}
                     </h3>
-                    <div className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white px-6 py-2.5 rounded-xl font-semibold text-xl shadow-md flex items-center gap-2">
+                    <div className="  text-teal-500  rounded-xl  text-2xl font-bold  flex items-center gap-2">
                       {task.price ? `$${task.price}` : "N/A"}
                     </div>
                   </div>
 
                   {/* Description */}
                   <div className="flex items-start gap-2 mt-4">
-                    <FiMessageCircle className="text-teal-600 flex-shrink-0 mt-1" />
+                    <FiMessageCircle className={`text-${primaryColor}-600 flex-shrink-0 mt-1`} />
                     <div>
                       <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Description</p>
                       <p className="text-gray-700 mt-1 leading-relaxed">{task.taskDescription}</p>
@@ -203,9 +220,9 @@ const AvailableTasks = () => {
 
                   {/* Location */}
                   <div className="flex items-start gap-2 mt-3">
-                    <FiMapPin className="text-teal-600 flex-shrink-0 mt-1" />
+                    <FiMapPin className={`text-${primaryColor}-600 flex-shrink-0 mt-1`} />
                     <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Location</p>
+                      <p className="text-xs uppercase text-gray-500 font-medium">Location</p>
                       <p className="text-gray-700 mt-1">{task.location}</p>
                     </div>
                   </div>
@@ -213,40 +230,41 @@ const AvailableTasks = () => {
                   {/* Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 text-sm mt-5">
                     <div className="flex items-start gap-2">
-                      <AiFillHourglass className="text-teal-600 mt-0.5" />
+                      <AiFillHourglass className={`text-${primaryColor}-600 mt-0.5`} />
                       <div>
                         <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Est. Time</p>
-                        <p className="text-gray-800 font-medium">{task.estimatedTime || "Not specified"}</p>
+                        <p className="text-gray-800 font-medium">{task.estimatedTime || "Not specified"} hr</p>
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <FiUser className="text-teal-600 mt-0.5" />
+                      <FiUser className={`text-${primaryColor}-600 mt-0.5`} />
                       <div>
                         <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Client</p>
                         <p className="text-gray-800 font-medium">
-                          {task.client?.fullName || "N/A"} <span className="text-gray-500 text-sm">({task.client?.email || "N/A"})</span>
+                          {task.client?.firstName || "N/A"} {task.client?.lastName || "N/A"}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <FiCalendar className="text-teal-600 mt-0.5" />
+                      <FiCalendar className={`text-${primaryColor}-600 mt-0.5`} />
                       <div>
                         <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Deadline</p>
-                        <p className="text-gray-800 font-medium">{deadlineTime}</p>
+                        <p className="text-gray-800 font-medium">
+                          {task.schedule === "Flexible" ? "flexible" : deadlineTime}
+                        </p>
                       </div>
                     </div>
 
                     <div className="flex items-start gap-2">
-                      <FiClock className="text-teal-600 mt-0.5" />
+                      <FiClock className={`text-${primaryColor}-600 mt-0.5`} />
                       <div>
                         <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Posted</p>
                         <p className="text-gray-800 font-medium">{postedTime}</p>
                       </div>
                     </div>
                   </div>
-
 
                   {/* Action Buttons */}
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
@@ -263,15 +281,15 @@ const AvailableTasks = () => {
                           disabled={isAccepted || isBidding}
                           onClick={() => toggleBidForm(task._id)}
                           className={`w-full sm:w-auto py-2.5 px-6 rounded-lg font-medium transition-shadow shadow-sm
-                            ${isAccepted ? "bg-gray-300 cursor-not-allowed" : "bg-teal-600 text-white hover:bg-teal-700 hover:shadow-md"}`}
+                            ${isAccepted ? "bg-gray-300 cursor-not-allowed" : `bg-${primaryColor}-600 text-white hover:bg-${primaryColor}-700 hover:shadow-md`}`}
                         >
                           💰 Place Bid
                         </button>
                         <button
                           disabled={isAccepted || isAccepting}
-                          onClick={() => handleOpenModal(task)} // open modal instead
+                          onClick={() => handleOpenModal(task)}
                           className={`w-full sm:w-auto py-2.5 px-6 rounded-lg font-medium transition-shadow shadow-sm
-    ${isAccepted ? "bg-gray-300 cursor-not-allowed" : "bg-gradient-to-r from-teal-600 to-teal-800 text-white hover:from-teal-700 hover:to-teal-900 hover:shadow-md"}`}
+                            ${isAccepted ? "bg-gray-300 cursor-not-allowed" : `bg-gray-400 text-white hover:from-${primaryColor}-700 hover:to-${primaryColor}-900 hover:shadow-md`}`}
                         >
                           ✅ Accept Task
                         </button>
@@ -309,7 +327,7 @@ const AvailableTasks = () => {
                         <button
                           onClick={() => handlePlaceBid(task._id)}
                           disabled={isBidding}
-                          className="bg-teal-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-teal-700 transition-shadow shadow-sm hover:shadow-md"
+                          className={`bg-${primaryColor}-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-${primaryColor}-700 transition-shadow shadow-sm hover:shadow-md`}
                         >
                           Submit Bid
                         </button>
@@ -328,7 +346,7 @@ const AvailableTasks = () => {
                   {isCommentFormOpen && (
                     <div className="mt-6 bg-gray-50 p-6 rounded-xl border border-gray-200 shadow-sm">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 rounded-full bg-teal-100 text-teal-600">
+                        <div className={`p-2 rounded-full bg-${primaryColor}-100 text-${primaryColor}-600`}>
                           💬
                         </div>
                         <h4 className="text-lg font-semibold text-gray-800">Add a Comment</h4>
@@ -351,7 +369,7 @@ const AvailableTasks = () => {
                         <button
                           onClick={() => handleAddComment(task._id)}
                           disabled={isCommenting}
-                          className="px-6 py-2 text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-shadow shadow-sm hover:shadow-md"
+                          className={`px-6 py-2 text-sm font-medium text-white bg-${primaryColor}-600 hover:bg-${primaryColor}-700 rounded-lg transition-shadow shadow-sm hover:shadow-md`}
                         >
                           {isCommenting ? "Submitting..." : "Submit Comment"}
                         </button>
@@ -363,7 +381,7 @@ const AvailableTasks = () => {
                   <div className="mt-6">
                     <button
                       onClick={() => toggleComments(task._id)}
-                      className="flex items-center gap-2 text-sm font-medium text-teal-600 hover:text-teal-700 transition"
+                      className={`flex items-center gap-2 text-sm font-medium text-${primaryColor}-600 hover:text-${primaryColor}-700 transition`}
                     >
                       {isOpen ? (
                         <>

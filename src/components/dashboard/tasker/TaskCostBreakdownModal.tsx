@@ -68,19 +68,19 @@ const TaskCostBreakdownModal: React.FC<TaskCostBreakdownModalProps> = ({
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Client</p>
                                 <p className="text-gray-800 font-medium">
-                                    {task.client?.fullName || "N/A"}{" "}
-                                    <span className="text-gray-500 text-sm">
-                                        ({task.client?.email || "N/A"})
-                                    </span>
+                                    {task.client?.firstName || "N/A"}{" "} {task.client?.lastName || "N/A"}{" "}
+
+                                 
                                 </p>
                             </div>
                         </div>
-
                         <div className="flex items-start gap-2">
                             <FiCalendar className="text-teal-600 mt-0.5" />
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-gray-500 font-medium">Deadline</p>
-                                <p className="text-gray-800 font-medium">{deadlineTime}</p>
+                                <p className="text-gray-800 font-medium">
+                                    {task.schedule === "Flexible" ? "flexible" : deadlineTime}
+                                </p>
                             </div>
                         </div>
 

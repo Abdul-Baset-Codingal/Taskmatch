@@ -16,12 +16,7 @@ export const taskApi = createApi({
             return headers;
         },
     }),
-    // export const taskApi = createApi({
-    //     reducerPath: "taskApi",
-    //     baseQuery: fetchBaseQuery({
-    //         baseUrl: "https://taskmatch-backend-hiza.onrender.com/api",
-    //         credentials: "include",
-    //     }),
+
     tagTypes: ["Task", "TaskFilters"],
 
     endpoints: (builder) => ({
@@ -70,13 +65,19 @@ export const taskApi = createApi({
                 return `/tasks/schedule`;
             },
         }),
+
+        getFlexibleTasks: builder.query({
+            query: () => {
+                return `/tasks/flexible`;
+            },
+        }),
+
+
         // ✅ Get completed and in progress tasks
         getCompletedAndInProgressTasks: builder.query({
             query: () => '/tasks/completedAndInProgress',
             providesTags: ['Task'],
         }),
-
-
 
         // ✅ Get tasks by status (e.g., "in progress", "completed")
         getTasksByStatus: builder.query({
@@ -89,6 +90,14 @@ export const taskApi = createApi({
             providesTags: ["Task"],
         }),
 
+
+        getTasksByTaskerIdAndStatus: builder.query({
+            query: ({ taskerId, status }) => ({
+                url: `/tasks/taskertasks/${taskerId}`,
+                params: status ? { status } : {}, // Include status as query param if provided
+            }),
+            providesTags: ['Task'],
+        }),
 
 
         // ✅ Get tasks by the logged-in client
@@ -127,7 +136,13 @@ export const taskApi = createApi({
             }),
             invalidatesTags: ["Task"],
         }),
-
+        declineByTasker: builder.mutation({
+            query: (taskId) => ({
+                url: `/tasks/${taskId}/decline`,
+                method: "PATCH",
+            }),
+            invalidatesTags: ["Task"],
+        }),
         // ✅ Bid on a task
         bidOnTask: builder.mutation({
             query: ({ taskId, offerPrice, message }) => ({
@@ -206,7 +221,6 @@ export const taskApi = createApi({
         }),
 
         // Bulk delete tasks
-
         bulkDeleteTasks: builder.mutation({
             query: (taskIds) => ({
                 url: '/tasks/bulk-delete',
@@ -224,11 +238,14 @@ export const {
     useGetUrgentTasksQuery,
     useGetCompletedAndInProgressTasksQuery,
     useGetScheduleTasksQuery,
+    useGetFlexibleTasksQuery,
     useGetTasksByStatusQuery,
     useGetTasksExcludingStatusQuery,
+    useGetTasksByTaskerIdAndStatusQuery,
     useGetTasksByClientQuery,
     useAddTaskReviewMutation,
     useRequestCompletionMutation,
+    useDeclineByTaskerMutation,
     useGetTaskByIdQuery,
     useAddCommentMutation,
     useBidOnTaskMutation,

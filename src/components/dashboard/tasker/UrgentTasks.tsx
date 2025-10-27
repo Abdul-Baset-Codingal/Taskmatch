@@ -249,7 +249,7 @@ export default function UrgentTaskCards() {
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-2 text-gray-700">
                   <FaUser className="text-red-500 text-sm" />
-                  <span className="font-medium">{task.client?.fullName || 'N/A'}</span>
+                  <span className="font-medium">{task.client?.firstName || 'N/A'} {task.client?.lastName || 'N/A'}</span>
                 </div>
                 <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${getStatusStyle(task.status)}`}>
                   <span className={`w-2 h-2 rounded-full ${getDotColor(task.status)}`}></span>

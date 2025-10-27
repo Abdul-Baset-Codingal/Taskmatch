@@ -118,7 +118,7 @@ const JoinTaskMatch = () => {
 
         {/* Header */}
         <div className="text-center mb-8 sm:mb-12 max-w-3xl">
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 text-premium fade-in">Join TaskMatch</h1>
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 text-premium fade-in mt-20">Join TaskMatch</h1>
           <p className="text-gray-700 mt-4 text-fancy">Choose how you want to use our platform to get started with the right experience</p>
         </div>
 
@@ -156,16 +156,11 @@ const JoinTaskMatch = () => {
           <div className="flex justify-center gap-6">
             <button
               onClick={() => setIsClientModalOpen(true)}
-              className="text-amber-400 hover:text-amber-500 font-bold text-fancy"
+              className="text-amber-400 hover:text-amber-500 font-bold text-2xl text-fancy"
             >
-              Client Login
+               Login
             </button>
-            <button
-              onClick={() => setIsTaskerModalOpen(true)}
-              className="text-emerald-400 hover:text-emerald-500 font-bold text-fancy"
-            >
-              Tasker Login
-            </button>
+
           </div>
         </div>
 

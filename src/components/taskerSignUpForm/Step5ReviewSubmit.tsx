@@ -11,16 +11,25 @@ type Props = {
     onBack: () => void;
 };
 
-const 
-
-Step5ReviewSubmit = ({ onBack }: Props) => {
+const Step5ReviewSubmit = ({ onBack }: Props) => {
     const [signup, { isLoading }] = useSignupMutation();
 
     // ✅ Use correct state key: 'form'
-    const step1 = useSelector((state: RootState) => state.form.step1);
-    const step2 = useSelector((state: RootState) => state.form.step2);
-    const step3 = useSelector((state: RootState) => state.form.step3);
-    const step4 = useSelector((state: RootState) => state.form.step4);
+    type TaskerStep1 = {
+        profilePicture?: string;
+        about?: string;
+        [key: string]: any;
+    };
+    type TaskerStep3 = {
+        idType?: string;
+        sin?: string;
+        backgroundCheckConsent?: boolean;
+        [key: string]: any;
+    };
+    const step1 = useSelector((state: RootState) => state.form.step1 as TaskerStep1);
+    // const step2 = useSelector((state: RootState) => state.form.step2);
+    const step3 = useSelector((state: RootState) => state.form.step3 as TaskerStep3);
+    // const step4 = useSelector((state: RootState) => state.form.step4);
 
     const [agreed, setAgreed] = useState({
         terms: false,
@@ -33,16 +42,59 @@ Step5ReviewSubmit = ({ onBack }: Props) => {
 
     const handleSubmit = async () => {
         if (!isFormValid) {
-            alert("Please agree to all the terms before submitting.");
+            toast.error("Please agree to all the terms before submitting.");
             return;
         }
 
+        // Frontend validation for required tasker fields
+        // if (!step2.experienceYears) {
+        //     toast.error("Years of experience is required. Please go back to step 2 and select it.");
+        //     return;
+        // }
+
+        // if (!step2.serviceCategories || step2.serviceCategories.length === 0) {
+        //     toast.error("Service categories are required. Please go back to step 2 and select at least one.");
+        //     return;
+        // }
+
+        // if (!step2.services || step2.services.length === 0) {
+        //     toast.error("Services are required. Please go back to step 2 and add at least one service.");
+        //     return;
+        // }
+
+        if (!step3.idType) {
+            toast.error("ID type is required. Please go back to step 3 and select one.");
+            return;
+        }
+
+        if (!step3.sin) {
+            toast.error("SIN is required. Please go back to step 3 and enter it.");
+            return;
+        }
+
+        if (!step3.backgroundCheckConsent) {
+            toast.error("Background check consent is required. Please go back to step 3 and agree.");
+            return;
+        }
+
+        if (!step1.profilePicture) {
+            toast.error("Profile picture is required. Please go back to step 1 and upload one.");
+            return;
+        }
+
+        if (!step1.about || step1.about.trim().length < 50) {
+            toast.error("About me must be at least 100 characters. Please go back to step 1.");
+            return;
+        }
+
+        // Add more validations as needed for step4 (e.g., availability, serviceAreas)
+
         const finalData = {
-            role: "tasker", 
+            role: "tasker",
             ...step1,
-            ...step2,
+            // ...step2,
             ...step3,
-            ...step4,
+            // ...step4,
         };
 
 

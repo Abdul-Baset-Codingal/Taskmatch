@@ -98,7 +98,7 @@ const TaskConfirmationModal = ({
                     <div className="bg-gradient-to-r from-orange-50 to-orange-100 p-6 rounded-xl border border-orange-300 shadow-md hover:shadow-lg transition-shadow duration-300">
                         <div className="grid gap-3 text-gray-800">
                             <div className="flex justify-between items-center">
-                                <p className="font-medium text-gray-700">Subtotal (3.2 hrs × ${price}/hr)</p>
+                                <p className="font-medium text-gray-700">Estimated Budget ${price}</p>
                                 <p className="text-orange-600 font-semibold">${price}</p>
                             </div>
                             <div className="flex justify-between items-center">

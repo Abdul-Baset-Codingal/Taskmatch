@@ -37,10 +37,7 @@ const servicesData = {
     beautyWellness: {
         title: "Everything Else",
     },
-
-
 } as const;
-
 
 type ServiceKey = keyof typeof servicesData;
 
@@ -52,9 +49,10 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
     );
     const [images, setImages] = useState<File[]>(taskForm.photos || []);
     const [customLocation, setCustomLocation] = useState("");
+    const [locationType, setLocationType] = useState<"In-Person" | "Remote">("In-Person");
     const searchParams = useSearchParams();
     const searchQuery = searchParams ? searchParams.get("search") || "" : "";
-    const [taskInput, setTaskInput] = useState(searchQuery); // State to manage input field
+    const [taskInput, setTaskInput] = useState(searchQuery);
     const [inputValue, setInputValue] = useState(searchQuery);
 
     // Update input field when searchQuery changes
@@ -63,13 +61,12 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
     }, [searchQuery]);
 
     // Update taskTitle with searchQuery
-    const isGeneralService =
-        searchQuery?.toLowerCase() === "general service";
+    const isGeneralService = searchQuery?.toLowerCase() === "general service";
 
     // Reset input only when searchQuery changes to "general service"
     useEffect(() => {
         if (isGeneralService) {
-            setInputValue(""); // start empty
+            setInputValue("");
         } else {
             dispatch(updateTaskField({ field: "taskTitle", value: searchQuery }));
         }
@@ -82,6 +79,15 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
         }
     }, [inputValue, dispatch, isGeneralService]);
 
+    // Update location in redux based on locationType
+    useEffect(() => {
+        if (locationType === "Remote") {
+            setCustomLocation("");
+            dispatch(updateTaskField({ field: "location", value: "Remote" }));
+        } else {
+            dispatch(updateTaskField({ field: "location", value: customLocation }));
+        }
+    }, [locationType, customLocation, dispatch]);
 
     const handleImageUpload = (e: ChangeEvent<HTMLInputElement>, index: number) => {
         if (!e.target.files) return;
@@ -107,15 +113,13 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
         dispatch(updateTaskField({ field: "location", value }));
     };
 
-
+    const handleLocationTypeChange = (type: "In-Person" | "Remote") => {
+        setLocationType(type);
+    };
 
     return (
         <div>
-
             <div className="space-y-6">
-
-
-
                 {/* Location Selection UI */}
                 <div className="mb-6">
                     <label className="block text-sm font-medium mb-1">
@@ -139,17 +143,42 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
 
                     <h3 className="text-sm font-bold mb-3 text-gray-800">📍 Tell us where</h3>
 
-
-                    <div className="mt-4">
-                        <input
-                            type="text"
-                            value={customLocation}
-                            onChange={(e) => handleCustomInput(e.target.value)}
-                            placeholder="Enter Your location"
-                            className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                        />
+                    {/* Location Type Toggle */}
+                    <div className="flex space-x-4 mb-4">
+                        <button
+                            className={`px-4 py-2 rounded-lg font-medium ${locationType === "In-Person"
+                                    ? "bg-orange-400 text-white"
+                                    : "bg-gray-200 text-gray-800"
+                                }`}
+                            onClick={() => handleLocationTypeChange("In-Person")}
+                        >
+                            In-Person
+                        </button>
+                        <button
+                            className={`px-4 py-2 rounded-lg font-medium ${locationType === "Remote"
+                                    ? "bg-orange-400 text-white"
+                                    : "bg-gray-200 text-gray-800"
+                                }`}
+                            onClick={() => handleLocationTypeChange("Remote")}
+                        >
+                            Remote
+                        </button>
                     </div>
+
+                    {/* Location Input for In-Person */}
+                    {locationType === "In-Person" && (
+                        <div className="mt-4">
+                            <input
+                                type="text"
+                                value={customLocation}
+                                onChange={(e) => handleCustomInput(e.target.value)}
+                                placeholder="Enter Your location"
+                                className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                            />
+                        </div>
+                    )}
                 </div>
+
                 {/* Service Selection */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
@@ -168,8 +197,6 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                     </select>
                 </div>
 
-
-
                 {/* Description */}
                 <div>
                     <label className="block text-sm font-medium mb-1">
@@ -181,15 +208,13 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                         onChange={(e) =>
                             dispatch(updateTaskField({ field: "taskDescription", value: e.target.value }))
                         }
-                        placeholder="Brakes are making noise when I drive. Need someone ASAP."
+                        placeholder="Need someone ASAP."
                         className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
                     ></textarea>
                     <p className="text-sm text-gray-500 mt-1 cursor-pointer hover:underline">
                         💡 Show tips for better quotes
                     </p>
                 </div>
-
-
 
                 {/* Image Upload */}
                 <div>
