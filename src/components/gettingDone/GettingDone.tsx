@@ -30,118 +30,117 @@ interface Task {
 
 // TaskCard component to handle individual task rendering with tasker data
 const TaskCard = ({ task, index }: { task: Task; index: number }) => {
-  // Fetch tasker data only if acceptedBy exists
-  const { data: taskerData } = useGetUserByIdQuery(task.acceptedBy, {
-    skip: !task.acceptedBy, // Skip query if no acceptedBy ID
+  const { data: taskerData } = useGetUserByIdQuery(task.acceptedBy!, {
+    skip: !task.acceptedBy,
   });
 
-  console.log(taskerData)
-
-  // Function to format time difference
-  const formatTimeAgo = (dateString: string | number | Date) => {
+  const formatTimeAgo = (date: string) => {
     const now = new Date();
-    const taskDate = new Date(dateString);
-    const diffInMinutes = Math.floor((now.getTime() - taskDate.getTime()) / (1000 * 60));
+    const updated = new Date(date);
+    const minutes = Math.floor((now.getTime() - updated.getTime()) / 60000);
 
-    if (diffInMinutes < 1) return "Just now";
-    if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
-
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
-
-    const diffInDays = Math.floor(diffInHours / 24);
-    return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
   };
 
-  // Function to format status display text
-  const formatStatus = (status: string) => {
-    if (status === "in progress") return "In Progress";
-    if (status === "completed") return "Completed";
-    return status;
-  };
-
-
+  const isInProgress = task.status === "in progress";
 
   return (
     <div
       key={task._id || index}
-      className="inline-block color3 backdrop-blur-md p-5 sm:p-6 md:p-7 mx-3 rounded-2xl shadow-lg hover:shadow-[#2CB67D]/40 hover:-translate-y-2 hover:scale-[1.03] transition-all duration-500 border border-white/30 w-[320px] sm:w-[350px] md:w-[380px] lg:w-[400px]"
+      className="group relative mx-6 w-[380px] rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-gray-200 hover:-translate-y-1"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-base sm:text-lg md:text-xl font-semibold text-[#063A41] truncate">
-          {task.serviceTitle}
-        </h3>
-        <p
-          className={`px-3 sm:px-4 py-1 text-xs sm:text-sm font-semibold text-white rounded-full shadow-md ${task.status === "in progress"
-              ? "bg-[#FF8906]"
-              : "bg-[#2CB67D]"
-            }`}
-        >
-          {formatStatus(task.status)}
-        </p>
-      </div>
+      {/* Clean Header */}
+      <div className="p-6 pb-4">
+        <div className="flex items-start justify-between gap-4">
+          <h3 className="text-xl font-semibold text-[#063A41] line-clamp-2 leading-tight">
+            {task.serviceTitle}
+          </h3>
 
-      {/* Description */}
-      <p className="mt-4 text-sm sm:text-base text-gray-700 leading-relaxed line-clamp-2">
-        <span className="font-semibold text-[#109C3D]">{task.taskTitle}</span>: {task.taskDescription}
-      </p>
-
-      {/* Time Info */}
-      <div className="mt-4 flex items-center gap-2 text-gray-500 text-xs sm:text-sm">
-        <BiTimeFive className="text-[#109C3D] text-base" />
-        {task.status === "in progress"
-          ? `Started ${formatTimeAgo(task.updatedAt)}`
-          : formatTimeAgo(task.updatedAt)}
-      </div>
-
-      {/* Divider Line */}
-      <div className="my-5 h-[1px] bg-gray-200"></div>
-
-      {/* Tasker Info */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 relative rounded-full overflow-hidden border-2 border-[#109C3D]/40 shadow-md flex items-center justify-center bg-gray-100">
-          {taskerData?.profilePicture ? (
-            <Image
-              src={taskerData.profilePicture}
-              alt="Tasker"
-              fill
-              className="object-cover"
-              onError={(e) => {
-                e.currentTarget.src = defaultAvatar.src;
-              }}
-            />
-          ) : (
-            <FaUser className="w-6 h-6 text-gray-400" />
-          )}
-        </div>
-
-        <div className="flex flex-col">
-          <p className="text-sm sm:text-base font-semibold text-[#063A41]">
-            {taskerData?.fullName}
-          </p>
-          <div className="flex items-center mt-1">
-            {[...Array(5)].map((_, starIndex) => (
-              <FaStar
-                key={starIndex}
-                className="text-yellow-400 text-[10px] sm:text-[12px] mr-[2px]"
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Price */}
-      {task.price && (
-        <div className="mt-5 text-right">
-          <span className="text-xl font-bold text-[#109C3D]">
-            ${task.price}
+          <span
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${isInProgress
+                ? "bg-orange-100 text-orange-700"
+                : "bg-[#109C3D]/10 text-[#109C3D]"
+              }`}
+          >
+            {isInProgress ? "In Progress" : "Completed"}
           </span>
         </div>
-      )}
+
+        {/* Task Title */}
+        <h4 className="mt-4 text-lg font-medium text-[#109C3D]">
+          {task.taskTitle}
+        </h4>
+
+        {/* Description */}
+        <p className="mt-2 text-gray-600 text-sm leading-relaxed line-clamp-2">
+          {task.taskDescription}
+        </p>
+
+        {/* Time */}
+        <div className="mt-4 flex items-center gap-2 text-gray-500 text-xs">
+          <BiTimeFive className="text-[#109C3D]" />
+          <span>
+            {isInProgress ? "Started" : "Completed"} {formatTimeAgo(task.updatedAt)}
+          </span>
+        </div>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-gray-100" />
+
+      {/* Footer – Tasker + Price */}
+      <div className="p-6 pt-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {/* Avatar */}
+          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200">
+            {taskerData?.profilePicture ? (
+              <Image
+                src={taskerData.profilePicture}
+                alt={taskerData.firstName || "Tasker"}
+                width={56}
+                height={56}
+                className="object-cover w-full h-full"
+                onError={(e) => (e.currentTarget.src = defaultAvatar.src)}
+              />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <FaUser className="text-2xl text-gray-400" />
+              </div>
+            )}
+          </div>
+
+          {/* Name + Rating */}
+          <div>
+            <p className="font-medium text-[#063A41]">
+              {taskerData?.firstName} {taskerData?.lastName || "Tasker"}
+            </p>
+            <div className="flex items-center gap-1 mt-1">
+              {[...Array(5)].map((_, i) => (
+                <FaStar key={i} className="w-3.5 h-3.5 text-yellow-500 fill-current" />
+              ))}
+              <span className="text-xs text-gray-500 ml-1">5.0</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Price – only if exists */}
+        {task.price && (
+          <div className="text-right">
+            <span className="text-2xl font-bold text-[#063A41]">
+              ${task.price}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Subtle hover accent line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-[#109C3D] scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
     </div>
-
-
   );
 };
 

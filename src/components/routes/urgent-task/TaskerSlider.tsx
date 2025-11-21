@@ -45,11 +45,12 @@ interface DetailsBannerProps {
 }
 
 const categoryMap: { [key: string]: string } = {
-    Handyman_Renovation_Moving_Help: "Handyman, Renovation & Moving Help",
+    Handyman_Renovation_Moving_Help: "Handyman & Home Repairs",
     Pet_Services: "Pet Services",
-    Complete_Cleaning: "Complete Cleaning",
+    Complete_Cleaning: "Cleaning Services",
     Plumbing_Electrical_HVAC_PEH: "Plumbing, Electrical & HVAC (PEH)",
-    Beauty_Wellness: "Beauty & Wellness",
+    Beauty_Wellness: "Automotive Services",
+    All_Other_Specialized_Services: "All Other Specialized Services"
 };
 
 const availabilityOptions = ["All", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
@@ -100,6 +101,12 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
 
     const taskers: Tasker[] = (data?.taskers || []).map((tasker: any) => {
         const serviceAreas = tasker.serviceAreas?.filter((area: string) => area && typeof area === "string") || [];
+
+        // TEMP DEBUG LOGS (remove in production):
+        console.log("Raw tasker.serviceAreas from API:", tasker.serviceAreas);
+        console.log("Filtered serviceAreas:", serviceAreas);
+        console.log("Full mapped tasker:", { ...tasker, serviceAreas }); // Redact sensitive fields if needed
+
         return {
             _id: tasker._id || "unknown",
             firstName: tasker.firstName || "Unknown",
@@ -126,15 +133,18 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
             reviews: tasker.reviews || { rating: tasker.rating || 0, count: tasker.reviews?.length || 0, comment: "Great service!" },
         };
     }).filter((tasker) => {
+        // Updated: Allow taskers with empty serviceAreas (e.g., they serve all areas)
         const hasServiceAreas = tasker.serviceAreas.length > 0;
         if (!hasServiceAreas) {
-            console.warn(`Tasker ${tasker.firstName} filtered out due to empty serviceAreas`);
+            console.warn(`Tasker ${tasker.firstName} has no specific service areas (showing anyway - assumes serves all areas)`);
         }
-        return hasServiceAreas;
+        return true; // Always include; add other filters here if needed
     });
 
     const totalTaskers = data?.pagination?.totalTaskers || 0;
     const totalPages = data?.pagination?.totalPages || 1;
+
+    console.log(taskers)
 
     if (isLoading) {
         return (
@@ -159,9 +169,9 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
     }
 
     return (
-        <div className="flex justify-center bg-[#FEFDF8]">
+        <div className="flex justify-center ">
             <div className="min-h-screen py-6 px-4 sm:px-6 lg:px-8 font-sans">
-                <div className="flex flex-col lg:flex-row lg:gap-2 gap-6 lg:w-6xl bg-[#FEFDF8]">
+                <div className="flex flex-col lg:flex-row lg:gap-2 gap-6 lg:w-6xl ">
                     {/* Left Sidebar - Filters */}
                     <div className="w-full lg:w-[30%] bg-white rounded-lg shadow-sm p-4 sm:p-6">
                         <h2 className="text-lg font-semibold text-gray-800 mb-4">Find a match</h2>
@@ -194,7 +204,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                     />
                                 </div>
                             </div>
-                           
+
                             <div>
                                 <label className="text-sm font-medium text-gray-600 mb-1 block">Availability</label>
                                 <select
@@ -263,7 +273,10 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                     <div className="flex-1 w-full lg:w-[60%]">
                         <div className="flex justify-between items-center mb-4">
                             <h2 className="text-lg font-semibold text-gray-800 ml-5">
-                                {totalTaskers} Tasker{totalTaskers !== 1 ? "s" : ""} Found
+                                {taskers.length} Tasker{taskers.length !== 1 ? "s" : ""} Found
+                                {taskers.length < totalTaskers && totalTaskers > 0 && (
+                                    <span className="text-sm text-gray-500 ml-2">(filtered from {totalTaskers} total)</span>
+                                )}
                             </h2>
                             <div className="flex items-center gap-2">
                                 <select
@@ -277,7 +290,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                         </option>
                                     ))}
                                 </select>
-                             
+
                             </div>
                         </div>
                         {viewMode === "split" ? (

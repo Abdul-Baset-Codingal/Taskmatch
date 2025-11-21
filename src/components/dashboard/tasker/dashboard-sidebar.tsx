@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 
 import {
@@ -25,6 +26,7 @@ import { DashboardHeader } from "./dashboard-header"
 import Link from "next/link"
 import { PaymentTransactions } from "./PaymentTransactions"
 import MyServices from "./MyServices"
+import UpdateDocument from "./UpdateDocument"
 
 // Separate PaymentTransactions component
 
@@ -50,7 +52,9 @@ const sidebarItems = [
     { title: "All Request-Quotes", icon: FileText, component: <TaskerQuotes /> },
     { title: "Completed Tasks", icon: CheckSquare, component: <CompletedTasks /> },
     { title: "My Services", icon: CheckSquare, component: <MyServices /> },
+    { title: "My Profile", icon: FileText, component: <UpdateDocument /> },
     { title: "Payments", icon: CreditCard, component: <PaymentTransactions /> },
+    
 ]
 
 const supportItem = {
@@ -75,72 +79,65 @@ export function DashboardLayout({ isOpen, toggleSidebar }: DashboardLayoutProps)
     return (
         <div className="flex min-h-screen w-full">
             {/* Sidebar */}
-            <div
+            <aside
                 className={cn(
-                    "fixed inset-y-0 left-0 w-64 border-r border-border bg-sidebar transform transition-transform duration-300 ease-in-out z-30",
-                    isOpen ? "translate-x-0" : "-translate-x-full",
-                    "lg:translate-x-0 lg:static lg:w-64"
+                    "fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 shadow-xl transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto",
+                    isOpen ? "translate-x-0" : "-translate-x-full"
                 )}
             >
-                <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-                    <div className="flex items-center gap-2">
-                        <Link href="/">
-                            <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent">
-                                TaskAllo
-                            </h1>
-                        </Link>
-                        <span className="w-2 h-2 rounded-full color2 inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span>
-                    </div>
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="ml-auto lg:hidden"
-                        onClick={toggleSidebar}
-                    >
-                        <X className="h-5 w-5" />
+                {/* Logo */}
+                <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
+                    <Link href="/" className="flex items-center gap-2">
+                        <div className="relative">
+                            <h1 className="text-2xl font-bold text-[#063A41]">TaskAllo</h1>
+                            <div className="absolute -top-1 -right-3 w-3 h-3 bg-[#109C3D] rounded-full animate-pulse" />
+                        </div>
+                    </Link>
+                    <Button variant="ghost" size="icon" onClick={toggleSidebar} className="lg:hidden">
+                        <X className="w-5 h-5" />
                     </Button>
                 </div>
 
-                <nav className="flex-1 space-y-1 p-4">
+                {/* Navigation */}
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                     {sidebarItems.map((item) => {
-                        const Icon = item.icon
-                        const isActive = activeItem === item.title
+                        const Icon = item.icon;
+                        const isActive = activeItem === item.title;
 
                         return (
                             <Button
                                 key={item.title}
-                                variant={isActive ? "secondary" : "ghost"}
+                                variant={isActive ? "default" : "ghost"}
                                 className={cn(
-                                    "w-full justify-start gap-3 h-10 ",
-                                    isActive && "color1 text-sidebar-primary-foreground hover:bg-sidebar-primary/90",
-                                    "hover:color1 hover:text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
+                                    "w-full justify-start gap-3 h-11 rounded-xl font-medium transition-all",
+                                    isActive
+                                        ? "color1 text-white shadow-md hover:color1"
+                                        : "text-gray-700 hover:bg-gray-100 hover:text-[#109C3D]"
                                 )}
                                 onClick={() => {
-                                    setActiveItem(item.title)
-                                    toggleSidebar() // Close sidebar on item click (mobile only)
+                                    setActiveItem(item.title);
+                                    if (window.innerWidth < 1024) toggleSidebar();
                                 }}
                             >
-                                <Icon className="h-4 w-4" />
+                                <Icon className="w-5 h-5" />
                                 {item.title}
                             </Button>
-                        )
+                        );
                     })}
                 </nav>
 
-                {/* Support Section at Bottom */}
-                <div className="border-t border-sidebar-border p-4 mt-auto">
-                    <Button
-                        variant="ghost"
-                        className={cn(
-                            "w-full justify-start gap-3 h-10  hover:color1 hover:text-sidebar-primary-foreground hover:bg-sidebar-primary/90"
-                        )}
-                        onClick={supportItem.onClick}
+                {/* Support */}
+                <div className="p-4 border-t border-gray-200">
+                    <button
+                        className="w-full flex items-center justify-start gap-3 h-11 rounded-xl border border-gray-300 px-4 transition-all hover:border-[#109C3D] hover:text-[#109C3D]"
+                        onClick={() => window.open('mailto:support@taskallo.com', '_blank')}
                     >
-                        <supportItem.icon className="h-4 w-4" />
-                        {supportItem.title}
-                    </Button>
+                        <HelpCircle className="w-5 h-5" />
+                        <span>Support & Help</span>
+                    </button>
                 </div>
-            </div>
+
+            </aside>
 
             {/* Main Content Area */}
             <div className="flex-1 bg-background w-full">

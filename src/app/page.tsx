@@ -50,7 +50,6 @@ import TaskMatchApp from "@/components/taskMatchApp/TaskMatchApp";
 import Testimonials from "@/components/testimonials/Testimonials";
 import AdPopup from "@/shared/AdPopup";
 import Footer from "@/shared/Footer";
-import Navbar from "@/shared/Navbar";
 
 export default function Home() {
   return (
@@ -58,9 +57,7 @@ export default function Home() {
        {/* <div className="lg:block hidden">
         <Header/>
        </div> */}
-       <div>
-        <Navbar />
-       </div>
+      
       <AdPopup /> 
       <div className="color1 font-nunito">
         <Banner />

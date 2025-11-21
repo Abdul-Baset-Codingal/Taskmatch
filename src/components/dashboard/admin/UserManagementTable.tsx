@@ -3,17 +3,17 @@
 // @ts-nocheck
 "use client";
 
-import React, { ReactNode, useState } from "react";
-import {FaSpinner,FaSearch} from "react-icons/fa";
-import { useGetAllUsersQuery, useDeleteUserMutation, useBlockUserMutation, } from "@/features/auth/authApi"; // Adjust import path
+import React, {  useState } from "react";
+import { FaSpinner, FaSearch } from "react-icons/fa";
+import { useGetAllUsersQuery, useDeleteUserMutation, useBlockUserMutation } from "@/features/auth/authApi"; // Adjust import path
 import { toast } from "react-toastify";
 import UsersTable from "./UsersTable";
 
 type UserStatus = "Active" | "Inactive" | "Suspended";
 
 interface User {
-  lastName: ReactNode;
-  firstName: ReactNode;
+  lastName: string;
+  firstName: string;
   isBlocked: any;
   fullName: string;
   _id: string;
@@ -32,11 +32,7 @@ interface UserManagementTableProps {
   onViewUser?: (user: User) => void;
 }
 
-
-
-const UserManagementTable: React.FC<UserManagementTableProps> = ({
-  onEditUser,
-}) => {
+const UserManagementTable: React.FC<UserManagementTableProps> = ({ onEditUser }) => {
   // State for filters and pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -60,7 +56,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
     province: provinceFilter,
   });
 
-  console.log(usersResponse)
+  console.log(usersResponse);
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
   const [blockUser] = useBlockUserMutation();
@@ -74,11 +70,10 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
     try {
       await deleteUser(userId).unwrap();
       setShowDeleteConfirm(null);
-      // Show success message (you can use a toast library)
-      console.log("User deleted successfully");
+      toast.success("User deleted successfully");
     } catch (error) {
       console.error("Error deleting user:", error);
-      // Show error message
+      toast.error("Failed to delete user");
     }
   };
 
@@ -86,13 +81,14 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
     try {
       const shouldBlock = !currentStatus;
       await blockUser({ id: userId, block: shouldBlock }).unwrap();
-      toast.success("done changing the status")
+      toast.success("Status updated successfully");
     } catch (err) {
       console.error("Error blocking/unblocking user", err);
+      toast.error("Failed to update status");
     }
   };
 
-  console.log(users)
+  console.log(users);
 
   // Handle search
   const handleSearch = (e: React.FormEvent) => {
@@ -112,21 +108,26 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <FaSpinner className="animate-spin text-4xl text-blue-600" />
-        <span className="ml-2 text-lg">Loading users...</span>
+        <div className="text-center">
+          <FaSpinner className="animate-spin mx-auto text-4xl text-color1 mb-4" />
+          <span className="text-lg text-gray-600">Loading users...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-7xl mx-auto lg:p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-semibold text-red-800 mb-2">Error Loading Users</h3>
-          <p className="text-red-600 mb-4">Failed to fetch user data. Please try again.</p>
+      <div className="bg-white rounded-2xl shadow-xl p-8 text-center border border-red-200">
+        <div className="max-w-md mx-auto">
+          <div className="bg-red-50 rounded-xl p-4 mb-4">
+            <FaSpinner className="text-red-500 mx-auto text-4xl mb-2" />
+          </div>
+          <h3 className="text-xl font-semibold text-color1 mb-2">Error Loading Users</h3>
+          <p className="text-gray-600 mb-6">Failed to fetch user data. Please try again.</p>
           <button
             onClick={() => refetch()}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition"
+            className="bg-color1 text-white px-6 py-3 rounded-xl hover:bg-opacity-90 transition font-medium"
           >
             Retry
           </button>
@@ -136,18 +137,23 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
   }
 
   return (
-    <section className="max-w-7xl mx-auto lg:p-8">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">User Management</h2>
-        <div className="text-sm text-gray-600">
-          Total Users: <span className="font-semibold">{totalUsers}</span>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 className="text-3xl font-bold text1">User Management</h2>
+          <p className="text-gray-600 mt-1">Manage and monitor user accounts</p>
+        </div>
+        <div className="text-sm text-gray-600 bg-white/50 px-4 py-2 rounded-xl backdrop-blur-sm">
+          Total Users: <span className="font-semibold text2">{totalUsers}</span>
         </div>
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-center">
+      <div className="bg-white rounded-2xl shadow-xl border border-white/50 p-6 backdrop-blur-sm">
+        <form onSubmit={handleSearch} className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[250px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
             <div className="relative">
               <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
@@ -155,36 +161,42 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
                 placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-color2 focus:border-transparent transition"
               />
             </div>
           </div>
 
-          <select
-            value={roleFilter}
-            onChange={(e) => setRoleFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Roles</option>
-            <option value="client">Client</option>
-            <option value="tasker">Tasker</option>
-          </select>
+          <div className="min-w-[150px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-color2 focus:border-transparent"
+            >
+              <option value="">All Roles</option>
+              <option value="client">Client</option>
+              <option value="tasker">Tasker</option>
+            </select>
+          </div>
 
-          <select
-            value={provinceFilter}
-            onChange={(e) => setProvinceFilter(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">All Provinces</option>
-            <option value="Dhaka">Dhaka</option>
-            <option value="Chittagong">Chittagong</option>
-            <option value="Sylhet">Sylhet</option>
-            {/* Add more provinces as needed */}
-          </select>
+          <div className="min-w-[150px]">
+            <label className="block text-sm font-medium text-gray-700 mb-2">Province</label>
+            <select
+              value={provinceFilter}
+              onChange={(e) => setProvinceFilter(e.target.value)}
+              className="w-full px-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-color2 focus:border-transparent"
+            >
+              <option value="">All Provinces</option>
+              <option value="Dhaka">Dhaka</option>
+              <option value="Chittagong">Chittagong</option>
+              <option value="Sylhet">Sylhet</option>
+              {/* Add more provinces as needed */}
+            </select>
+          </div>
 
           <button
             type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+            className="bg-color1 text-white px-6 py-3 rounded-xl hover:bg-opacity-90 transition flex items-center gap-2 font-medium"
           >
             <FaSearch />
             Search
@@ -199,7 +211,7 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
                 setProvinceFilter("");
                 setCurrentPage(1);
               }}
-              className="text-gray-600 hover:text-gray-800 transition"
+              className="text-color1 hover:text-color2 transition font-medium underline"
             >
               Clear Filters
             </button>
@@ -207,198 +219,99 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
         </form>
       </div>
 
-      {/* Users Table */}
-      {/* <div className="overflow-x-auto rounded-xl shadow-lg bg-white">
-        <table className="w-full text-left min-w-[900px]">
-          <thead className="bg-gray-100 text-gray-700">
-            <tr>
-              <th className="px-6 py-4">Profile</th>
-              <th className="px-6 py-4">Name</th>
-              <th className="px-6 py-4">Email</th>
-              <th className="px-6 py-4">User ID</th>
-              <th className="px-6 py-4">Role</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Joined</th>
-              <th className="px-6 py-4 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm text-gray-800">
-            {users.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
-                  <div className="flex flex-col items-center">
-                    <FaFilter className="text-4xl text-gray-300 mb-2" />
-                    <p className="text-lg">No users found</p>
-                    <p className="text-sm">Try adjusting your search criteria</p>
-                  </div>
-                </td>
-              </tr>
-            ) : (
-              users.map((user: User) => (
-                <tr
-                  key={user._id}
-                  className="border-b hover:bg-gray-50 transition duration-200"
-                >
-                  <td className="px-6 py-4">
-                    <div className="w-12 h-12 flex items-center justify-center bg-gray-200 rounded-full">
-                      <FaUser className="w-6 h-6 text-gray-600" />
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 font-medium">{user?.firstName} {user?.lastName}</td>
-                  <td className="px-6 py-4">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                      {user.id || user._id.slice(-6).toUpperCase()}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-semibold">
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 text-xs font-semibold rounded-full ${statusColor[user.status] || statusColor.Active
-                        }`}
-                    >
-                      {user.status || "Active"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">{formatDate(user.createdAt)}</td>
-                  <td className="px-6 py-4 flex gap-3 justify-center items-center text-lg">
-                    <button
-                      onClick={() => onEditUser?.(user)}
-                      className="text-indigo-600 hover:text-indigo-800 transition"
-                      title="Edit User"
-                    >
-                      <FaEdit />
-                    </button>
-                    {user?.isBlocked ? (
-                      <button
-                        onClick={() => handleToggleBlock(user._id, user.isBlocked)}
-                        className="text-green-600 hover:text-green-800 transition"
-                        title="Unblock User"
-                      >
-                        <FaCheck />
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleToggleBlock(user._id, user.isBlocked)}
-                        className="text-yellow-500 hover:text-yellow-600 transition"
-                        title="Block User"
-                      >
-                        <FaExclamationTriangle />
-                      </button>
-                    )}
-
-
-                    <button
-                      onClick={() => setShowDeleteConfirm(user._id)}
-                      className="text-red-600 hover:text-red-800 transition"
-                      title="Delete User"
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? (
-                        <FaSpinner className="animate-spin" />
-                      ) : (
-                        <FaTrash />
-                      )}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div> */}
-      <UsersTable users={users} handleToggleBlock={handleToggleBlock} setShowDeleteConfirm={setShowDeleteConfirm} onEditUser={onEditUser} formatDate={formatDate} isDeleting={isDeleting} />
+      <UsersTable
+        users={users}
+        handleToggleBlock={handleToggleBlock}
+        setShowDeleteConfirm={setShowDeleteConfirm}
+        onEditUser={onEditUser}
+        formatDate={formatDate}
+        isDeleting={isDeleting}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-between items-center mt-6">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <span>Show</span>
-            <select
-              value={itemsPerPage}
-              onChange={(e) => {
-                setItemsPerPage(Number(e.target.value));
-                setCurrentPage(1);
-              }}
-              className="border border-gray-300 rounded px-2 py-1"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-            </select>
-            <span>per page</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1 || isFetching}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-
-            <div className="flex gap-1">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                const pageNumber = Math.max(1, currentPage - 2) + i;
-                if (pageNumber > totalPages) return null;
-
-                return (
-                  <button
-                    key={pageNumber}
-                    onClick={() => setCurrentPage(pageNumber)}
-                    disabled={isFetching}
-                    className={`px-3 py-1 border rounded ${currentPage === pageNumber
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "border-gray-300 hover:bg-gray-50"
-                      } disabled:opacity-50`}
-                  >
-                    {pageNumber}
-                  </button>
-                );
-              })}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-white/50">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <span>Show</span>
+              <select
+                value={itemsPerPage}
+                onChange={(e) => {
+                  setItemsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                className="border border-gray-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-color2"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+              <span>per page</span>
             </div>
 
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages || isFetching}
-              className="px-3 py-1 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1 || isFetching}
+                className="px-4 py-2 bg-color1 text-white rounded-xl hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Previous
+              </button>
 
-          <div className="text-sm text-gray-600">
-            Page {currentPage} of {totalPages} ({totalUsers} total)
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  const pageNumber = Math.max(1, currentPage - 2) + i;
+                  if (pageNumber > totalPages) return null;
+
+                  return (
+                    <button
+                      key={pageNumber}
+                      onClick={() => setCurrentPage(pageNumber)}
+                      disabled={isFetching}
+                      className={`px-4 py-2 rounded-xl transition ${currentPage === pageNumber
+                          ? "bg-color2 text-white"
+                          : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+                        } disabled:opacity-50`}
+                    >
+                      {pageNumber}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages || isFetching}
+                className="px-4 py-2 bg-color1 text-white rounded-xl hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Next
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600">
+              Page {currentPage} of {totalPages} ({totalUsers} total)
+            </div>
           </div>
         </div>
       )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-mx-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Confirm Delete
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to delete this user? This action cannot be undone.
-            </p>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl">
+            <h3 className="text-xl font-bold text1 mb-4">Confirm Delete</h3>
+            <p className="text-gray-600 mb-6">Are you sure you want to delete this user? This action cannot be undone.</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                className="px-6 py-3 border border-gray-300 rounded-xl hover:bg-gray-50 transition font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteUser(showDeleteConfirm)}
                 disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-3 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50 transition font-medium flex items-center gap-2"
               >
                 {isDeleting ? (
                   <>
@@ -416,12 +329,12 @@ const UserManagementTable: React.FC<UserManagementTableProps> = ({
 
       {/* Loading overlay for refetching */}
       {isFetching && !isLoading && (
-        <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+        <div className="fixed top-4 right-4 bg-color1 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-2 backdrop-blur-sm">
           <FaSpinner className="animate-spin" />
           Updating...
         </div>
       )}
-    </section>
+    </div>
   );
 };
 

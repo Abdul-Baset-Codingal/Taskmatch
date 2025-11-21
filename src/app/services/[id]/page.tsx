@@ -27,7 +27,7 @@ const Page = () => {
             </div>
             {/* <DetailsBanner service={service} /> */}
 
-            <div className='lg:mt-[100px]'>
+            <div className=''>
                 <TaskerSlider service={service} />
             </div>
         </div>

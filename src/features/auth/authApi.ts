@@ -84,6 +84,8 @@ export const authApi = createApi({
             },
             providesTags: ["User"], // ✅ For caching
         }),
+
+
         // Get taskers with pagination and enhanced filters
         getTaskers: builder.query<any, GetTaskersParams | void>({
             query: ({
@@ -125,6 +127,34 @@ export const authApi = createApi({
             providesTags: (result, error, id) => [{ type: "User", id }],
         }),
 
+        // ===== TASKER APPLICATION =====
+        submitTaskerApplication: builder.mutation<
+            { success: boolean; message: string; taskerStatus: string },
+            void
+        >({
+            query: () => ({
+                url: "/submit-tasker-application",
+                method: "POST",
+            }),
+            invalidatesTags: ["User"], // This will refetch getUserById, getAllUsers, etc.
+        }),
+
+        // Inside endpoints(builder)
+        approveRejectTasker: builder.mutation<
+            { success: boolean; message: string; taskerStatus: string },
+            { userId: string; action: 'approve' | 'reject'; reason?: string }
+        >({
+            query: ({ userId, action, reason }) => ({
+                url: `/users/tasker-approval/${userId}`,
+                method: 'PATCH',
+                body: { action, reason },
+            }),
+            invalidatesTags: (result, error, { userId }) => [
+                'User',
+                { type: 'User', id: userId }
+            ],
+        }),
+
         updateUser: builder.mutation({
             query: ({ userId, ...userData }) => {
                 console.log('Sending update user request with data:', { userId, ...userData });
@@ -146,6 +176,19 @@ export const authApi = createApi({
                 url: `/users/block/${id}`,
                 method: "PATCH",
                 body: { block }, // { block: true } or { block: false }
+            }),
+            invalidatesTags: (result, error, { id }) => [
+                "User",
+                { type: "User", id }
+            ],
+        }),
+
+        // Block or unblock user (admin feature)
+        toggleTaskerProfileCheck: builder.mutation({
+            query: ({ id, approve }) => ({
+                url: `/users/taskerProfileCheck/${id}`,
+                method: "PATCH",
+                body: { approve }, // { approve: true } or { approve: false }
             }),
             invalidatesTags: (result, error, { id }) => [
                 "User",
@@ -208,5 +251,8 @@ export const {
     useUpdatePasswordMutation,
     useGetUserStatsQuery,
     useBlockUserMutation,
+    useToggleTaskerProfileCheckMutation,
+    useSubmitTaskerApplicationMutation,
+    useApproveRejectTaskerMutation
 
 } = authApi;

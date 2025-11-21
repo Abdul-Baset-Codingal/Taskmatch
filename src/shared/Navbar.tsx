@@ -1,37 +1,60 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
+// @ts-nocheck
 "use client";
 import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useState, useRef } from "react";
-import { FiMenu, FiX } from "react-icons/fi";
-import { FaPlusCircle, FaUser } from "react-icons/fa";
+import { FiMenu, FiX, FiChevronDown } from "react-icons/fi";
+import { FaPlusCircle, FaUser, FaBriefcase, FaClipboardList, FaTasks, FaUserShield } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null); // currentRole
-  const [userRoles, setUserRoles] = useState<string[]>([]); // array of roles
-  const [userId, setUserId] = useState<string | null>(null); // New: user ID for API
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRoles, setUserRoles] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState<string | null>(null);
   const [lastName, setLastName] = useState<string | null>(null);
   const [email, setEmail] = useState<string | null>(null);
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [taskerProfileCheck, setTaskerProfileCheck] = useState(false);
+  const [wasLoggedIn, setWasLoggedIn] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsOpen(false);
+  }, [router]);
+
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/logout", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
       if (response.ok) {
+        setWasLoggedIn(true);
         setIsLoggedIn(false);
         setUserRole(null);
         setUserRoles([]);
@@ -40,59 +63,71 @@ const Navbar = () => {
         setLastName(null);
         setEmail(null);
         setProfilePicture(null);
+        setTaskerProfileCheck(false);
         setShowDropdown(false);
         setErrorMessage(null);
+        setIsOpen(false);
         router.push("/");
+        toast.success("Logged out successfully!");
       } else {
         console.error("Logout failed with status:", response.status);
+        toast.error("Logout failed. Please try again.");
       }
     } catch (error) {
       console.error("Logout failed", error);
+      toast.error("An error occurred during logout.");
     }
   };
 
   const switchRole = async (newRole: "tasker" | "client") => {
     if (!userId) {
-      setErrorMessage("User ID not found.");
+      toast.error("User ID not found.");
       return;
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/users/${userId}`, {
+      const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
         credentials: "include",
-        
       });
 
       if (response.ok) {
         await checkLoginStatus();
+        toast.success(`Switched to ${newRole} mode successfully!`);
         setShowDropdown(false);
         setErrorMessage(null);
-        toast.success("Role changed successfully")
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("Switch role failed:", errorData);
 
         if (errorData.missingFields && newRole === "tasker") {
           const fieldsQuery = errorData.missingFields.join(",");
+          toast.error("Tasker profile incomplete. Please complete the required fields.");
           router.push(`/complete-tasker-profile?fields=${fieldsQuery}`);
-          setErrorMessage("Please complete your tasker profile to switch.");
         } else {
-          setErrorMessage(errorData.message || "Failed to switch role.");
+          toast.error(errorData.message || `Failed to switch to ${newRole} mode.`);
         }
       }
     } catch (error) {
       console.error("Switch role failed", error);
-      setErrorMessage("An error occurred while switching roles.");
+      toast.error("An error occurred while switching roles.");
     }
   };
 
-  const switchToTasker = () => switchRole("tasker");
+  const switchToTasker = () => {
+    if (!taskerProfileCheck) {
+      toast.info("Complete your Tasker profile first to unlock this mode.");
+      router.push("/complete-tasker-profile");
+      setShowDropdown(false);
+      return;
+    }
+    switchRole("tasker");
+  };
+
   const switchToClient = () => switchRole("client");
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -109,54 +144,72 @@ const Navbar = () => {
     };
   }, [showDropdown]);
 
-  // Check login status - Updated for currentRole, roles, and _id
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
         method: "GET",
         credentials: "include",
       });
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Verify token data:", data); // Debug log
         setIsLoggedIn(true);
+        setWasLoggedIn(false);
         const currentRole = data.user.currentRole || data.user.role;
-        console.log("Setting userRole to:", currentRole); // Debug log
-        setUserRole(currentRole); // Fallback for backward compatibility
-        setUserRoles(data.user.roles || [data.user.role || "client"]);
-        setUserId(data.user._id); // New: Set user ID
+        setUserRole(currentRole);
+
+        console.log(data.user)
+
+        const rawRoles = data.user.roles || [data.user.currentRole || "client"];
+        const validRoles = rawRoles.filter((role: string) =>
+          role && typeof role === 'string' && (role === 'client' || role === 'tasker' || role === 'admin')
+        );
+        setUserRoles(validRoles.length > 0 ? validRoles : ['client']);
+        setTaskerProfileCheck(data.user.taskerProfileCheck || false);
+        setUserId(data.user._id);
         setFirstName(data.user.firstName);
         setLastName(data.user.lastName);
         setEmail(data.user.email);
         setProfilePicture(data.user.profilePicture);
         setErrorMessage(null);
       } else {
+        const prevLoggedIn = isLoggedIn;
         setIsLoggedIn(false);
         setUserRole(null);
         setUserRoles([]);
         setUserId(null);
+        setTaskerProfileCheck(false);
         setFirstName(null);
         setLastName(null);
         setEmail(null);
         setProfilePicture(null);
         setErrorMessage(null);
+
+        if (response.status === 401 && prevLoggedIn) {
+          console.warn("Verify-token failed with status: 401 - Session expired, clearing auth state.");
+          toast.warn("Session expired. Please log in again.");
+          router.push("/authentication");
+        }
       }
     } catch (error) {
+      console.error("Verify token failed", error);
+      const prevLoggedIn = isLoggedIn;
       setIsLoggedIn(false);
       setUserRole(null);
       setUserRoles([]);
       setUserId(null);
+      setTaskerProfileCheck(false);
       setFirstName(null);
       setLastName(null);
       setEmail(null);
       setProfilePicture(null);
       setErrorMessage(null);
-      console.error("Verify token failed", error);
+      if (prevLoggedIn) {
+        toast.error("Authentication check failed. Please refresh or log in.");
+      }
     }
   };
 
-  // Run login check on load
   useEffect(() => {
     const fetchLogin = async () => {
       await checkLoginStatus();
@@ -167,14 +220,23 @@ const Navbar = () => {
   const ProfileAvatar = ({ size = 32 }: { size?: number }) => {
     if (!profilePicture) {
       return (
-        <div className={`w-[${size}px] h-[${size}px] rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0`}>
-          <FaUser className={`w-[${Math.floor(size / 2)}px] h-[${Math.floor(size / 2)}px] text-gray-500`} />
+        <div
+          className="rounded-full color1 flex items-center justify-center flex-shrink-0"
+          style={{ width: `${size}px`, height: `${size}px` }}
+        >
+          <FaUser
+            className="text-white"
+            style={{ width: `${Math.floor(size / 2)}px`, height: `${Math.floor(size / 2)}px` }}
+          />
         </div>
       );
     }
 
     return (
-      <div className={`w-[${size}px] h-[${size}px] rounded-full overflow-hidden flex-shrink-0 relative`}>
+      <div
+        className="rounded-full overflow-hidden flex-shrink-0 relative ring-2 ring-white shadow-md"
+        style={{ width: `${size}px`, height: `${size}px` }}
+      >
         <Image
           src={profilePicture}
           alt="Profile"
@@ -185,191 +247,351 @@ const Navbar = () => {
     );
   };
 
+  // Dynamic nav links based on user role
+  const getNavLinks = () => {
+    const baseLinks = [{ href: "/browse-tasks", label: "Browse Tasks", icon: FaTasks }];
+
+    if (isLoggedIn && userRole) {
+      let workspaceHref: string;
+      let workspaceIcon: React.ComponentType<any>;
+
+      switch (userRole) {
+        case "client":
+          workspaceHref = "/dashboard/client";
+          workspaceIcon = FaClipboardList;
+          break;
+        case "tasker":
+          workspaceHref = "/dashboard/tasker";
+          workspaceIcon = FaTasks;
+          break;
+        case "admin":
+          workspaceHref = "/dashboard/admin";
+          workspaceIcon = FaUserShield;
+          break;
+        default:
+          return baseLinks; // Fallback if role is unknown
+      }
+
+      baseLinks.push({ href: workspaceHref, label: "My Workspace", icon: workspaceIcon });
+    }
+
+    return baseLinks;
+  };
+
+  const navLinks = getNavLinks();
+
   return (
-    <div className="flex justify-center">
-      <div className="w-full lg:max-w-[1300px] lg:mx-auto h-[80px] bg-white/60 backdrop-blur-md z-50 rounded-[50px]">
-        {/* Navbar Content */}
-        <div className="relative z-30 flex items-center justify-between px-4 xs:px-6 sm:px-8 lg:px-6 h-full text-gray-900">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <Link href="/">
-              <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent">
-                TaskAllo
-              </h1>
-            </Link>
-            <span className="w-2 h-2 rounded-full color2 inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span>
-          </div>
-
-          {/* Hamburger for small screens */}
-          <div className="lg:hidden z-40">
-            <button onClick={toggleMenu}>
-              {isOpen ? (
-                <FiX className="w-6 h-6 xs:w-6.5 xs:h-6.5 sm:w-7 sm:h-7 text-gray-900" />
-              ) : (
-                <FiMenu className="w-6 h-6 xs:w-6.5 xs:h-6.5 sm:w-7 sm:h-7 text-gray-900" />
-              )}
-            </button>
-          </div>
-
-          {/* Menu */}
-          <ul
-            className={`flex flex-col lg:flex-row gap-4 xs:gap-5 sm:gap-6 lg:gap-10 items-start lg:items-center absolute lg:static top-[110px] left-0 w-full lg:w-auto bg-white/95 lg:bg-transparent px-4 xs:px-6 sm:px-8 lg:px-0 py-4 sm:py-6 lg:p-0 transition-all duration-300 ease-in-out ${isOpen ? "flex z-[60]" : "hidden lg:flex"
+    <>
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'
+          }`}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div
+            className={`relative bg-white/80 backdrop-blur-lg rounded-2xl shadow-lg transition-all duration-300 ${isScrolled ? 'shadow-xl' : 'shadow-md'
               }`}
           >
-            {/* Become a Tasker - Updated condition based on roles */}
-            {/* {!userRoles.includes("tasker") && isLoggedIn && ( */}
-             <li>
-                <Link href="/tasker-signup">
-                  <button className="flex items-center justify-center gap-2 lg:text-md text-white w-full lg:w-auto font-bold color2 hover:color1 px-5 py-3 rounded-4xl hover:shadow-lg hover:-translate-y-1 transform transition duration-300 cursor-pointer">
-                    <FaPlusCircle className="text1 hover:text2 text-xl" />
-                    Become a Tasker
-                  </button>
+            <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16 lg:h-20">
+              {/* Logo */}
+              <div className="flex items-center gap-2">
+                <Link href="/">
+                  <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent">
+                    TaskAllo
+                  </h1>
                 </Link>
-              </li>
-             {/* )} */}
+                <span className="w-2 h-2 rounded-full color2 inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span>
+              </div>
 
-            {/* Dashboard links */}
-            <li>
-              <Link href="/browse-tasks">
-                <button className="relative text-base xs:text-lg sm:text-lg lg:text-sm font-semibold text-gray-900 py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-                  Available Tasks
-                  <span className="absolute left-0 bottom-0 w-0 h-[3px] color1 transition-all duration-500 group-hover:w-full"></span>
-                </button>
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/owner">
-                <button className="relative text-base xs:text-lg sm:text-lg lg:text-sm font-semibold text-gray-900 py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-                  Owner
-                  <span className="absolute left-0 bottom-0 w-0 h-[3px] color1 transition-all duration-500 group-hover:w-full"></span>
-                </button>
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/client">
-                <button className="relative text-base xs:text-lg sm:text-lg lg:text-sm font-semibold text-gray-900 py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-                  Client
-                  <span className="absolute left-0 bottom-0 w-0 h-[3px] color1 transition-all duration-500 group-hover:w-full"></span>
-                </button>
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/tasker">
-                <button className="relative text-base xs:text-lg sm:text-lg lg:text-sm font-semibold text-gray-900 py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-                  Tasker
-                  <span className="absolute left-0 bottom-0 w-0 h-[3px] color1 transition-all duration-500 group-hover:w-full"></span>
-                </button>
-              </Link>
-            </li>
-            <li>
-              <Link href="/dashboard/admin">
-                <button className="relative text-base xs:text-lg sm:text-lg lg:text-sm font-semibold text-gray-900 py-2 xs:py-2.5 sm:py-3 overflow-hidden group cursor-pointer w-full xs:w-auto text-left">
-                  Admin
-                  <span className="absolute left-0 bottom-0 w-0 h-[3px] color1 transition-all duration-500 group-hover:w-full"></span>
-                </button>
-              </Link>
-            </li>
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center gap-8">
+                {/* Become a Tasker Button */}
+                {!userRoles.includes("tasker") && isLoggedIn && (
+                  <Link href="/complete-tasker-profile">
+                    <button className="flex items-center gap-2 px-5 py-2.5 color2 text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
+                      <FaPlusCircle className="text-lg" />
+                      <span className="text-sm">Become a Tasker</span>
+                    </button>
+                  </Link>
+                )}
 
-            {/* Profile Dropdown or Sign Up / Log In */}
-            <li className="relative">
-              {isLoggedIn ? (
-                <>
-                  <button
-                    onClick={() => setShowDropdown((prev) => !prev)}
-                    className="flex items-center gap-2 p-2 rounded-full hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-[#063A41]"
-                  >
-                    <ProfileAvatar size={32} />
-                    <span className="hidden lg:block text-sm font-semibold">
-                      {firstName} {lastName}
-                    </span>
-                  </button>
-                  {showDropdown && (
-                    <div
-                      ref={dropdownRef}
-                      className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl py-3 z-50 border border-gray-200 overflow-hidden"
+                {/* Navigation Links */}
+                <div className="flex items-center gap-4">
+                  {navLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link key={link.href} href={link.href}>
+                        <button className="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all duration-200 group">
+                          <Icon className="w-4 h-4 text-gray-700 group-hover:text-gray-900 flex-shrink-0" />
+                          <span className="font-medium">{link.label}</span>
+                          <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 color1 transition-all duration-300 group-hover:w-3/4"></span>
+                        </button>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Profile Dropdown or Auth Button */}
+                {isLoggedIn ? (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setShowDropdown(!showDropdown)}
+                      className="flex items-center gap-3 px-4 py-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
                     >
-                      {/* User Info Header */}
-                      <div className="px-4 py-3 bg-gray-50 border-b">
-                        <div className="flex items-center gap-3">
-                          <ProfileAvatar size={40} />
-                          <div>
-                            <p className="font-semibold text-gray-900 text-sm">
-                              {firstName} {lastName}
-                            </p>
-                            <p className="text-xs text-gray-500 truncate max-w-[150px]">{email}</p>
+                      <ProfileAvatar size={36} />
+                      <div className="text-left">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {firstName} {lastName}
+                        </p>
+                        <p className="text-xs text-gray-500 capitalize">{userRole}</p>
+                      </div>
+                      <FiChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {showDropdown && (
+                      <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fadeIn">
+                        {/* User Info */}
+                        <div className="px-6 py-4 color3 border-b border-gray-100">
+                          <div className="flex items-center gap-3">
+                            <ProfileAvatar size={48} />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-gray-900 truncate">
+                                {firstName} {lastName}
+                              </p>
+                              <p className="text-sm text-gray-600 truncate">{email}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Role Toggle Section - Updated with conditions */}
-                      {(userRoles.length > 0) && (
-                        <div className="px-4 py-3 border-b">
-                          <p className="text-xs font-medium text-gray-500 mb-2">Switch Role</p>
-                          <div className="flex bg-gray-100 rounded-lg p-1">
+                        {/* Role Switcher */}
+                        <div className="px-6 py-4 border-b border-gray-100">
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                            Switch Role
+                          </p>
+                          <div className="flex gap-2">
                             <button
                               onClick={switchToTasker}
-                              disabled={!userRoles.includes("tasker")}
-                              className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${userRole === "tasker"
-                                  ? "color1 text-white shadow-sm"
-                                  : "text-gray-700 hover:text-gray-900 hover:bg-white"
+                              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${userRole === "tasker"
+                                ? "color1 text-white shadow-md"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                 }`}
                             >
                               Tasker
                             </button>
                             <button
                               onClick={switchToClient}
-                              disabled={!userRoles.includes("client")}
-                              className={`flex-1 py-2 px-3 rounded-md text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${userRole === "client"
-                                  ? "color1 text-white shadow-sm"
-                                  : "text-gray-700 hover:text-gray-900 hover:bg-white"
+                              className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${userRole === "client"
+                                ? "color1 text-white shadow-md"
+                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                 }`}
                             >
                               Client
                             </button>
                           </div>
                         </div>
-                      )}
 
-                      {/* Profile Link */}
-                      <Link
-                        href="/complete-tasker-profile"
-                        className=" px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
-                        onClick={() => setShowDropdown(false)}
-                      >
-                        <FaUser className="w-4 h-4 text-gray-400" />
-                        Profile
-                      </Link>
+                        {/* Menu Items */}
+                        <div className="py-2">
+                          <Link
+                            href="/complete-tasker-profile"
+                            onClick={() => setShowDropdown(false)}
+                            className="flex items-center gap-3 px-6 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
+                          >
+                            <FaUser className="w-4 h-4 text-gray-400" />
+                            <span className="font-medium">My Profile</span>
+                          </Link>
+                          <button
+                            onClick={handleLogout}
+                            className="w-full flex items-center gap-3 px-6 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                          >
+                            <FiX className="w-4 h-4" />
+                            <span className="font-medium">Logout</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link href="/authentication">
+                    <button className="px-6 py-2.5 color2 text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
+                      Sign Up / Login
+                    </button>
+                  </Link>
+                )}
+              </div>
 
-                      {/* Logout */}
+              {/* Mobile Menu Button */}
+              <button
+                onClick={toggleMenu}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                aria-label="Toggle menu"
+              >
+                {isOpen ? (
+                  <FiX className="w-6 h-6 text-gray-900" />
+                ) : (
+                  <FiMenu className="w-6 h-6 text-gray-900" />
+                )}
+              </button>
+            </div>
+
+            {/* Mobile Menu */}
+            <div
+              className={`lg:hidden transition-all duration-300 ease-in-out ${isOpen ? 'block' : 'hidden'
+                }`}
+            >
+              <div className="px-4 pb-6 pt-2 border-t border-gray-100 max-h-[70vh] overflow-y-auto"
+                style={{ WebkitOverflowScrolling: 'touch' }}
+              >
+                {/* User Info Mobile */}
+                {isLoggedIn && (
+                  <div className="flex items-center gap-3 p-4 mb-4 color3 rounded-xl">
+                    <ProfileAvatar size={48} />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">
+                        {firstName} {lastName}
+                      </p>
+                      <p className="text-sm text-gray-600 truncate">{email}</p>
+                      <p className="text-xs text-gray-500 capitalize mt-1">{userRole} Mode</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Role Switcher Mobile */}
+                {isLoggedIn && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-xl">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                      Switch Role
+                    </p>
+                    <div className="flex gap-2">
                       <button
-                        onClick={handleLogout}
-                        className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                        onClick={() => {
+                          switchToTasker();
+                          setIsOpen(false);
+                        }}
+                        className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${userRole === "tasker"
+                          ? "color1 text-white"
+                          : "bg-white text-gray-700 border border-gray-200"
+                          }`}
                       >
-                        <FiX className="w-4 h-4 text-red-400" />
-                        Logout
+                        Tasker
+                      </button>
+                      <button
+                        onClick={() => {
+                          switchToClient();
+                          setIsOpen(false);
+                        }}
+                        className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${userRole === "client"
+                          ? "color1 text-white"
+                          : "bg-white text-gray-700 border border-gray-200"
+                          }`}
+                      >
+                        Client
                       </button>
                     </div>
-                  )}
-                </>
-              ) : (
-                <Link href="/authentication">
-                  <button className="bg-gradient-to-r from-[#F48B0C] lg:text-sm to-[#39B376] text-white font-bold px-6 py-3 rounded-full hover:-translate-y-1 transition">
-                    Sign Up / Login
-                  </button>
-                </Link>
-              )}
-            </li>
-          </ul>
+                  </div>
+                )}
+
+                {/* Become Tasker Mobile */}
+                {!userRoles.includes("tasker") && isLoggedIn && (
+                  <Link href="/tasker-signup" onClick={() => setIsOpen(false)}>
+                    <button className="w-full flex items-center justify-center gap-2 px-5 py-3 mb-4 color2 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300">
+                      <FaPlusCircle className="text-lg" />
+                      <span>Become a Tasker</span>
+                    </button>
+                  </Link>
+                )}
+
+                {/* Navigation Links Mobile */}
+                <div className="space-y-1 mb-4">
+                  {navLinks.map((link) => {
+                    const Icon = link.icon;
+                    return (
+                      <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)}>
+                        <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150">
+                          <Icon className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium">{link.label}</span>
+                        </button>
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* Auth Buttons Mobile */}
+                {isLoggedIn ? (
+                  <div className="space-y-2 pt-4 border-t border-gray-200">
+                    <Link href="/complete-tasker-profile" onClick={() => setIsOpen(false)}>
+                      <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150">
+                        <FaUser className="w-4 h-4 text-gray-400" />
+                        <span className="font-medium">My Profile</span>
+                      </button>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-150"
+                    >
+                      <FiX className="w-4 h-4" />
+                      <span className="font-medium">Logout</span>
+                    </button>
+                  </div>
+                ) : (
+                  <Link href="/authentication" onClick={() => setIsOpen(false)}>
+                    <button className="w-full px-6 py-3 color2 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300">
+                      Sign Up / Login
+                    </button>
+                  </Link>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      {/* Error Toast - Simple implementation */}
+      </nav>
+
+      {/* Spacer to prevent content from hiding under fixed navbar */}
+      <div className="h-24 lg:h-28"></div>
+
+      {/* Error Toast */}
       {errorMessage && (
-        <div className="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded shadow-lg z-[100] flex items-center">
-          {errorMessage}
-          <button onClick={() => setErrorMessage(null)} className="ml-2 text-white hover:text-gray-200">×</button>
+        <div className="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-[100] flex items-center gap-3 animate-slideIn">
+          <span>{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            className="text-white hover:text-gray-200 font-bold text-xl"
+          >
+            ×
+          </button>
         </div>
       )}
-    </div>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes slideIn {
+          from {
+            transform: translateX(100%);
+          }
+          to {
+            transform: translateX(0);
+          }
+        }
+
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
+        }
+
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
+        }
+      `}</style>
+    </>
   );
 };
 

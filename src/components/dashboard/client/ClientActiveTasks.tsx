@@ -143,7 +143,7 @@ export default function ClientActiveTasks() {
         const matchesSearch =
             task.taskTitle?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             task.taskDescription?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesStatus = task.status.toLowerCase() === "pending";
+        const matchesStatus = task.status.toLowerCase() === "in progress";
         return matchesSearch && matchesStatus;
     });
 

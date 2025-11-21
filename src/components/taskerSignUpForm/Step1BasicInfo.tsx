@@ -163,10 +163,9 @@ const Step1BasicInfo = ({
         if (!formData.city.trim()) return 'City is required';
         if (!formData.province) return 'Province is required';
         if (!formData.postalCode.trim()) return 'Postal code is required';
-        const aboutText = formData.about.trim();
-        if (!aboutText || aboutText.length < 50) return 'About me must be at least 50 characters';
+
         if (!profilePictureUrl) return 'Profile picture is required';
-        return null;
+        return null; 
     };
 
     const handleNext = () => {
@@ -195,6 +194,29 @@ const Step1BasicInfo = ({
 
         dispatch(setStep1(finalData));
         onNext();
+    };
+
+
+    const formatPostalCode = (value: string): string => {
+        // Remove all non-alphanumeric characters
+        const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+        // If less than 3 chars, just return as is
+        if (cleaned.length <= 3) {
+            return cleaned;
+        }
+
+        // Format as ANA NAN
+        const formatted = cleaned.substring(0, 3) + ' ' + cleaned.substring(3, 6);
+
+        // Truncate if longer than 6 chars
+        return formatted.substring(0, 7); // ANA NAN is 7 chars with space
+    };
+
+    // Helper function to validate Canadian postal code pattern
+    const isValidPostalCode = (value: string): boolean => {
+        const pattern = /^[A-CEGHJ-NPR-TV-Z]\d[A-CEGHJ-NPR-TV-Z] ?\d[A-CEGHJ-NPR-TV-Z]\d$/i;
+        return pattern.test(value.replace(/\s/g, '')); // Remove space for validation
     };
 
     return (
@@ -337,19 +359,51 @@ const Step1BasicInfo = ({
                     <Field label="Phone Number" icon={<FaPhone />} type="tel" required value={formData.phone} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, phone: e.target.value })} />
                 </div>
 
-                <Field label="Date of Birth" icon={<FaRegSmile />} type="date" required value={formData.dob} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, dob: e.target.value })} />
+                <Field
+                    label="Date of Birth"
+                    icon={<FaRegSmile />}
+                    type="date"
+                    required
+                    min="1900-01-01"
+                    max="2999-10-28"
+                    value={formData.dob} 
+                    onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, dob: e.target.value })}
+                />
 
                 <Field label="Street Address" icon={<FaMapMarkerAlt />} required value={formData.address} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, address: e.target.value })} />
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
                     <Field label="City" icon={<FaMapMarkerAlt />} required value={formData.city} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, city: e.target.value })} />
                     <SelectField label="Province" icon={<FaMapMarkerAlt />} required value={formData.province} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, province: e.target.value })} options={["Ontario", "British Columbia", "Quebec", "Alberta"]} />
-                    <Field label="Postal Code" icon={<FaMapMarkerAlt />} required value={formData.postalCode} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, postalCode: e.target.value })} />
+                    <Field
+                        label="Postal Code"
+                        icon={<FaMapMarkerAlt />}
+                        required
+                        value={formatPostalCode(formData.postalCode)} // Auto-format display
+                        onChange={(e: { target: { value: any; }; }) => {
+                            let newValue = e.target.value;
+
+                            // Allow only valid characters: letters and numbers
+                            newValue = newValue.replace(/[^A-Za-z0-9]/g, '');
+
+                            // Auto-format with space after 3 chars
+                            if (newValue.length > 3) {
+                                newValue = newValue.substring(0, 3) + ' ' + newValue.substring(3);
+                            }
+
+                            // Truncate to max length
+                            newValue = newValue.substring(0, 7);
+
+                            setFormData({ ...formData, postalCode: newValue.toUpperCase() });
+                        }}
+                        // Optional: Add validation feedback (assuming Field supports error prop)
+                        error={!isValidPostalCode(formData.postalCode) && formData.postalCode.length > 0 ? "Please enter a valid Canadian postal code (e.g., M4B 1B4)" : ""}
+                    />
                 </div>
 
 
-
-                <TextAreaField label="About Me" icon={<FaRegSmile />} required rows={5} minLength={100} placeholder="Tell customers about yourself..." helperText="Minimum 100 characters." value={formData.about} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, about: e.target.value })} />
+              
+                <TextAreaField label="About Me" icon={<FaRegSmile />} required rows={5} minLength={100} placeholder="Tell customers about yourself..." helperText="Minimum 50 characters." value={formData.about} onChange={(e: { target: { value: any; }; }) => setFormData({ ...formData, about: e.target.value })} /> 
 
 
 

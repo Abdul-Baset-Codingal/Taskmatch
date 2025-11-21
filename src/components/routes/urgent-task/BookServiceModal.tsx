@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from 'react';
-import { FaClock, FaStar, FaTimes, FaWrench, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import { FaClock, FaStar, FaTimes, FaWrench, FaChevronLeft, FaChevronRight, FaCheckCircle } from 'react-icons/fa';
 import Cookies from 'js-cookie';
 import { useCreateBookingMutation } from '@/features/api/taskerApi';
 import { toast } from 'react-toastify';
@@ -95,30 +95,30 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
     const days = getDaysInMonth(currentMonth);
 
     return (
-        <div className="w-full bg-white rounded-lg shadow-md border-none overflow-hidden">
+        <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="color1 text-white p-4 flex items-center justify-between">
+            <div className="color1 text-white p-3 flex items-center justify-between">
                 <button
                     onClick={() => navigateMonth(-1)}
                     className="p-1 hover:bg-white/20 rounded transition-all duration-200"
                 >
-                    <FaChevronLeft />
+                    <FaChevronLeft className="text-sm" />
                 </button>
-                <h3 className="text-lg font-semibold">
+                <h3 className="text-base font-semibold">
                     {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h3>
                 <button
                     onClick={() => navigateMonth(1)}
                     className="p-1 hover:bg-white/20 rounded transition-all duration-200"
                 >
-                    <FaChevronRight />
+                    <FaChevronRight className="text-sm" />
                 </button>
             </div>
 
             {/* Day Names */}
-            <div className="grid grid-cols-7 bg-gray-50 border-b">
+            <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
                 {dayNames.map((day) => (
-                    <div key={day} className="p-3 text-center text-sm font-medium text-gray-600">
+                    <div key={day} className="p-2 text-center text-xs font-medium text-gray-600">
                         {day}
                     </div>
                 ))}
@@ -130,13 +130,13 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
                     <div
                         key={index}
                         className={`
-                            aspect-square flex items-center justify-center text-sm font-medium cursor-pointer transition-all duration-200 border-r border-b border-gray-100 last:border-r-0
+                            h-12 flex items-center justify-center text-xs font-medium cursor-pointer transition-all duration-200 border-r border-b border-gray-100 last:border-r-0
                             ${!date ? 'cursor-default' : ''}
-                            ${date && isToday(date) ? 'bg-[#FF8609] text-white font-bold' : ''}
+                            ${date && isToday(date) ? 'bg-color2 text-white font-bold' : ''}
                             ${date && isSelected(date) ? 'color1 text-white font-bold' : ''}
-                            ${date && !isToday(date) && !isSelected(date) && isDateAvailable(date) ? 'text-gray-800 hover:bg-[#E7B6FE]/30' : ''}
+                            ${date && !isToday(date) && !isSelected(date) && isDateAvailable(date) ? 'text-gray-800 hover:bg-color3/20' : ''}
                             ${date && !isDateAvailable(date) ? 'text-gray-300 cursor-not-allowed' : ''}
-                            ${!date ? '' : isDateAvailable(date) ? 'hover:scale-95' : ''}
+                            ${!date ? '' : isDateAvailable(date) ? 'hover:scale-105' : ''}
                         `}
                         onClick={() => {
                             if (date && isDateAvailable(date)) {
@@ -200,6 +200,11 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
             newDate.setHours(hours, minutes, 0, 0);
             setSelectedDate(newDate);
         }
+    };
+
+    const handleServiceSelection = (title: string) => {
+        setSelectedService(title);
+        console.log('Service selected:', title); // Debug log
     };
 
     const handleConfirmBooking = async () => {
@@ -291,96 +296,133 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[5000] animate-fade-in p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-[750px] w-full relative shadow-xl transform transition-all duration-300 scale-100 hover:scale-105 max-h-[90vh] overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 max-w-lg w-full relative shadow-2xl transform transition-all duration-300 scale-100 hover:scale-105 max-h-[90vh] overflow-y-auto border border-gray-200">
                 <button
                     onClick={onClose}
-                    className="absolute top-3 right-3 text-gray-500 hover:text-[#FF8609] transition-all duration-200"
+                    className="absolute top-4 right-4 text-gray-500 hover:text-color1 transition-all duration-200"
                 >
                     <FaTimes className="text-xl" />
                 </button>
-                <h2 className="text-xl font-bold text-gray-800 mb-4 bg-gradient-to-r from-[#8560F1] to-[#E7B6FE] bg-clip-text ">
+                <h2 className="text-xl font-bold text-color1 mb-6 text-center">
                     Book a Service
                 </h2>
 
-                <h3 className="text-md font-semibold text-gray-700 mb-3">Select a Date</h3>
-                <div className="mb-4 w-full">
-                    <CustomCalendar
-                        selectedDate={selectedDate}
-                        onDateChange={(date) => {
-                            setSelectedDate(date);
-                            setSelectedSlot(null); // Reset slot when date changes
-                        }}
-                        isDateAvailable={isDateAvailable}
-                    />
+                {/* Services Section - With radio buttons for clear selection */}
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-color1 mb-3 flex items-center gap-2">
+                        <FaWrench className="text-color2" />
+                        Choose a Service
+                    </h3>
+                    {tasker.services && tasker.services.length > 0 ? (
+                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
+                            {tasker.services.map((service, index) => {
+                                const isSelected = selectedService === service.title;
+                                return (
+                                    <label
+                                        key={index}
+                                        className={`flex items-start gap-3 p-4 rounded-xl shadow-sm cursor-pointer transition-all duration-200 border border-gray-200 hover:shadow-md ${isSelected
+                                            ? 'bg-color3 text-color1 border-color1 shadow-md ring-2 ring-color1/20'
+                                            : 'bg-white hover:bg-color3/20 hover:border-color1/50'
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="service"
+                                            value={service.title}
+                                            checked={isSelected}
+                                            onChange={() => handleServiceSelection(service.title)}
+                                            className="mt-0.5 h-4 w-4 text-color1 focus:ring-color1 border-gray-300"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-color1 block truncate">{service.title}</span>
+                                                {isSelected && <FaCheckCircle className="text-color2 text-sm ml-auto flex-shrink-0" />}
+                                            </div>
+                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description}</p>
+                                            <div className="flex justify-between text-xs text-color1 mt-3 font-medium">
+                                                <span className="flex items-center gap-1">
+                                                    <FaStar className="text-color2" /> ${service.hourlyRate}/hr
+                                                </span>
+                                                <span className="flex items-center gap-1">
+                                                    <FaClock className="text-color1" /> {service.estimatedDuration}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </label>
+                                );
+                            })}
+                        </div>
+                    ) : (
+                        <div className="text-center py-6">
+                            <FaWrench className="text-gray-400 text-2xl mx-auto mb-2" />
+                            <p className="text-gray-600 text-sm">No services available for this tasker.</p>
+                        </div>
+                    )}
                 </div>
 
+                {/* Date Section */}
+                <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-color1 mb-3 flex items-center gap-2">
+                        <FaClock className="text-color1" />
+                        Select a Date
+                    </h3>
+                    <div className="w-full">
+                        <CustomCalendar
+                            selectedDate={selectedDate}
+                            onDateChange={(date) => {
+                                setSelectedDate(date);
+                                setSelectedSlot(null); // Reset slot when date changes
+                            }}
+                            isDateAvailable={isDateAvailable}
+                        />
+                    </div>
+                </div>
+
+                {/* Time Slots Section */}
                 {selectedDate && (
-                    <div className="mb-4">
-                        <h3 className="text-md font-semibold text-gray-700 mb-2">
+                    <div className="mb-6">
+                        <h3 className="text-lg font-semibold text-color1 mb-2 flex items-center gap-2">
                             Available Slots for {selectedDate.toLocaleDateString()}
                         </h3>
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-3 gap-2">
                             {getAvailableSlots(selectedDate).length > 0 ? (
                                 getAvailableSlots(selectedDate).map((slot, index) => (
-                                    <div
+                                    <button
                                         key={index}
-                                        className={`p-2 text-center rounded-lg font-medium cursor-pointer transition-all duration-200 text-sm 
-   ${selectedSlot === slot ? 'color1 text-white' : 'border-[#2F6F69] border text1'}`}
+                                        type="button"
+                                        className={`p-3 text-center rounded-lg font-medium cursor-pointer transition-all duration-200 text-sm border-2 focus:outline-none focus:ring-2 focus:ring-color1/50
+                                            ${selectedSlot === slot
+                                                ? 'bg-color1 text-white border-color1 shadow-md'
+                                                : 'border-color1/30 text-color1 hover:border-color1 hover:bg-color3/50'
+                                            }`}
                                         onClick={() => handleSlotSelection(slot)}
                                     >
                                         {slot}
-                                    </div>
+                                    </button>
                                 ))
                             ) : (
-                                <p className="text-gray-600 col-span-4 text-sm">No available slots for this day.</p>
+                                <div className="col-span-3 text-center py-4">
+                                    <FaClock className="text-gray-400 text-xl mx-auto mb-2" />
+                                    <p className="text-gray-600 text-sm">No available slots for this day.</p>
+                                </div>
                             )}
                         </div>
                     </div>
                 )}
 
-                <h3 className="text-md font-semibold text-gray-700 mb-3">Choose a Service</h3>
-                {tasker.services && tasker.services.length > 0 ? (
-                    <div className="space-y-3 max-h-80 overflow-y-auto">
-                        {tasker.services.map((service, index) => (
-                            <div
-                                key={index}
-                                className={`p-3 rounded-lg shadow-sm cursor-pointer transition-all duration-200 ${selectedService === service.title
-                                    ? 'bg-[#E7B6FE]/20 border-[#8560F1]'
-                                    : 'bg-white hover:bg-[#E7B6FE]/10'
-                                    } border`}
-                                onClick={() => setSelectedService(service.title)}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <FaWrench className="text-[#FF8609] text-md" />
-                                    <span className="font-semibold text-[#8560F1]">{service.title}</span>
-                                </div>
-                                <p className="text-xs text-gray-600 mt-1 italic">{service.description}</p>
-                                <div className="flex justify-between text-xs text-gray-700 mt-2 font-medium">
-                                    <span className="flex items-center gap-1">
-                                        <FaStar className="text-[#FF8609]" /> ${service.hourlyRate}/hr
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                        <FaClock className="text-[#8560F1]" /> {service.estimatedDuration}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className="text-gray-600 text-sm">No services available for this tasker.</p>
-                )}
                 {error && (
-                    <p className="text-red-500 text-xs mt-3">
-                        Error: {
+                    <div className="text-red-500 text-sm mt-3 text-center bg-red-50 p-3 rounded-lg border border-red-200">
+                        <p>Error: {
                             'data' in error && error.data && typeof error.data === 'object' && 'message' in error.data
                                 ? (error.data as any).message
                                 : 'Failed to create booking'
-                        }
-                    </p>
+                        }</p>
+                    </div>
                 )}
                 <button
+                    type="button"
                     onClick={handleConfirmBooking}
-                    className="w-full mt-4 color1 text-white py-2 rounded-lg font-semibold shadow-md hover:from-[#FF8609] hover:to-[#FF6C32] transition-all duration-300 transform hover:scale-105 disabled:opacity-50"
+                    className="w-full color1 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-color1/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-color1/50"
                     disabled={!selectedService || !selectedDate || !selectedSlot || isLoading || !tasker.services || tasker.services.length === 0}
                 >
                     {isLoading ? 'Booking...' : 'Confirm Booking'}

@@ -47,70 +47,69 @@ const PopularServices = () => {
             return (
               <div
                 key={service._id || index}
-                className="relative group color3 p-5 rounded-2xl hover:rounded-2xl overflow-hidden  transition-all duration-500 transform hover:-translate-y-2 min-h-[450px]  flex flex-col"
+                className=" relative bg-white rounded-2xl overflow-hidden shadow-md border border-gray-100 transition-all duration-500 hover:shadow-2xl hover:border-transparent hover:-translate-y-3"
               >
-                {/* Image Section with Overlay */}
-                <div className="relative h-80 overflow-hidden">
+                {/* Image - Clean & Sharp */}
+                <div className="relative aspect-[4/3] overflow-hidden bg-gray-50">
                   <Image
                     src={service.photos[0]}
-                    alt={typeof service.title === "string" ? service.title : "Service image"}
+                    alt={service.title ? String(service.title) : "Service image"}
                     fill
-                    className="object-cover transition-transform duration-700 group-hover:scale-110 rounded-2xl"
+                    className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    sizes="(max-width: 768px) 100vw, 400px"
+                    priority={index < 3} // Optional: faster load for first few
                   />
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                  {/* Price Badge */}
-                  <div className="absolute bottom-0 left-[80px] color2 text-white text-2xl px-5 py-2 rounded-tl-[4px]   font-semibold shadow-lg transform group-hover:scale-105 transition-all duration-300">
-                    ${service.basePrice}.00
-                  </div>
-                  <div className="absolute bottom-0 left-[180px] color1 text-white text-lg px-5 py-[10px] rounded-tr-[4px]   font-semibold shadow-lg transform group-hover:scale-105 transition-all duration-300">
-                    Per Hour
+
+                  {/* Premium Price Badge - Top Right */}
+                  <div className="absolute top-4 right-4 flex shadow-xl overflow-hidden rounded-xl">
+                    <div className="bg-[#109C3D] px-5 py-3 text-white font-bold text-xl">
+                      ${service.basePrice}
+                    </div>
+                    <div className="bg-[#063A41] px-4 py-3 text-white text-sm font-medium flex items-center">
+                      /hour
+                    </div>
                   </div>
                 </div>
 
-                {/* Content Section */}
-                <div className="p-6 flex flex-col flex-1">
-                  {/* Header */}
-                  <div className="flex items-center gap-4 mb-4">
-                    <h3 className="text-2xl font-bold font-sans text1 tracking-tight">
-                      {service.title}
-                    </h3>
-                  </div>
+                {/* Content - Tight & Elegant */}
+                <div className="p-6">
+                  {/* Title */}
+                  <h3 className="text-2xl font-bold text-[#063A41] line-clamp-2 leading-tight mb-3">
+                    {service.title}
+                  </h3>
 
-                  <div className="flex flex-col flex-wrap gap-2 mb-4">
-                    {service.tags?.map((tag, tagIdx) => (
-                      <span
-                        key={tagIdx}
-                        className="text-[#2F6F69] px-3 py-[2px] rounded-full font-medium tracking-wide transition-all duration-300"
-                      >
-                        <div className="flex items-center gap-2">
-                          <FaTag className="text-[#2F6F69]" />
-                          <span>{tag}</span>
-                        </div>
-                      </span>
-                    ))}
-                  </div>
+                  {/* Tags - Minimal & Modern */}
+                  {service.tags && service.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {service.tags.slice(0, 4).map((tag, i) => (
+                        <span
+                          key={i}
+                          className="px-3 py-1.5 rounded-full text-xs font-medium bg-[#E5FFDB] text-[#109C3D] border border-[#109C3D]/20"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Description */}
-                  <p className="text-gray-600 text-sm leading-relaxed mb-6 line-clamp-3 flex-1">
+                  <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-6">
                     {service.description}
                   </p>
 
-                  {/* CTA */}
-                  <div className="flex justify-center">
-                    <Link href={`/services/${service._id}`}>
-                      <button className="w-[250px] color2 px-6 py-3 rounded-3xl text-white  font-semibold tracking-wide shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3">
-                        Explore Taskers
-                        <span className="flex items-center justify-center w-7 h-7 rounded-full color1 transition-all duration-300 group-hover:color2">
-                          <FaArrowRight className="text-white text-sm" />
-                        </span>
-                      </button>
-                    </Link>
-                  </div>
+                  {/* CTA Button - Strong & Clean */}
+                  <Link href={`/services/${service._id}`} className="block">
+                    <button className="w-full bg-[#063A41] hover:bg-[#109C3D] text-white font-semibold py-4 rounded-xl transition-all duration-300 flex items-center justify-center gap-3 shadow-lg hover:shadow-xl">
+                      Find Taskers
+                      <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
+                    </button>
+                  </Link>
                 </div>
 
-                {/* Decorative Element */}
-                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[#A78BFA]/20 to-transparent rounded-full -mr-12 -mt-12 group-hover:scale-125 transition-all duration-500"></div>
+                {/* Elegant Hover Accent Line */}
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#109C3D] via-[#109C3D] to-[#063A41] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
               </div>
             );
           })}

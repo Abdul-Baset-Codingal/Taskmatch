@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react/no-unescaped-entities */
 "use client";
 import React, { useState, ChangeEvent, useEffect } from "react";
@@ -17,9 +18,12 @@ type Step3Data = {
     sin?: string;
     backgroundCheckConsent?: boolean;
     hasInsurance?: boolean;
-    govID?: string;
-    govIDBack?: string;
+    passportUrl?: string;
+    governmentIdFront?: string;
+    governmentIdBack?: string;
     certifications?: string[];
+    issueDate?: string;  // String for form, convert to Date in backend
+    expiryDate?: string;
 } | null;
 
 const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
@@ -34,9 +38,12 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
     const [sin, setSin] = useState("");
     const [backgroundCheckConsent, setBackgroundCheckConsent] = useState(false);
     const [hasInsurance, setHasInsurance] = useState(false);
+    const [issueDate, setIssueDate] = useState("");
+    const [expiryDate, setExpiryDate] = useState("");
 
     // States for persisted URLs
-    const [govIDUrl, setGovIDUrl] = useState<string>("");
+    const [passportUrl, setPassportUrl] = useState<string>("");
+    const [govIDFrontUrl, setGovIDFrontUrl] = useState<string>("");
     const [govIDBackUrl, setGovIDBackUrl] = useState<string>("");
     const [certUrls, setCertUrls] = useState<string[]>([]);
 
@@ -46,9 +53,12 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
             setSin(step3Data.sin || "");
             setBackgroundCheckConsent(step3Data.backgroundCheckConsent || false);
             setHasInsurance(step3Data.hasInsurance || false);
-            setGovIDUrl(step3Data.govID || "");
-            setGovIDBackUrl(step3Data.govIDBack || "");
+            setPassportUrl(step3Data.passportUrl || "");
+            setGovIDFrontUrl(step3Data.governmentIdFront || "");
+            setGovIDBackUrl(step3Data.governmentIdBack || "");
             setCertUrls(step3Data.certifications || []);
+            setIssueDate(step3Data.issueDate || "");
+            setExpiryDate(step3Data.expiryDate || "");
         }
     }, [step3Data]);
 
@@ -66,6 +76,33 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
 
     const handleCertificationsChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) setCertifications(Array.from(e.target.files));
+    };
+
+    const validateDateInput = (value: string): string => {
+        // Enforce YYYY-MM-DD format strictly
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!dateRegex.test(value)) {
+            // If not full format, allow partial input but limit year to 4 digits
+            const parts = value.split('-');
+            if (parts[0] && parts[0].length > 4) {
+                // Truncate year to 4 digits
+                parts[0] = parts[0].slice(0, 4);
+                return parts.join('-');
+            }
+        }
+        return value;
+    };
+
+    const handleIssueDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        const validatedValue = validateDateInput(rawValue);
+        setIssueDate(validatedValue);
+    };
+
+    const handleExpiryDateChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const rawValue = e.target.value;
+        const validatedValue = validateDateInput(rawValue);
+        setExpiryDate(validatedValue);
     };
 
     const uploadToImgBB = async (file: File): Promise<string> => {
@@ -92,33 +129,49 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
             toast.error("Please select an ID type.");
             return;
         }
-        if (!sin.trim()) {
-            toast.error("SIN is required.");
-            return;
-        }
+        // if (!sin.trim()) {
+        //     toast.error("SIN is required.");
+        //     return;
+        // }
         if (!backgroundCheckConsent) {
             toast.error("You must consent to the background check.");
             return;
         }
 
-        if (idType === "passport" && !passport && !govIDUrl) {
+        // Date validation
+        if (issueDate && expiryDate && new Date(expiryDate) <= new Date(issueDate)) {
+            toast.error("Expiry date must be after issue date.");
+            return;
+        }
+
+        // ID upload validation
+        if (idType === "passport" && !passport && !passportUrl) {
             toast.error("Please upload your passport.");
             return;
         }
-        if (idType === "governmentID" && ((!govIDFront && !govIDUrl) || (!govIDBack && !govIDBackUrl))) {
+        if (idType === "governmentID" && ((!govIDFront && !govIDFrontUrl) || (!govIDBack && !govIDBackUrl))) {
             toast.error("Please upload front and back of your government ID.");
             return;
         }
 
+        // Optional: Require dates if ID uploaded
+        if ((idType === "passport" && (passport || passportUrl)) || (idType === "governmentID" && ((govIDFront || govIDFrontUrl) || (govIDBack || govIDBackUrl)))) {
+            if (!issueDate || !expiryDate) {
+                toast.error("Please provide issue and expiry dates for your ID.");
+                return;
+            }
+        }
+
         try {
-            let finalGovIDUrl = govIDUrl;
+            let finalPassportUrl = passportUrl;
+            let finalGovIDFrontUrl = govIDFrontUrl;
             let finalGovIDBackUrl = govIDBackUrl;
             let finalCertUrls = certUrls;
 
             if (idType === "passport" && passport) {
-                finalGovIDUrl = await uploadToImgBB(passport);
+                finalPassportUrl = await uploadToImgBB(passport);
             } else if (idType === "governmentID") {
-                if (govIDFront) finalGovIDUrl = await uploadToImgBB(govIDFront);
+                if (govIDFront) finalGovIDFrontUrl = await uploadToImgBB(govIDFront);
                 if (govIDBack) finalGovIDBackUrl = await uploadToImgBB(govIDBack);
             }
 
@@ -126,15 +179,23 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 finalCertUrls = await Promise.all(certifications.map(uploadToImgBB));
             }
 
-            const payload = {
+            const payload: any = {
                 idType,
-                govID: finalGovIDUrl,
-                govIDBack: finalGovIDBackUrl,
-                certifications: finalCertUrls,
                 sin,
                 backgroundCheckConsent,
                 hasInsurance,
+                certifications: finalCertUrls,
+                issueDate,
+                expiryDate,
             };
+
+            // Add ID URLs based on type
+            if (idType === "passport") {
+                payload.passportUrl = finalPassportUrl;
+            } else if (idType === "governmentID") {
+                payload.governmentIdFront = finalGovIDFrontUrl;
+                payload.governmentIdBack = finalGovIDBackUrl;
+            }
 
             dispatch(setStep3(payload));
             onNext();
@@ -186,6 +247,34 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                     </label>
                 </div>
 
+                {/* Issue and Expiry Dates - Shown after ID selection */}
+                {idType && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block mb-2 font-medium text-gray-700">Issue Date *</label>
+                            <input
+                                type="date"
+                                value={issueDate}
+                                onChange={handleIssueDateChange}
+                                className="w-full rounded-xl border border-gray-300 px-5 py-3 focus:outline-none focus:ring-2 focus:ring-[#1A4F93] transition"
+                                pattern="\d{4}-\d{2}-\d{2}"
+                                title="Enter date in YYYY-MM-DD format"
+                            />
+                        </div>
+                        <div>
+                            <label className="block mb-2 font-medium text-gray-700">Expiry Date *</label>
+                            <input
+                                type="date"
+                                value={expiryDate}
+                                onChange={handleExpiryDateChange}
+                                className="w-full rounded-xl border border-gray-300 px-5 py-3 focus:outline-none focus:ring-2 focus:ring-[#1A4F93] transition"
+                                pattern="\d{4}-\d{2}-\d{2}"
+                                title="Enter date in YYYY-MM-DD format"
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {idType === "passport" && (
                     <div>
                         <label
@@ -210,9 +299,9 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                         {passport && (
                             <p className="mt-2 text-green-600 font-semibold">Selected file: {passport.name}</p>
                         )}
-                        {govIDUrl && !passport && (
+                        {passportUrl && !passport && (
                             <p className="mt-2 text-blue-600 font-semibold">
-                                Already uploaded: <a href={govIDUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
+                                Already uploaded: <a href={passportUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
                             </p>
                         )}
                     </div>
@@ -246,9 +335,9 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                             {govIDFront && (
                                 <p className="mt-2 text-green-600 font-semibold">Selected file: {govIDFront.name}</p>
                             )}
-                            {govIDUrl && !govIDFront && (
+                            {govIDFrontUrl && !govIDFront && (
                                 <p className="mt-2 text-blue-600 font-semibold">
-                                    Already uploaded: <a href={govIDUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
+                                    Already uploaded: <a href={govIDFrontUrl} target="_blank" rel="noopener noreferrer" className="underline">View</a>
                                 </p>
                             )}
                         </div>
@@ -288,7 +377,7 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 )}
             </div>
 
-            <div className="mb-8 w-full max-w-full">
+            {/* <div className="mb-8 w-full max-w-full">
                 <label className="block mb-3 font-semibold text-black text-lg w-full">
                     Social Insurance Number (SIN) *
                 </label>
@@ -304,11 +393,11 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 <p className="mt-1 text-gray-500 text-sm">
                     Required for tax purposes. Your SIN is encrypted and securely stored as required by Canadian regulations.
                 </p>
-            </div>
+            </div> */}
 
             <div className="mb-8 w-full max-w-full">
                 <label className="block mb-3 font-semibold text-black text-lg w-full">
-                    Professional Certifications
+                    Proof of Work Eligibility
                 </label>
                 <p className="mb-2 text-gray-600">
                     Upload any relevant certifications, licenses, or qualifications for your services
@@ -378,7 +467,6 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 </label>
             </div>
 
-
             <div className="flex justify-between mt-10">
                 <button
                     onClick={onBack}
@@ -396,7 +484,7 @@ const Step3VerificationCredentials = ({ onNext, onBack }: Props) => {
                 </button>
             </div>
         </div>
-    ); 
+    );
 };
 
 export default Step3VerificationCredentials;

@@ -8,106 +8,100 @@ import Link from "next/link";
 
 const features = [
   {
-    icon: <FaBell className="text-lg sm:text-xl text-white" />,
+    icon: <FaBell className="w-6 h-6" />,
     title: "Real-time notifications",
-    description: "Get instant updates on your tasks and bids",
+    description: "Get instant updates on tasks, bids, and messages",
   },
   {
-    icon: <FaBolt className="text-lg sm:text-xl text-white" />,
-    title: "Book services instantly",
-    description: "Find and hire Taskers with just a few taps",
+    icon: <FaBolt className="w-6 h-6" />,
+    title: "Book instantly",
+    description: "Hire verified Taskers in seconds",
   },
   {
-    icon: <FaComments className="text-lg sm:text-xl text2" />,
-    title: "Chat with Taskers",
-    description: "Direct messaging to coordinate your tasks",
+    icon: <FaComments className="w-6 h-6" />,
+    title: "In-app chat",
+    description: "Message your Tasker directly — no phone numbers needed",
   },
 ];
 
 const TaskMatchApp = () => {
   return (
-    <div className="w-full relative overflow-hidden py-10 sm:py-12 color3">
-      {/* Mesh Gradient Balls */}
-      <div
-        className="absolute top-0 left-0 w-40 h-40 sm:w-60 sm:h-60 rounded-full opacity-30"
-        style={{
-          background: "radial-gradient(circle at center, #2F6F69 0%, transparent 70%)",
-        }}
-      ></div>
-
-      <div
-        className="absolute bottom-0 right-0 w-40 h-40 sm:w-60 sm:h-60 rounded-full opacity-30"
-        style={{
-          background: "radial-gradient(circle at center, #2F6F69 0%, transparent 70%)",
-        }}
-      ></div>
-
-      <div className="container max-w-6xl mx-auto px-4 relative z-10">
-        <div className="flex flex-col items-center text-center">
-          <h2 className="text-gray-800 text-xl sm:text-3xl md:text-4xl font-bold">
+    <section className="py-16 lg:py-20 bg-gradient-to-b from-white to-[#E5FFDB]/30">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Heading */}
+        <div className="text-center mb-12 lg:mb-16">
+          <h2 className="text-3xl sm:text-4xl md:text-4xl font-bold text-[#063A41]">
             Get the TaskAllo App
           </h2>
-          <div className="h-[3px] w-[50px] color1 rounded-md mt-2"></div>
-          <p className="mt-3 text-gray-700 text-sm sm:text-base max-w-xl">
-            Book services on the go — faster, easier, and more convenient
+          <div className="mx-auto mt-4 w-24 h-1 bg-[#109C3D] rounded-full" />
+          <p className="mt-2 text-lg text-gray-600 max-w-2xl mx-auto">
+            Faster booking, real-time updates, and seamless communication — all in your pocket.
           </p>
+        </div>
 
-          {/* Responsive Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 w-full max-w-4xl">
-            {features.map((feature, index) => {
-              const bgColor =
-                index === 0
-                  ? "color1"
-                  : index === 1
-                    ? "color2"
-                    : "color3";
-              const textColor =
-                index === 2 ? "text2" : "text-white";
+        {/* Feature Cards - Tight & Perfect Spacing */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
+          {features.map((feature, index) => (
+            <div
+              key={index}
+              className="group bg-white rounded-2xl p-6 lg:p-7 shadow-sm border border-gray-100 transition-all duration-300 hover:shadow-xl hover:border-gray-200 hover:-translate-y-1.5"
+            >
+              <div
+                className={`inline-flex p-3.5 rounded-xl mb-5 transition-colors duration-300 ${index === 1
+                    ? "bg-[#109C3D] text-white group-hover:bg-[#063A41]"
+                    : "bg-[#063A41] text-white group-hover:bg-[#109C3D]"
+                  }`}
+              >
+                {feature.icon}
+              </div>
+              <h3 className="text-xl font-semibold text-[#063A41] mb-2">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600 text-base leading-relaxed">
+                {feature.description}
+              </p>
+            </div>
+          ))}
+        </div>
 
-              return (
-                <div
-                  key={index}
-                  className={`${bgColor} border border-gray-200 rounded-xl p-5 flex items-center gap-3 transition-all duration-300 shadow-md hover:scale-105`}
-                >
-                  <div className="bg-white/20 p-3 rounded-full">{feature.icon}</div>
-                  <div className={`text-left ${textColor}`}>
-                    <h3 className="text-base font-bold">{feature.title}</h3>
-                    <p className="text-sm opacity-90">{feature.description}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {/* App Store Buttons - Slightly Closer */}
+        <div className="mt-12 lg:mt-14 flex flex-col sm:flex-row gap-5 justify-center items-center">
+          <Link
+            href="/not-found"
+            className="group flex items-center gap-4 bg-black text-white px-8 py-5 rounded-2xl hover:bg-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
+          >
+            <Image
+              src={googlePlay}
+              alt="Get it on Google Play"
+              width={40}
+              height={40}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <div className="text-left">
+              <p className="text-xs opacity-80">GET IT ON</p>
+              <p className="text-lg font-medium">Google Play</p>
+            </div>
+          </Link>
 
-          {/* Buttons */}
-          <div className="flex flex-wrap justify-center gap-4 mt-8">
-            <Link href={"/not-found"}>
-              <button className="flex items-center gap-3 bg-gray-800 px-4 py-3 rounded-lg hover:scale-105 transition-transform duration-300 shadow-md">
-                <Image
-                  src={googlePlay}
-                  alt="Google Play"
-                  width={28}
-                  height={28}
-                />
-                <div className="text-left">
-                  <p className="text-xs text-gray-300">GET IT ON</p>
-                  <p className="text-sm font-semibold text-white">Google Play</p>
-                </div>
-              </button>
-            </Link>
-            <Link href={"/not-found"}>
-              <button className="flex items-center gap-3 bg-gray-800 px-4 py-3 rounded-lg hover:scale-105 transition-transform duration-300 shadow-md">
-                <Image src={appStore} alt="App Store" width={28} height={28} />
-                <div className="text-left">
-                  <p className="text-xs text-gray-300">DOWNLOAD ON THE</p>
-                  <p className="text-sm font-semibold text-white">App Store</p>
-                </div>
-              </button>
-            </Link>
-          </div>
+          <Link
+            href="/not-found"
+            className="group flex items-center gap-4 bg-black text-white px-8 py-5 rounded-2xl hover:bg-gray-900 transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-1"
+          >
+            <Image
+              src={appStore}
+              alt="Download on the App Store"
+              width={40}
+              height={40}
+              className="group-hover:scale-110 transition-transform"
+            />
+            <div className="text-left">
+              <p className="text-xs opacity-80">Download on the</p>
+              <p className="text-lg font-medium">App Store</p>
+            </div>
+          </Link>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 

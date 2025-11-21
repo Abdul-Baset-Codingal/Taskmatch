@@ -1,7 +1,7 @@
 export const categories: { _id: string; name: string; keywords: string[] }[] = [
     {
         _id: "688bb7262056a9b591a72862",
-        name: "Handyman, Renovation & Moving Help",
+        name: "Handyman & Home Repairs",
         keywords: [
             "handyman", "repair", "fix", "install", "installation", "assemble", "assembly",
             "mount", "setup", "plumbing", "pipe", "pipe leak", "electrician", "wiring",
@@ -31,7 +31,7 @@ export const categories: { _id: string; name: string; keywords: string[] }[] = [
     },
     {
         _id: "688bbe762056a9b591a72892",
-        name: "Complete Cleaning",
+        name: "Cleaning Services",
         keywords: [
             "clean", "cleaning", "house cleaning", "deep clean", "spring cleaning",
             "apartment cleaning", "kitchen cleaning", "bathroom cleaning", "toilet cleaning",
@@ -45,8 +45,8 @@ export const categories: { _id: string; name: string; keywords: string[] }[] = [
         ]
     },
     {
-        _id: "688bbf7d2056a9b591a728b1",
-        name: "Beauty & Wellness",
+        _id: "688bcb3a2056a9b591a728ba",
+        name: "Automotive Services",
         keywords: [
             "beauty", "wellness", "spa", "massage", "haircut", "hairstylist", "makeup",
             "manicure", "pedicure", "facial", "skin care", "skincare", "salon",
@@ -71,8 +71,8 @@ export const categories: { _id: string; name: string; keywords: string[] }[] = [
         ]
     },
     {
-        _id: "688bc9282056a9b591a728b7",
-        name: "Everything Else",
+        _id: "688bce0c2056a9b591a728cc",
+        name: "All Other Specialized Services",
         keywords: [
             "delivery", "errand", "courier", "pickup", "drop", "shopping help",
             "personal assistant", "event help", "party help", "gift wrapping",

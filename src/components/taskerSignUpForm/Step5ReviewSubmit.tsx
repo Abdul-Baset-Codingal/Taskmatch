@@ -67,10 +67,10 @@ const Step5ReviewSubmit = ({ onBack }: Props) => {
             return;
         }
 
-        if (!step3.sin) {
-            toast.error("SIN is required. Please go back to step 3 and enter it.");
-            return;
-        }
+        // if (!step3.sin) {
+        //     toast.error("SIN is required. Please go back to step 3 and enter it.");
+        //     return;
+        // }
 
         if (!step3.backgroundCheckConsent) {
             toast.error("Background check consent is required. Please go back to step 3 and agree.");
@@ -83,7 +83,7 @@ const Step5ReviewSubmit = ({ onBack }: Props) => {
         }
 
         if (!step1.about || step1.about.trim().length < 50) {
-            toast.error("About me must be at least 100 characters. Please go back to step 1.");
+            toast.error("About me must be at least 50 characters. Please go back to step 1.");
             return;
         }
 
@@ -101,7 +101,7 @@ const Step5ReviewSubmit = ({ onBack }: Props) => {
         try {
             const response = await signup(finalData).unwrap();
             console.log("Submitted:", response);
-            toast.success("Profile submitted successfully!");
+            toast.success("Profile submitted successfully! Your profile is under review");
             console.log(finalData)
             // Optionally reset form or redirect
         } catch (err) {

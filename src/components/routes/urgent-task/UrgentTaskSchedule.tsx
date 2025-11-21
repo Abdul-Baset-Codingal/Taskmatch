@@ -1,18 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react/no-unescaped-entities */
+
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 import { updateTaskField } from "@/features/taskForm/taskFormSlice";
-import { usePostTaskMutation } from "@/features/api/taskApi";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { useRouter } from "next/navigation";
-import TaskConfirmationModal from "./TaskConfirmationModal";
 
 type Props = {
     onBack: () => void;
@@ -21,219 +16,247 @@ type Props = {
 
 const UrgentTaskSchedule = ({ onBack, onContinue }: Props) => {
     const dispatch = useDispatch();
-    const router = useRouter();
     const taskForm = useSelector((state: RootState) => state.taskForm);
 
-    // State
-    const [timing, setTiming] = useState(taskForm.schedule || "Urgent");
+    // Load from Redux or fallback
+    const [timing, setTiming] = useState<"Urgent" | "Schedule" | "Flexible">(
+        (taskForm.schedule as "Urgent" | "Schedule" | "Flexible") || "Urgent"
+    );
     const [info, setInfo] = useState(taskForm.additionalInfo || "");
-    const [offerDeadline, setOfferDeadline] = useState("1 Hour");
-    const [customDeadline, setCustomDeadline] = useState<Date | null>(null);
     const [price, setPrice] = useState(taskForm.price || "");
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [userRole, setUserRole] = useState<string | null>(null);
-    const [fullName, setFullName] = useState<string | null>(null);
-    const [user, setUser] = useState<any>(null);
 
-    const [selectedLoc, setSelectedLoc] = useState("");
-    const [customLocation, setCustomLocation] = useState("");
-    const [isModalOpen, setIsModalOpen] = useState(false);
-
-    // RTK mutation hook
-    const [postTask, { isLoading, isError, isSuccess }] = usePostTaskMutation();
-
-    // Fetch login and user info
-    const checkLoginStatus = async () => {
-        try {
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
-                method: "GET",
-                credentials: "include",
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                setIsLoggedIn(true);
-                setUserRole(data.user.role);
-                setFullName(data.user.fullName);
-                setUser(data.user);
-            } else {
-                setIsLoggedIn(false);
-                setUserRole(null);
-            }
-        } catch (error) {
-            setIsLoggedIn(false);
-            setUserRole(null);
+    // Safely parse stored customDeadline which may be null, string, number or Date
+    const parseDeadline = (d: unknown): Date | null => {
+        if (!d) return null;
+        if (d instanceof Date) return d;
+        if (typeof d === "string" || typeof d === "number") {
+            const dt = new Date(d);
+            return isNaN(dt.getTime()) ? null : dt;
         }
+        return null;
     };
 
-    useEffect(() => {
-        checkLoginStatus();
-    }, []);
+    const [customDeadline, setCustomDeadline] = useState<Date | null>(parseDeadline(taskForm.customDeadline));
 
-    // Update Redux store when timing/info/price changes
+    // Sync everything back to Redux on change
     useEffect(() => {
         dispatch(updateTaskField({ field: "schedule", value: timing }));
+    }, [timing, dispatch]);
+
+    useEffect(() => {
         dispatch(updateTaskField({ field: "additionalInfo", value: info }));
+    }, [info, dispatch]);
+
+    useEffect(() => {
         dispatch(updateTaskField({ field: "price", value: price }));
+    }, [price, dispatch]);
+
+    useEffect(() => {
         if (customDeadline) {
             dispatch(updateTaskField({ field: "customDeadline", value: customDeadline.toISOString() }));
+        } else {
+            dispatch(updateTaskField({ field: "customDeadline", value: null }));
         }
-    }, [timing, info, price, customDeadline, dispatch]);
+    }, [customDeadline, dispatch]);
 
-    // Submit Handler (moved to UrgentTaskSummary)
+    // ----------- Validation Logic -----------
+    const isFormValid = useMemo(() => {
+        const hasPrice = price && parseFloat(price) > 0;
+
+        const hasValidSchedule =
+            timing === "Flexible" ||
+            (timing === "Schedule" && customDeadline !== null);
+
+        return hasPrice && hasValidSchedule;
+    }, [price, timing, customDeadline]);
+
     const handleContinue = () => {
-        onContinue();
+        if (isFormValid) {
+            onContinue();
+        }
     };
 
     return (
-        <div className="max-w-7xl mx-auto py-10 text-black bg-orange-50 rounded-b-2xl">
-            <h2 className="text-3xl font-bold mb-6">2. Schedule</h2>
-            <p className="text-lg mb-4">When do you need this done?</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            
-
-                <button
-                    onClick={() => setTiming("Schedule")}
-                    className={`border-2 rounded-xl p-6 text-center ${timing === "Schedule" ? "border-orange-500 bg-orange-100" : "border-gray-300"
-                        }`}
-                >
-                    <div className="text-3xl mb-2">⏰</div>
-                    <div className="text-lg font-semibold">Schedule</div>
-                    <p className="text-sm">Custom time</p>
-                </button>
-
-                <button
-                    onClick={() => setTiming("Flexible")}
-                    className={`border-2 rounded-xl p-6 text-center ${timing === "Flexible" ? "border-orange-500 bg-orange-100" : "border-gray-300"
-                        }`}
-                >
-                    <div className="text-3xl mb-2">🕒</div>
-                    <div className="text-lg font-semibold">Flexible</div>
-                    <p className="text-sm">Anytime</p>
-                </button>
+        <div className="min-h-screen bg-white">
+            {/* Header */}
+            <div className="bg-[#063A41] text-white py-8 px-6">
+                <div className="max-w-4xl mx-auto">
+                    <h1 className="text-3xl font-bold mb-2">When do you need it done?</h1>
+                    <p className="text-[#E5FFDB] text-sm">Step 2 of 3</p>
+                </div>
             </div>
 
-            {/* Custom DateTime Picker for "Schedule" */}
-            {timing === "Schedule" && (
-                <div className="mt-10">
-                    <h3 className="text-lg font-bold mb-3 text-gray-800">
-                        Select Scheduled Date <span className="text-red-500">*</span>
-                    </h3>
-                    <p className="text-sm text-gray-600 mb-4">
-                        Choose a specific date and time for your task to be scheduled.
-                    </p>
+            {/* Main Content */}
+            <div className="max-w-7xl mx-auto px-6 py-8">
+                {/* Timing Options */}
+                <div className="mb-8">
+                    <label className="block text-[#063A41] font-semibold mb-4 text-lg">
+                        Choose your timeline <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Urgent (Default)
+                        <button
+                            onClick={() => setTiming("Urgent")}
+                            className={`border-2 rounded-xl p-6 text-left transition-all ${timing === "Urgent"
+                                    ? "border-[#109C3D] bg-[#E5FFDB] shadow-md"
+                                    : "border-gray-200 hover:border-[#109C3D] hover:bg-gray-50"
+                                }`}
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className={`text-4xl ${timing === "Urgent" ? "text-[#109C3D]" : "text-gray-400"}`}>
+                                    ⚡
+                                </div>
+                                <div>
+                                    <div className="text-lg font-semibold text-[#063A41] mb-1">Urgent</div>
+                                    <p className="text-sm text-gray-600">I need it done ASAP</p>
+                                </div>
+                            </div>
+                        </button> */}
 
-                    <div className="mt-4 w-full mb-6">
-                        <label className="block text-sm font-medium mb-1">Scheduled Date</label>
+                        {/* Specific Date */}
+                        <button
+                            onClick={() => setTiming("Schedule")}
+                            className={`border-2 rounded-xl p-6 text-left transition-all ${timing === "Schedule"
+                                    ? "border-[#109C3D] bg-[#E5FFDB] shadow-md"
+                                    : "border-gray-200 hover:border-[#109C3D] hover:bg-gray-50"
+                                }`}
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className={`text-4xl ${timing === "Schedule" ? "text-[#109C3D]" : "text-gray-400"}`}>
+                                    📅
+                                </div>
+                                <div>
+                                    <div className="text-lg font-semibold text-[#063A41] mb-1">Specific Date</div>
+                                    <p className="text-sm text-gray-600">Schedule for a specific time</p>
+                                </div>
+                            </div>
+                        </button>
+
+                        {/* Flexible */}
+                        <button
+                            onClick={() => setTiming("Flexible")}
+                            className={`border-2 rounded-xl p-6 text-left transition-all ${timing === "Flexible"
+                                    ? "border-[#109C3D] bg-[#E5FFDB] shadow-md"
+                                    : "border-gray-200 hover:border-[#109C3D] hover:bg-gray-50"
+                                }`}
+                        >
+                            <div className="flex items-start gap-4">
+                                <div className={`text-4xl ${timing === "Flexible" ? "text-[#109C3D]" : "text-gray-400"}`}>
+                                    🕒
+                                </div>
+                                <div>
+                                    <div className="text-lg font-semibold text-[#063A41] mb-1">Flexible</div>
+                                    <p className="text-sm text-gray-600">I'm flexible with timing</p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Date & Time Picker - Only for Schedule */}
+                {timing === "Schedule" && (
+                    <div className="mb-8 bg-gray-50 rounded-xl p-6">
+                        <label className="block text-[#063A41] font-semibold mb-3 text-base">
+                            Select preferred date and time <span className="text-red-500">*</span>
+                        </label>
                         <DatePicker
                             selected={customDeadline}
                             onChange={(date: Date | null) => setCustomDeadline(date)}
                             showTimeSelect
                             timeIntervals={15}
-                            dateFormat="Pp"
-                            className="lg:w-[1200px] border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                            placeholderText="Select schedule date and time..."
+                            minDate={new Date()} // Cannot pick past dates
+                            dateFormat="MMMM d, yyyy h:mm aa"
+                            className={`w-full border-2 rounded-lg p-4 text-[#063A41] focus:outline-none focus:border-[#109C3D] transition-colors ${!customDeadline ? "border-red-300" : "border-gray-200"
+                                }`}
+                            placeholderText="Choose date and time..."
+                        />
+                        {!customDeadline && (
+                            <p className="text-red-500 text-sm mt-2">Please select a date and time</p>
+                        )}
+                    </div>
+                )}
+
+                {/* Budget */}
+                <div className="mb-8">
+                    <label className="block text-[#063A41] font-semibold mb-3 text-lg">
+                        What's your budget? <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#063A41] font-semibold text-lg">
+                            $
+                        </span>
+                        <input
+                            type="number"
+                            min="1"
+                            step="1"
+                            value={price}
+                            onChange={(e) => setPrice(e.target.value)}
+                            placeholder="50"
+                            className={`w-full border-2 rounded-lg p-4 pl-10 text-[#063A41] focus:outline-none focus:border-[#109C3D] transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${!price || parseFloat(price) <= 0 ? "border-red-300" : "border-gray-200"
+                                }`}
                         />
                     </div>
+                    {!price || parseFloat(price) <= 0 ? (
+                        <p className="text-red-500 text-sm mt-2">Please enter a valid budget amount</p>
+                    ) : (
+                        <div className="mt-4 bg-[#E5FFDB] border-l-4 border-[#109C3D] p-4 rounded">
+                            <div className="flex items-start gap-3">
+                                <span className="text-[#109C3D] text-xl">💡</span>
+                                <div>
+                                    <p className="text-[#063A41] font-semibold mb-1">
+                                        Taskers will provide their quotes
+                                    </p>
+                                    <p className="text-sm text-gray-700">
+                                        Your budget helps taskers understand your expectations.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-            )}
 
-            {/* Estimated Time */}
-            <div>
-                <label className="block text-sm font-medium mb-1">
-                    Estimated Time (hours) <span className="text-red-500">*</span>
-                </label>
-                <input
-                    type="number"
-                    min="1"
-                    value={taskForm.estimatedTime || ""}
-                    onChange={(e) =>
-                        dispatch(updateTaskField({ field: "estimatedTime", value: e.target.value }))
-                    }
-                    placeholder="e.g., 2"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400
-             [appearance:textfield]
-             [&::-webkit-outer-spin-button]:appearance-none
-             [&::-webkit-inner-spin-button]:appearance-none"
-                />
+                {/* Additional Information (Optional) */}
+                <div className="mb-8">
+                    <label className="block text-[#063A41] font-semibold mb-3 text-lg">
+                        Any other details? (optional)
+                    </label>
+                    <textarea
+                        value={info}
+                        onChange={(e) => setInfo(e.target.value)}
+                        rows={4}
+                        maxLength={500}
+                        placeholder="Parking info, pet instructions, access codes, etc..."
+                        className="w-full border-2 border-gray-200 rounded-lg p-4 text-[#063A41] focus:outline-none focus:border-[#109C3D] transition-colors resize-none"
+                    />
+                    <div className="text-sm text-gray-500 mt-2 text-right">
+                        {info.length} / 500
+                    </div>
+                </div>
 
-                <p className="text-sm text-gray-500 mt-1">
-                    Estimate how long the task will take
-                </p>
+                {/* Navigation Buttons */}
+                <div className="flex justify-between items-center pt-6 border-t-2 border-gray-100">
+                    <button
+                        onClick={onBack}
+                        className="text-[#063A41] font-semibold hover:text-[#109C3D] transition-colors flex items-center gap-2"
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </button>
+
+                    <button
+                        onClick={handleContinue}
+                        disabled={!isFormValid}
+                        className={`px-8 py-3 rounded-lg font-semibold transition-all shadow-md ${isFormValid
+                                ? "bg-[#109C3D] text-white hover:bg-[#0d8332] hover:shadow-lg cursor-pointer"
+                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            }`}
+                    >
+                        Continue
+                    </button>
+                </div>
             </div>
-
-            <div className="mb-6">
-                <label className="block text-sm font-medium mb-1">Additional Information (Optional)</label>
-                <textarea
-                    value={info}
-                    onChange={(e) => setInfo(e.target.value)}
-                    rows={4}
-                    maxLength={500}
-                    placeholder="Any other details we should know..."
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400"
-                />
-                <div className="text-sm text-gray-500 mt-1">{info.length} / 500</div>
-            </div>
-
-            <div className="mb-6">
-                <label className="block text-sm font-medium mb-1">
-                    Desired Price ($) <span className="text-red-500">*</span>
-                </label>
-                <input
-                    type="number"
-                    min="0"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="Enter your budget for the task"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-orange-400 
-             [appearance:textfield] 
-             [&::-webkit-outer-spin-button]:appearance-none 
-             [&::-webkit-inner-spin-button]:appearance-none"
-                />
-            </div>
-
-            <div className="my-6 bg-orange-100 border border-orange-500 p-4 rounded-lg shadow-sm">
-                <p className="text-lg font-semibold text-orange-500 mb-1">💰 Taskers will provide quotes</p>
-                <p className="text-sm text-gray-700">
-                    Taskers will review your task description and provide competitive quotes based on the details you provide.
-                </p>
-            </div>
-
-            <div className="flex justify-between">
-                <button onClick={onBack} className="text-orange-600 font-bold hover:underline">
-                    ← Back
-                </button>
-                <button
-                    onClick={handleContinue}
-                    className="bg-gradient-to-r from-[#FF8906] to-[#FF8906] px-8 py-4 rounded-2xl font-bold text-white hover:shadow-lg hover:-translate-y-1 transition-transform duration-300"
-                >
-                    Continue
-                </button>
-            </div>
-
-            {isError && (
-                <p className="mt-4 text-red-600 font-semibold">
-                    Error posting task. Please try again.
-                </p>
-            )}
-
-            {isSuccess && (
-                <p className="mt-4 text-green-600 font-semibold">
-                    Task posted successfully!
-                </p>
-            )}
-            <ToastContainer position="top-right" autoClose={3000} />
-            <TaskConfirmationModal
-                isOpen={isModalOpen}
-                onClose={() => setIsModalOpen(false)}
-                onConfirm={() => { }}
-                taskForm={taskForm}
-                timing={timing}
-                price={price}
-                info={info}
-                isLoading={isLoading}
-            />
         </div>
     );
 };
