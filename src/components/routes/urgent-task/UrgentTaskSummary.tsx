@@ -25,22 +25,23 @@ const servicesData = {
         title: "Select Your Service",
     },
     handyMan: {
-        title: "Handyman, Renovation & Moving Help",
+        title: "Handyman & Home Repairs",
     },
     PetServices: {
         title: "Pet Services",
     },
-    CompleteCleaning: {
-        title: "Complete Cleaning",
+    cleaningServices: {
+        title: "Cleaning Services",
     },
     automotiveServices: {
         title: "Plumbing, Electrical & HVAC (PEH)",
     },
-    rideServices: {
-        title: "Beauty & Wellness",
+    automotiveServices: {
+        title: "Automotive Services",
     },
-    beautyWellness: {
-        title: "Everything Else",
+    allOtherSpecializedServices
+        : {
+        title: "All Other Specialized Services",
     },
 } as const;
 
@@ -109,7 +110,7 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
 
     // New state for location and schedule modes
     const [locationType, setLocationType] = useState<'remote' | 'in-person'>('remote');
-    const [scheduleType, setScheduleType] = useState<'scheduled' | 'flexible'>('flexible');
+    const [scheduleType, setScheduleType] = useState<'Schedule' | 'Flexible'>('Flexible');
     const [address, setAddress] = useState('');
     const [scheduledDate, setScheduledDate] = useState('');
     const [scheduledTime, setScheduledTime] = useState('');
@@ -155,8 +156,11 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
             dispatch(updateTaskField({ field: 'location', value: 'Remote' }));
         }
 
-        if (scheduleType === 'scheduled' && scheduledDate && scheduledTime) {
-            dispatch(updateTaskField({ field: 'schedule', value: `${scheduledDate} ${scheduledTime}` }));
+        // Fix the schedule sync to match your schema
+        if (scheduleType === 'Schedule' && scheduledDate && scheduledTime) {
+            dispatch(updateTaskField({ field: 'schedule', value: 'Schedule' }));
+            // You might want to store the actual date/time in a separate field
+            // or combine it with the schedule field based on your backend requirements
         } else {
             dispatch(updateTaskField({ field: 'schedule', value: 'Flexible' }));
         }
@@ -310,11 +314,14 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                 onClose: () => router.push("/dashboard/client"),
                 autoClose: 2000,
             });
+            setIsModalOpen(false); // Close confirmation modal after success
         } catch (err) {
             console.error("Error posting task:", JSON.stringify(err, null, 2));
             toast.error("Failed to post task.");
         }
     };
+
+
 
     const toggleEditMode = () => {
         if (editMode) {
@@ -359,7 +366,7 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
 
         setSwitching(true);
         try {
-            const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${user._id}`, {
+            const response = await fetch(`http://localhost:5000/api/auth/users/${user._id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ role: "client" }),
@@ -403,8 +410,20 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
             return;
         }
 
+        // Show confirmation modal first
         setIsModalOpen(true);
     };
+
+    const calculateTotalAmount = () => {
+        const budget = parseFloat(taskForm.price) || 0;
+        const isUrgent = taskForm.schedule === "Urgent";
+        const urgentFee = isUrgent ? budget * 0.20 : 0;
+        const subtotal = budget + urgentFee;
+        const serviceFee = subtotal * 0.08;
+        const tax = subtotal * 0.13;
+        return subtotal + serviceFee + tax;
+    };
+
 
     return (
         <div className="min-h-screen bg-white">
@@ -481,8 +500,8 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                             <button
                                                 onClick={() => setLocationType('remote')}
                                                 className={`flex-1 p-3 rounded-lg border-2 font-medium transition-all ${locationType === 'remote'
-                                                        ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                    ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                     }`}
                                             >
                                                 🌐 Remote
@@ -490,8 +509,8 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                             <button
                                                 onClick={() => setLocationType('in-person')}
                                                 className={`flex-1 p-3 rounded-lg border-2 font-medium transition-all ${locationType === 'in-person'
-                                                        ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                    ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                     }`}
                                             >
                                                 📍 In-Person
@@ -545,31 +564,34 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                     <div className="space-y-3">
                                         <div className="flex gap-3">
                                             <button
-                                                onClick={() => setScheduleType('flexible')}
+                                                type="button"
+                                                onClick={() => setScheduleType('Flexible')}
                                                 className={`flex-1 p-3 rounded-lg border-2 font-medium transition-all ${scheduleType === 'Flexible'
-                                                        ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                    ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                     }`}
                                             >
                                                 🔄 Flexible
                                             </button>
                                             <button
-                                                onClick={() => setScheduleType('scheduled')}
-                                                className={`flex-1 p-3 rounded-lg border-2 font-medium transition-all ${scheduleType === 'Scheduled'
-                                                        ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                                                type="button"
+                                                onClick={() => setScheduleType('Schedule')}
+                                                className={`flex-1 p-3 rounded-lg border-2 font-medium transition-all ${scheduleType === 'Schedule'
+                                                    ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
+                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
                                                     }`}
                                             >
-                                                📅 Scheduled
+                                                📅 Schedule
                                             </button>
                                         </div>
-                                        {scheduleType === 'Scheduled' && (
+                                        {scheduleType === 'Schedule' && (
                                             <div className="grid grid-cols-2 gap-3">
                                                 <input
                                                     type="date"
                                                     value={scheduledDate}
                                                     onChange={(e) => setScheduledDate(e.target.value)}
                                                     className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#109C3D]"
+                                                    min={new Date().toISOString().split('T')[0]} // Prevent past dates
                                                 />
                                                 <input
                                                     type="time"
@@ -583,9 +605,14 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                 ) : (
                                     <div className="flex items-center gap-2">
                                         <span className="text-[#109C3D]">⏰</span>
-                                        <p className="font-medium text-[#063A41] capitalize">
+                                        <p className="font-medium text-[#063A41]">
                                             {getCurrentValue('schedule') || "Not specified"}
                                         </p>
+                                        {taskForm.schedule === 'Schedule' && taskForm.customDeadline && (
+                                            <span className="text-sm text-gray-500">
+                                                ({new Date(taskForm.customDeadline).toLocaleString()})
+                                            </span>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -793,10 +820,14 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
             )}
 
             <ToastContainer position="top-right" autoClose={3000} />
+            {/* Modals at the bottom of your parent component */}
             <TaskConfirmationModal
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
-                onConfirm={handleSubmit}
+                onConfirm={() => {
+                    setIsModalOpen(false);
+                    handleSubmit(); // Directly submit after confirmation
+                }}
                 taskForm={taskForm}
                 timing={taskForm.schedule || ""}
                 price={taskForm.price || ""}

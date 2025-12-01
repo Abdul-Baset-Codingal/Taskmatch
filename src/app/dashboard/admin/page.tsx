@@ -50,11 +50,13 @@ import ServiceManagement from "@/components/dashboard/admin/ServiceManagement";
 import { useGetAllUsersQuery } from "@/features/auth/authApi";
 import { useGetAllTasksQuery } from "@/features/api/taskApi";
 import { useGetServicesQuery } from "@/features/api/servicesApi";
+import TaskerApplications from "@/components/dashboard/admin/TaskerApplications";
 
 const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview"); // Default to overview
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState<'full' | 'last6'>('full');
+  const [taskerApplications, setTaskerApplications] = useState([]); // Add this state
 
   // Fetch data for dynamic stats
   const { data: usersResponse, isLoading: loadingUsers } = useGetAllUsersQuery({ page: 1, limit: 1000 }); // Large limit for growth calculation
@@ -66,6 +68,17 @@ const AdminDashboard: React.FC = () => {
   const tasks = tasksData?.tasks || [];
   const totalTasks = tasksData?.pagination?.totalTasks || 0;
   const totalServices = services?.length || 0;
+
+  useEffect(() => {
+    if (users && Array.isArray(users)) {
+      const underReviewUsers = users.filter((user: any) =>
+        user.taskerStatus === "approved"
+      );
+      setTaskerApplications(underReviewUsers);
+    } else {
+      setTaskerApplications([]);
+    }
+  }, [users]);
 
   // Recent users: Sort by createdAt descending, take first 10 for table
   const recentUsers = useMemo(() => {
@@ -515,7 +528,10 @@ const AdminDashboard: React.FC = () => {
                 {recentTasks.length === 0 && <p className="text-gray-500 text-center py-4">No recent tasks</p>}
               </div>
             </div>
-          </div>
+            <TaskerApplications
+              applications={taskerApplications}
+          
+            />          </div>
         );
       case "users":
         return <UserManagementTable onEditUser={(user) => console.log("Edit user:", user)} />;

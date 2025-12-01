@@ -4,7 +4,19 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import {
+  FaSearch,
+  FaTimes,
+  FaFilter,
+  FaSortAmountDown,
+  FaTasks,
+  FaClipboardList,
+  FaCheckCircle,
+  FaClock,
+  FaExclamationCircle,
+  FaChevronDown,
+  FaPlus
+} from "react-icons/fa";
 import { toast } from "react-toastify";
 import AllClientTasks from "./AllClientTasks";
 import {
@@ -13,6 +25,7 @@ import {
   useUpdateTaskStatusMutation,
   useUpdateTaskMutation,
 } from "@/features/api/taskApi";
+import Link from "next/link";
 
 // Status mapping for frontend labels to backend statuses
 const STATUS_MAP: { [key: string]: string } = {
@@ -22,9 +35,9 @@ const STATUS_MAP: { [key: string]: string } = {
 };
 
 const SORT_OPTIONS = [
-  "Most Recent",
-  "Price: High to Low",
-  "Price: Low to High",
+  { value: "Most Recent", label: "Most Recent", icon: FaClock },
+  { value: "Price: High to Low", label: "Price: High to Low", icon: FaSortAmountDown },
+  { value: "Price: Low to High", label: "Price: Low to High", icon: FaSortAmountDown },
 ];
 
 type TaskFormData = {
@@ -57,30 +70,34 @@ export default function TaskListSection() {
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
   const [editFormData, setEditFormData] = useState<TaskFormData>(initialTaskState);
   const [isRatingPopupOpen, setIsRatingPopupOpen] = useState(false);
+  const [isSortOpen, setIsSortOpen] = useState(false);
 
   // @ts-ignore
   const { data: clientTasks = [], isLoading, isError } = useGetTasksByClientQuery();
   const [replyToComment] = useReplyToCommentMutation();
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [updateTask] = useUpdateTaskMutation();
-  console.log(clientTasks)
+  console.log(clientTasks);
 
   // Compute dynamic TASK_STATUS counts
   const TASK_STATUS = useMemo(() => {
-    const statusCounts = clientTasks.reduce((acc: { [key: string]: number }, task: any) => {
-      const status = task.status || "unknown";
-      const label = Object.keys(STATUS_MAP).find(
-        (key) => STATUS_MAP[key] === status
-      ) || status.charAt(0).toUpperCase() + status.slice(1);
-      acc[label] = (acc[label] || 0) + 1;
-      return acc;
-    }, { "All Tasks": clientTasks.length });
+    const statusCounts = clientTasks.reduce(
+      (acc: { [key: string]: number }, task: any) => {
+        const status = task.status || "unknown";
+        const label =
+          Object.keys(STATUS_MAP).find((key) => STATUS_MAP[key] === status) ||
+          status.charAt(0).toUpperCase() + status.slice(1);
+        acc[label] = (acc[label] || 0) + 1;
+        return acc;
+      },
+      { "All Tasks": clientTasks.length }
+    );
 
     return [
-      { label: "All Tasks", count: statusCounts["All Tasks"] || 0 },
-      { label: "Pending", count: statusCounts["Pending"] || 0 },
-      { label: "Completed", count: statusCounts["Completed"] || 0 },
-      { label: "Requested", count: statusCounts["Requested"] || 0 },
+      { label: "All Tasks", count: statusCounts["All Tasks"] || 0, icon: FaClipboardList, color: "bg-[#063A41]" },
+      { label: "Pending", count: statusCounts["Pending"] || 0, icon: FaClock, color: "bg-amber-500" },
+      { label: "Completed", count: statusCounts["Completed"] || 0, icon: FaCheckCircle, color: "bg-[#109C3D]" },
+      { label: "Requested", count: statusCounts["Requested"] || 0, icon: FaExclamationCircle, color: "bg-blue-500" },
     ];
   }, [clientTasks]);
 
@@ -160,7 +177,9 @@ export default function TaskListSection() {
   };
 
   // Handle Form Change
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleFormChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -184,223 +203,388 @@ export default function TaskListSection() {
     if (sortBy === "Price: Low to High") {
       return (a.price || 0) - (b.price || 0);
     }
-    return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
+    return (
+      new Date(b.updatedAt || b.createdAt).getTime() -
+      new Date(a.updatedAt || a.createdAt).getTime()
+    );
   });
 
-  console.log(sortedTasks)
+  console.log(sortedTasks);
 
   return (
-    <section className="min-h-screen bg-gradient-to-br from-[#F9FAFC] to-[#EDEEF2] p-6 md:p-8">
-      {/* Top Filter Bar */}
-      <div className=" top-[4.5rem] z-40 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 mb-8 border border-[#8560F1]/10">
-        <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Search */}
-          <div className="relative w-full md:w-1/3">
-            <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="search"
-              placeholder="Search tasks by title or description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 text-lg font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
-            />
-          </div>
-
-          {/* Status Filters */}
-          <div className="flex flex-wrap gap-3 justify-center">
-            {TASK_STATUS.map(({ label, count }) => (
-              <button
-                key={label}
-                onClick={() => setSelectedStatus(label)}
-                className={`px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${selectedStatus === label
-                  ? "bg-gradient-to-r from-[#8560F1] to-[#A78BFA] text-white shadow-md"
-                  : "bg-gray-100 text-gray-700 hover:bg-[#F2EEFD] hover:text-[#8560F1]"
-                  }`}
-              >
-                {label} ({count})
+    <section className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {/* Header Section */}
+      <div className="bg-[#063A41] text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-3">
+                <FaTasks className="text-[#109C3D]" />
+                My Tasks
+              </h1>
+              <p className="text-white/70 mt-1 text-sm sm:text-base">
+                Manage and track all your posted tasks
+              </p>
+            </div>
+           <Link href={'/urgent-task'}>
+              <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-[#109C3D]/20">
+                <FaPlus className="text-sm" />
+                Post New Task
               </button>
-            ))}
+           </Link>
           </div>
+        </div>
+      </div>
 
-          {/* Sort By */}
-          <div className="w-full md:w-auto">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="w-full md:w-48 px-4 py-3 rounded-xl border border-gray-300 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#A78BFA] transition-all duration-300"
+      {/* Stats Cards */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {TASK_STATUS.map(({ label, count, icon: Icon, color }) => (
+            <button
+              key={label}
+              onClick={() => setSelectedStatus(label)}
+              className={`relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border-2 transition-all duration-200 hover:shadow-md ${selectedStatus === label
+                  ? "border-[#109C3D] shadow-md"
+                  : "border-transparent hover:border-gray-200"
+                }`}
             >
-              {SORT_OPTIONS.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 sm:w-12 sm:h-12 ${color} rounded-xl flex items-center justify-center flex-shrink-0`}>
+                  <Icon className="text-white text-lg sm:text-xl" />
+                </div>
+                <div className="text-left min-w-0">
+                  <p className="text-xs text-gray-500 truncate">{label}</p>
+                  <p className="text-xl sm:text-2xl font-bold text-[#063A41]">{count}</p>
+                </div>
+              </div>
+              {selectedStatus === label && (
+                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-[#109C3D] rounded-t-full" />
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="search"
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 rounded-xl border border-gray-200 text-sm font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#109C3D]/20 focus:border-[#109C3D] transition-all duration-200"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Actions */}
+            <div className="flex items-center gap-3">
+              {/* Active Filter Indicator */}
+              {selectedStatus !== "All Tasks" && (
+                <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg text-sm">
+                  <span>Filtered by:</span>
+                  <span className="font-semibold">{selectedStatus}</span>
+                  <button
+                    onClick={() => setSelectedStatus("All Tasks")}
+                    className="ml-1 hover:text-red-600 transition-colors"
+                  >
+                    <FaTimes className="text-xs" />
+                  </button>
+                </div>
+              )}
+
+              {/* Sort Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsSortOpen(!isSortOpen)}
+                  className="flex items-center gap-2 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm font-medium text-[#063A41] transition-colors border border-gray-200"
+                >
+                  <FaSortAmountDown className="text-[#109C3D]" />
+                  <span className="hidden sm:inline">{sortBy}</span>
+                  <FaChevronDown className={`text-xs transition-transform ${isSortOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                {isSortOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setIsSortOpen(false)}
+                    />
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50">
+                      {SORT_OPTIONS.map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => {
+                            setSortBy(option.value);
+                            setIsSortOpen(false);
+                          }}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${sortBy === option.value
+                              ? "bg-[#E5FFDB] text-[#063A41] font-medium"
+                              : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                        >
+                          <option.icon className={sortBy === option.value ? "text-[#109C3D]" : "text-gray-400"} />
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Task List */}
-      <main className="flex-1  lg:mx-auto lg:px-4 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
         {isLoading ? (
-          <p className="text-center text-gray-600 text-xl font-semibold animate-pulse">Loading tasks...</p>
-        ) : isError ? (
-          <p className="text-center text-red-600 text-xl font-semibold">Error loading tasks!</p>
-        ) : sortedTasks.length === 0 ? (
-          <p className="text-center text-gray-600 text-xl font-semibold">No tasks found.</p>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 ">
-            {sortedTasks.map((task: any, idx: number) => (
-              <AllClientTasks
-                key={task._id || idx}
-                task={task}
-                idx={idx}
-                handleReplySubmit={handleReplySubmit}
-                handleCompleteStatus={handleCompleteStatus}
-                handleEditTask={handleEditTask} user={null}              />
-            ))}
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="w-16 h-16 border-4 border-[#E5FFDB] border-t-[#109C3D] rounded-full animate-spin mb-4" />
+            <p className="text-[#063A41] font-medium">Loading your tasks...</p>
           </div>
+        ) : isError ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-red-100">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+              <FaExclamationCircle className="text-red-500 text-2xl" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Error Loading Tasks</h3>
+            <p className="text-gray-500 text-sm">Something went wrong. Please try again later.</p>
+          </div>
+        ) : sortedTasks.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-gray-100">
+            <div className="w-20 h-20 bg-[#E5FFDB] rounded-full flex items-center justify-center mb-4">
+              <FaClipboardList className="text-[#109C3D] text-3xl" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#063A41] mb-2">No Tasks Found</h3>
+            <p className="text-gray-500 text-sm text-center max-w-sm mb-6">
+              {searchTerm
+                ? `No tasks matching "${searchTerm}"`
+                : selectedStatus !== "All Tasks"
+                  ? `No ${selectedStatus.toLowerCase()} tasks at the moment`
+                  : "You haven't posted any tasks yet. Start by creating your first task!"}
+            </p>
+            <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors">
+              <FaPlus className="text-sm" />
+              Post Your First Task
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Results Count */}
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-gray-500">
+                Showing <span className="font-semibold text-[#063A41]">{sortedTasks.length}</span>{" "}
+                {sortedTasks.length === 1 ? "task" : "tasks"}
+              </p>
+            </div>
+
+            {/* Tasks Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {sortedTasks.map((task: any, idx: number) => (
+                <AllClientTasks
+                  key={task._id || idx}
+                  task={task}
+                  idx={idx}
+                  handleReplySubmit={handleReplySubmit}
+                  handleCompleteStatus={handleCompleteStatus}
+                  handleEditTask={handleEditTask}
+                  user={null}
+                />
+              ))}
+            </div>
+          </>
         )}
       </main>
 
       {/* Edit Task Modal */}
       {editTaskId && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative animate-fadeIn">
-            <button
-              onClick={() => {
-                setEditTaskId(null);
-                setEditFormData(initialTaskState);
-              }}
-              className="absolute top-4 right-4 text-gray-500 hover:text-red-600 transition-colors duration-300"
-            >
-              <FaTimes className="text-2xl" />
-            </button>
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">Edit Task</h3>
-            <form onSubmit={handleUpdateSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div
+          className="fixed inset-0 bg-[#063A41]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => {
+            setEditTaskId(null);
+            setEditFormData(initialTaskState);
+          }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden animate-modalSlide"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="bg-[#063A41] px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <FaTasks className="text-[#109C3D]" />
+                Edit Task
+              </h3>
+              <button
+                onClick={() => {
+                  setEditTaskId(null);
+                  setEditFormData(initialTaskState);
+                }}
+                className="text-white/70 hover:text-white transition-colors p-1"
+              >
+                <FaTimes className="text-xl" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleUpdateSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              <div className="space-y-5">
+                {/* Task Title */}
                 <div>
-                  <label htmlFor="taskTitle" className="block text-gray-800 font-medium mb-2">
-                    Task Title
+                  <label htmlFor="taskTitle" className="block text-sm font-medium text-[#063A41] mb-2">
+                    Task Title <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="taskTitle"
                     type="text"
                     name="taskTitle"
-                    placeholder="Task Title"
+                    placeholder="Enter task title"
                     value={editFormData.taskTitle}
                     onChange={handleFormChange}
-                    className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
                     required
                   />
                 </div>
-                <div>
-                  <label htmlFor="price" className="block text-gray-800 font-medium mb-2">
-                    Price
-                  </label>
-                  <input
-                    id="price"
-                    type="number"
-                    name="price"
-                    placeholder="Price"
-                    value={editFormData.price}
-                    onChange={handleFormChange}
-                    className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
-                    required
-                  />
+
+                {/* Two Column Layout */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Price */}
+                  <div>
+                    <label htmlFor="price" className="block text-sm font-medium text-[#063A41] mb-2">
+                      Budget ($) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="price"
+                      type="number"
+                      name="price"
+                      placeholder="0.00"
+                      value={editFormData.price}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
+                      required
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <label htmlFor="location" className="block text-sm font-medium text-[#063A41] mb-2">
+                      Location <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      id="location"
+                      type="text"
+                      name="location"
+                      placeholder="e.g., New York, NY"
+                      value={editFormData.location}
+                      onChange={handleFormChange}
+                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
+                      required
+                    />
+                  </div>
                 </div>
+
+                {/* Schedule */}
                 <div>
-                  <label htmlFor="location" className="block text-gray-800 font-medium mb-2">
-                    Location
-                  </label>
-                  <input
-                    id="location"
-                    type="text"
-                    name="location"
-                    placeholder="Location"
-                    value={editFormData.location}
-                    onChange={handleFormChange}
-                    className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="schedule" className="block text-gray-800 font-medium mb-2">
-                    Schedule
+                  <label htmlFor="schedule" className="block text-sm font-medium text-[#063A41] mb-2">
+                    Schedule <span className="text-red-500">*</span>
                   </label>
                   <input
                     id="schedule"
                     type="text"
                     name="schedule"
-                    placeholder="Schedule (e.g., Today)"
+                    placeholder="e.g., Today, Tomorrow, Urgent"
                     value={editFormData.schedule}
                     onChange={handleFormChange}
-                    className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
                     required
                   />
                 </div>
+
+                {/* Task Description */}
+                <div>
+                  <label htmlFor="taskDescription" className="block text-sm font-medium text-[#063A41] mb-2">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    id="taskDescription"
+                    name="taskDescription"
+                    placeholder="Describe your task in detail..."
+                    value={editFormData.taskDescription}
+                    onChange={handleFormChange}
+                    rows={4}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400 resize-none"
+                    required
+                  />
+                </div>
+
+                {/* Additional Info */}
+                <div>
+                  <label htmlFor="additionalInfo" className="block text-sm font-medium text-[#063A41] mb-2">
+                    Additional Information
+                  </label>
+                  <textarea
+                    id="additionalInfo"
+                    name="additionalInfo"
+                    placeholder="Any extra details or requirements..."
+                    value={editFormData.additionalInfo}
+                    onChange={handleFormChange}
+                    rows={2}
+                    className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400 resize-none"
+                  />
+                </div>
               </div>
-              <div>
-                <label htmlFor="taskDescription" className="block text-gray-800 font-medium mb-2">
-                  Task Description
-                </label>
-                <textarea
-                  id="taskDescription"
-                  name="taskDescription"
-                  placeholder="Task Description"
-                  value={editFormData.taskDescription}
-                  onChange={handleFormChange}
-                  rows={4}
-                  className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="additionalInfo" className="block text-gray-800 font-medium mb-2">
-                  Additional Info
-                </label>
-                <textarea
-                  id="additionalInfo"
-                  name="additionalInfo"
-                  placeholder="Additional Info"
-                  value={editFormData.additionalInfo}
-                  onChange={handleFormChange}
-                  rows={2}
-                  className="w-full p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
-                />
-              </div>
-              <div className="flex gap-4">
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-gradient-to-r from-[#8560F1] to-[#A78BFA] text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300"
-                >
-                  Update Task
-                </button>
+
+              {/* Modal Actions */}
+              <div className="flex gap-3 mt-6 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => {
                     setEditTaskId(null);
                     setEditFormData(initialTaskState);
                   }}
-                  className="flex-1 py-3 bg-gray-200 text-gray-800 font-semibold rounded-xl hover:bg-gray-300 transition-all duration-300"
+                  className="flex-1 px-4 py-3 border-2 border-gray-200 text-[#063A41] font-semibold rounded-xl hover:bg-gray-50 transition-colors"
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-3 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors shadow-lg shadow-[#109C3D]/20"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
           </div>
-
-
         </div>
       )}
 
-      {/* Custom CSS for Animations */}
+      {/* Custom Animations */}
       <style jsx>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes modalSlide {
+          from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
         }
-        .animate-fadeIn {
-          animation: fadeIn 0.5s ease-out;
+        .animate-modalSlide {
+          animation: modalSlide 0.3s ease-out;
         }
       `}</style>
     </section>

@@ -1,8 +1,27 @@
+/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 import { useState, useEffect, ReactNode } from "react";
-import { FaClock, FaTrash, FaWrench, FaTimes, FaDollarSign, FaUser, FaInfoCircle, FaCalendarAlt, FaStar } from "react-icons/fa";
+import {
+    FaClock,
+    FaTrash,
+    FaTimes,
+    FaDollarSign,
+    FaUser,
+    FaCalendarAlt,
+    FaStar,
+    FaChevronLeft,
+    FaChevronRight,
+    FaExclamationCircle,
+    FaCheckCircle,
+    FaHourglass,
+    FaEnvelope,
+    FaPhone,
+    FaClipboardCheck,
+    FaBriefcase,
+    FaRegCalendarCheck,
+} from "react-icons/fa";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import { useDeleteBookingMutation, useGetUserBookingsQuery } from "@/features/api/taskerApi";
@@ -11,6 +30,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import Image from "next/image";
 import { StaticImport } from "next/dist/shared/lib/get-img-props";
+import Link from "next/link";
 
 interface Booking {
     review: any;
@@ -51,6 +71,8 @@ const AllBookings: React.FC = () => {
     const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [bookingToDelete, setBookingToDelete] = useState<string | null>(null);
     const [reviewFormData, setReviewFormData] = useState<ReviewFormData>({
         rating: 0,
         message: "",
@@ -63,7 +85,7 @@ const AllBookings: React.FC = () => {
     // Check login status
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
             });
@@ -95,12 +117,18 @@ const AllBookings: React.FC = () => {
     // RTK Query hooks for delete
     const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
 
-    const handleDeleteBooking = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this booking?")) return;
+    const handleDeleteClick = (id: string) => {
+        setBookingToDelete(id);
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleDeleteBooking = async () => {
+        if (!bookingToDelete) return;
 
         try {
-            await deleteBooking(id).unwrap();
-            alert("Booking deleted successfully!");
+            await deleteBooking(bookingToDelete).unwrap();
+            setIsDeleteModalOpen(false);
+            setBookingToDelete(null);
         } catch (err: any) {
             console.error("Error deleting booking:", err);
             alert(`Failed to delete booking: ${err?.data?.message || "Unknown error"}`);
@@ -131,7 +159,7 @@ const AllBookings: React.FC = () => {
 
     const handleReviewSubmit = async (bookingId: string) => {
         try {
-            const response = await fetch("https://taskmatch-backend.vercel.app/api/taskerBookings/reviews", {
+            const response = await fetch("http://localhost:5000/api/taskerBookings/reviews", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -152,199 +180,461 @@ const AllBookings: React.FC = () => {
         }
     };
 
+    const getStatusConfig = (status: string) => {
+        const configs: { [key: string]: { bg: string; text: string; icon: React.ReactNode; label: string } } = {
+            pending: {
+                bg: "bg-amber-50",
+                text: "text-amber-700",
+                icon: <FaHourglass className="text-amber-500" />,
+                label: "Pending"
+            },
+            confirmed: {
+                bg: "bg-blue-50",
+                text: "text-blue-700",
+                icon: <FaRegCalendarCheck className="text-blue-500" />,
+                label: "Confirmed"
+            },
+            completed: {
+                bg: "bg-[#E5FFDB]",
+                text: "text-[#109C3D]",
+                icon: <FaCheckCircle className="text-[#109C3D]" />,
+                label: "Completed"
+            },
+            cancelled: {
+                bg: "bg-red-50",
+                text: "text-red-700",
+                icon: <FaExclamationCircle className="text-red-500" />,
+                label: "Cancelled"
+            },
+        };
+        return configs[status] || configs.pending;
+    };
+
+    const formatDateTime = (dateString: string) => {
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+        });
+    };
+
+    // Not logged in state
     if (!isLoggedIn || !user) {
         return (
-            <div className="container mx-auto py-8 px-4">
-                <p className="text-red-500">Please log in to view your bookings.</p>
+            <div className="min-h-[400px] flex items-center justify-center px-4">
+                <div className="text-center bg-white rounded-2xl border border-gray-100 p-8 max-w-md w-full">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FaUser className="text-red-500 text-2xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-[#063A41] mb-2">Login Required</h3>
+                    <p className="text-gray-500 text-sm">Please log in to view your bookings.</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="min-h-[400px] flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-[#E5FFDB] border-t-[#109C3D] rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-[#063A41] font-medium">Loading your bookings...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (error) {
+        return (
+            <div className="min-h-[400px] flex items-center justify-center px-4">
+                <div className="text-center bg-white rounded-2xl border border-red-100 p-8 max-w-md w-full">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FaExclamationCircle className="text-red-500 text-2xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">Error Loading Bookings</h3>
+                    <p className="text-gray-500 text-sm">Failed to load bookings. Please try again later.</p>
+                </div>
+            </div>
+        );
+    }
+    // Empty state
+    if (!bookings || bookings.length === 0) {
+        return (
+            <div className="min-h-[400px] flex items-center justify-center px-4">
+                <div className="text-center bg-white rounded-2xl border border-gray-100 p-8 max-w-md w-full">
+                    <div className="w-20 h-20 bg-[#E5FFDB] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FaClipboardCheck className="text-[#109C3D] text-3xl" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-[#063A41] mb-2">No Bookings Yet</h3>
+                    <p className="text-gray-500 text-sm mb-6">You haven't made any bookings yet.</p>
+                    <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors">
+                        <FaBriefcase className="text-sm" />
+                        Browse Services
+                    </button>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto py-4 sm:py-6 lg:py-8 px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 bg-clip-text bg-gradient-to-r from-[#8560F1] to-[#E7B6FE]">
-                Manage Your Bookings
-            </h2>
+        <div className="py-6 sm:py-8 lg:py-10 px-4 sm:px-6 lg:px-8">
+            {/* Header */}
+            <div className="max-w-7xl mx-auto mb-6 sm:mb-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h2 className="text-2xl sm:text-3xl font-bold text-[#063A41] flex items-center gap-3">
+                            <div className="w-10 h-10 bg-[#E5FFDB] rounded-xl flex items-center justify-center">
+                                <FaClipboardCheck className="text-[#109C3D]" />
+                            </div>
+                            My Bookings
+                        </h2>
+                        <p className="text-gray-500 mt-1 text-sm sm:text-base">
+                            Manage and track all your service bookings
+                        </p>
+                    </div>
 
-            {isLoading && <p className="text-gray-600 text-sm sm:text-base">Loading bookings...</p>}
-            {error && (
-                <p className="text-red-500 text-sm sm:text-base">Error: {"Failed to load bookings"}</p>
-            )}
-            {!isLoading && (!bookings || bookings.length === 0) && (
-                <p className="text-gray-600 text-sm sm:text-base">No bookings found.</p>
-            )}
+                    {/* Stats */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 px-4 py-2 bg-white rounded-xl border border-gray-100 shadow-sm">
+                            <span className="text-sm text-gray-500">Total:</span>
+                            <span className="text-lg font-bold text-[#109C3D]">{bookings.length}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-            <div className="">
-                {bookings && bookings.length > 0 && (
-                    <Swiper
-                        modules={[Navigation, Pagination, Autoplay]}
-                        spaceBetween={16}
-                        slidesPerView={1}
-                        pagination={{ clickable: true }}
-                        autoplay={{ delay: 5000 }}
-                        className="my-6 sm:my-8"
-                        breakpoints={{
-                            640: { slidesPerView: 1, spaceBetween: 16 },
-                            768: { slidesPerView: 2, spaceBetween: 20 },
-                            1024: { slidesPerView: 2, spaceBetween: 24 },
-                        }}
-                    >
-                        {bookings.map((booking: Booking) => (
+            {/* Swiper Container */}
+            <div className="max-w-7xl mx-auto relative">
+                {/* Custom Navigation */}
+                <button className="swiper-button-prev-bookings absolute left-0 top-1/2 -translate-y-1/2 -translate-x-2 lg:-translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100  items-center justify-center text-[#063A41] hover:bg-[#E5FFDB] hover:text-[#109C3D] transition-all hidden md:flex">
+                    <FaChevronLeft className="text-sm" />
+                </button>
+                <button className="swiper-button-next-bookings absolute right-0 top-1/2 -translate-y-1/2 translate-x-2 lg:translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100  items-center justify-center text-[#063A41] hover:bg-[#E5FFDB] hover:text-[#109C3D] transition-all hidden md:flex">
+                    <FaChevronRight className="text-sm" />
+                </button>
+
+                <Swiper
+                    modules={[Navigation, Pagination, Autoplay]}
+                    spaceBetween={20}
+                    slidesPerView={1}
+                    pagination={{
+                        clickable: true,
+                        bulletClass: 'swiper-pagination-bullet !bg-gray-300 !opacity-100',
+                        bulletActiveClass: '!bg-[#109C3D]',
+                    }}
+                    navigation={{
+                        prevEl: '.swiper-button-prev-bookings',
+                        nextEl: '.swiper-button-next-bookings',
+                    }}
+                    autoplay={{ delay: 5000, disableOnInteraction: true }}
+                    className="pb-12"
+                    breakpoints={{
+                        640: { slidesPerView: 1, spaceBetween: 16 },
+                        768: { slidesPerView: 2, spaceBetween: 20 },
+                        1024: { slidesPerView: 2, spaceBetween: 24 },
+                    }}
+                >
+                    {bookings.map((booking: Booking) => {
+                        const statusConfig = getStatusConfig(booking.status);
+                        const canDelete = user._id === booking.client._id;
+                        const canReview = booking.status === "completed" && user._id === booking.client._id && !booking.review;
+
+                        return (
                             <SwiperSlide key={booking._id}>
-                                <div className="relative bg-white rounded-2xl sm:rounded-3xl mt-16 sm:mt-20 shadow-md sm:shadow-lg max-w-full sm:max-w-md mx-auto overflow-hidden transition-all duration-500 hover:shadow-[0_12px_40px_rgba(79,70,229,0.2)] hover:-translate-y-1 border border-purple-100">
-                                    <div className="absolute -top-10 sm:-top-12 z-50 left-1/2 transform -translate-x-1/2 w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-xl ring-3 sm:ring-4 ring-white">
-                                        <FaWrench className="text-2xl sm:text-3xl text-white animate-spin-slow" />
+                                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden h-full">
+                                    {/* Card Header */}
+                                    <div className="bg-[#063A41] p-4 sm:p-5">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-lg sm:text-xl font-bold text-white truncate mb-2">
+                                                    {booking.service.title}
+                                                </h3>
+                                                <div className="flex items-center gap-2 text-white/70 text-xs sm:text-sm">
+                                                    <FaCalendarAlt className="flex-shrink-0" />
+                                                    <span>{formatDateTime(booking.createdAt)}</span>
+                                                </div>
+                                            </div>
+                                            {/* Status Badge */}
+                                            <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${statusConfig.bg} ${statusConfig.text}`}>
+                                                {statusConfig.icon}
+                                                <span className="hidden sm:inline">{statusConfig.label}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="pt-12 sm:pt-16 pb-4 sm:pb-6 px-4 sm:px-6 space-y-4 sm:space-y-5 bg-gradient-to-b from-purple-50 to-white relative z-10">
-                                        <div className="text-center">
-                                            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 tracking-tight line-clamp-1">{booking.service.title}</h3>
-                                            <span className={`mt-2 sm:mt-3 inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium shadow-sm transition-all 
-                                        ${booking.status === 'pending'
-                                                    ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                                                    : 'bg-green-50 text-green-700 border border-green-200'}`}>
-                                                <FaInfoCircle className="text-xs sm:text-sm" />
-                                                {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                                            </span>
-                                        </div>
-                                        <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-inner border border-purple-100 transition-all duration-300 hover:bg-purple-50">
-                                            <p className="text-xs sm:text-sm text-gray-600 italic text-center line-clamp-2 mb-2 sm:mb-3">{booking.service.description}</p>
-                                            <div className="flex flex-col sm:flex-row justify-between text-xs sm:text-sm font-semibold text-gray-700 gap-2 sm:gap-0">
-                                                <span className="flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 bg-orange-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
-                                                    <FaClock className="text-orange-500 text-xs sm:text-sm" />
-                                                    {booking.service.estimatedDuration}
-                                                </span>
-                                                <span className="flex items-center justify-center sm:justify-end gap-1.5 sm:gap-2 bg-green-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg">
-                                                    <FaDollarSign className="text-green-500 text-xs sm:text-sm" />
-                                                    ${booking.service.hourlyRate}/hr
-                                                </span>
+
+                                    {/* Card Body */}
+                                    <div className="p-4 sm:p-5 space-y-4">
+                                        {/* Service Description */}
+                                        <p className="text-gray-600 text-sm leading-relaxed line-clamp-2">
+                                            {booking.service.description}
+                                        </p>
+
+                                        {/* Service Details */}
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {/* Duration */}
+                                            <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl">
+                                                <div className="w-8 h-8 bg-[#E5FFDB] rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <FaClock className="text-[#109C3D] text-sm" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-gray-400 uppercase">Duration</p>
+                                                    <p className="text-xs font-semibold text-[#063A41] truncate">
+                                                        {booking.service.estimatedDuration}
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {/* Rate */}
+                                            <div className="flex items-center gap-2.5 p-3 bg-gray-50 rounded-xl">
+                                                <div className="w-8 h-8 bg-[#E5FFDB] rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <FaDollarSign className="text-[#109C3D] text-sm" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-[10px] text-gray-400 uppercase">Rate</p>
+                                                    <p className="text-xs font-semibold text-[#109C3D]">
+                                                        ${booking.service.hourlyRate}/hr
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="bg-indigo-50 rounded-xl sm:rounded-2xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 transition-all duration-300 hover:bg-indigo-100 border border-indigo-100">
-                                            <div className="bg-indigo-200 p-1 sm:p-1.5 rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center overflow-hidden">
-                                                {booking.tasker.profilePicture ? (
-                                                    <Image
-                                                        src={booking.tasker.profilePicture}
-                                                        alt={`${booking.tasker.fullName}'s profile`}
-                                                        width={32}
-                                                        height={32}
-                                                        className="rounded-full object-cover sm:w-10 sm:h-10"
-                                                    />
-                                                ) : (
-                                                    <FaUser className="text-indigo-600 text-sm sm:text-lg" />
-                                                )}
-                                            </div>
-                                            <div className="text-xs sm:text-sm text-gray-700 leading-tight">
-                                                <p className="font-semibold text-indigo-700 line-clamp-1">{booking.tasker.fullName}</p>
-                                                {booking.tasker.email && <p className="text-xs line-clamp-1">{booking.tasker.email}</p>}
-                                                {booking.tasker.phone && <p className="text-xs line-clamp-1">{booking.tasker.phone}</p>}
-                                            </div>
+
+                                        {/* Tasker Info */}
+                                        <div className="border-t border-gray-100 pt-4">
+                                            <p className="text-[10px] text-gray-400 uppercase mb-2">Service Provider</p>
+                                            <Link
+                                                href={`/taskers/${booking.tasker._id}`}
+                                                className="flex items-center gap-3 p-3 bg-[#E5FFDB]/50 rounded-xl border border-[#109C3D]/10 group hover:border-[#109C3D]/30 transition-colors"
+                                            >
+                                                <div className="w-11 h-11 rounded-full overflow-hidden flex-shrink-0 border-2 border-[#109C3D]/20 group-hover:border-[#109C3D] transition-colors">
+                                                    {booking.tasker.profilePicture ? (
+                                                        <Image
+                                                            src={booking.tasker.profilePicture}
+                                                            alt={`${booking.tasker.fullName}'s profile`}
+                                                            width={44}
+                                                            height={44}
+                                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full bg-[#109C3D]/20 flex items-center justify-center group-hover:bg-[#109C3D]/30 transition-colors">
+                                                            <FaUser className="text-[#109C3D]" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-semibold text-[#063A41] truncate group-hover:text-[#109C3D] transition-colors">
+                                                        {booking.tasker.firstName} {booking.tasker.lastName}
+                                                    </p>
+                                                </div>
+                                            </Link>
                                         </div>
-                                        <div className="flex flex-col sm:flex-row items-center justify-between pt-3 sm:pt-4 border-t border-purple-200 gap-2 sm:gap-0">
-                                            <span className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-gray-600">
-                                                <FaCalendarAlt className="text-blue-500 text-xs sm:text-sm" />
-                                                {new Date(booking.createdAt).toLocaleDateString()}
-                                            </span>
-                                            <div className="flex gap-2">
-                                                {booking.status === "completed" && user._id === booking.client._id && !booking.review && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedBooking(booking);
-                                                            setIsReviewModalOpen(true);
-                                                        }}
-                                                        className="flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-md transition-all duration-300 hover:from-blue-600 hover:to-blue-700 hover:scale-105 text-xs sm:text-sm"
-                                                    >
-                                                        <FaStar /> Add Review
-                                                    </button>
-                                                )}
+                                    </div>
+
+                                    {/* Card Footer */}
+                                    <div className="px-4 sm:px-5 py-3 sm:py-4 bg-gray-50 border-t border-gray-100">
+                                        <div className="flex flex-wrap gap-2">
+                                            {/* Review Button */}
+                                            {canReview && (
                                                 <button
-                                                    onClick={() => handleDeleteBooking(booking._id)}
-                                                    className={`flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-red-500 to-red-600 text-white font-semibold px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-md transition-all duration-300 hover:from-red-600 hover:to-red-700 hover:scale-105 text-xs sm:text-sm
-                                                ${isDeleting || user._id !== booking.client._id ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                    disabled={isDeleting || user._id !== booking.client._id}
+                                                    onClick={() => {
+                                                        setSelectedBooking(booking);
+                                                        setIsReviewModalOpen(true);
+                                                    }}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#063A41] text-white font-medium rounded-xl hover:bg-[#052e33] transition-colors text-sm"
                                                 >
-                                                    <FaTrash /> {isDeleting ? 'Deleting...' : 'Delete'}
+                                                    <FaStar className="text-yellow-400" />
+                                                    Add Review
                                                 </button>
-                                            </div>
+                                            )}
+
+                                            {/* Delete Button */}
+                                            <button
+                                                onClick={() => handleDeleteClick(booking._id)}
+                                                disabled={isDeleting || !canDelete}
+                                                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-red-200 text-red-600 font-medium rounded-xl hover:bg-red-50 hover:border-red-300 transition-all text-sm
+                                                    ${(isDeleting || !canDelete) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                            >
+                                                <FaTrash className="text-xs" />
+                                                Delete
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
-                                    <style>
-                                        {`
-                                    @keyframes spin-slow {
-                                        0% { transform: rotate(0deg); }
-                                        100% { transform: rotate(360deg); }
-                                    }
-                                    .animate-spin-slow {
-                                        animation: spin-slow 10s linear infinite;
-                                    }
-                                `}
-                                    </style>
                                 </div>
                             </SwiperSlide>
-                        ))}
-                    </Swiper>
-                )}
+                        );
+                    })}
+                </Swiper>
             </div>
 
             {/* Review Modal */}
             {isReviewModalOpen && selectedBooking && (
-                <div className="fixed inset-0 bg-black/10 bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-xl shadow-2xl w-full max-w-md sm:max-w-lg p-4 sm:p-6 transform transition-all duration-300">
-                        <div className="flex justify-between items-center mb-4 sm:mb-6">
-                            <h3 className="text-lg sm:text-xl font-bold text-gray-800">Add Review for {selectedBooking.tasker.firstName} {selectedBooking.tasker.lastName}</h3>
-                            <button
-                                onClick={() => setIsReviewModalOpen(false)}
-                                className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
-                            >
-                                <FaTimes className="text-lg sm:text-xl" />
-                            </button>
+                <div
+                    className="fixed inset-0 bg-[#063A41]/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                    onClick={() => setIsReviewModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-modalSlide"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="bg-[#063A41] px-6 py-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-white">
+                                    Review for {selectedBooking.tasker.firstName} {selectedBooking.tasker.lastName}
+                                </h3>
+                                <button
+                                    onClick={() => setIsReviewModalOpen(false)}
+                                    className="text-white/70 hover:text-white transition-colors p-1"
+                                >
+                                    <FaTimes className="text-lg" />
+                                </button>
+                            </div>
                         </div>
-                        <div className="space-y-4 sm:space-y-6">
+
+                        {/* Modal Body */}
+                        <div className="p-6 space-y-5">
+                            {/* Rating */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                                <div className="flex gap-1 sm:gap-2">
+                                <label className="block text-sm font-medium text-[#063A41] mb-3">
+                                    How would you rate this service?
+                                </label>
+                                <div className="flex gap-2 justify-center">
                                     {[1, 2, 3, 4, 5].map((star) => (
-                                        <FaStar
+                                        <button
                                             key={star}
-                                            className={`text-2xl sm:text-3xl cursor-pointer transition-colors duration-200 ${star <= reviewFormData.rating ? 'text-yellow-400' : 'text-gray-300'
-                                                }`}
+                                            type="button"
                                             onClick={() => setReviewFormData((prev) => ({ ...prev, rating: star }))}
-                                        />
+                                            className="focus:outline-none transform transition-transform hover:scale-110"
+                                        >
+                                            <FaStar
+                                                className={`text-3xl transition-colors duration-200 ${star <= reviewFormData.rating ? 'text-yellow-400' : 'text-gray-200'
+                                                    }`}
+                                            />
+                                        </button>
                                     ))}
                                 </div>
+                                {reviewFormData.rating > 0 && (
+                                    <p className="text-center text-sm text-gray-500 mt-2">
+                                        {reviewFormData.rating === 5 ? "Excellent!" :
+                                            reviewFormData.rating === 4 ? "Very Good" :
+                                                reviewFormData.rating === 3 ? "Good" :
+                                                    reviewFormData.rating === 2 ? "Fair" : "Poor"}
+                                    </p>
+                                )}
                             </div>
+
+                            {/* Review Message */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Review Message</label>
+                                <label className="block text-sm font-medium text-[#063A41] mb-2">
+                                    Your Review
+                                </label>
                                 <textarea
                                     name="message"
                                     value={reviewFormData.message}
                                     onChange={handleReviewInputChange}
-                                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm sm:text-base p-3 sm:p-4"
+                                    className="w-full rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors p-4 text-sm resize-none"
                                     rows={4}
+                                    placeholder="Share your experience with this service..."
                                     required
-                                    placeholder="Share your experience..."
                                 />
                             </div>
-                            <div className="flex justify-end gap-2 sm:gap-3">
+
+                            {/* Actions */}
+                            <div className="flex gap-3 pt-2">
                                 <button
                                     onClick={() => setIsReviewModalOpen(false)}
-                                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 text-sm sm:text-base transition-colors duration-200"
+                                    className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-[#063A41] rounded-xl font-medium hover:bg-gray-50 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={() => handleReviewSubmit(selectedBooking._id)}
-                                    className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 text-sm sm:text-base transition-all duration-200 disabled:opacity-50"
+                                    disabled={reviewFormData.rating === 0}
+                                    className="flex-1 px-4 py-2.5 bg-[#109C3D] text-white rounded-xl font-medium hover:bg-[#0d8a35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    Submit
+                                    Submit Review
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
-        </div>
 
+            {/* Delete Confirmation Modal */}
+            {isDeleteModalOpen && (
+                <div
+                    className="fixed inset-0 bg-[#063A41]/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+                    onClick={() => setIsDeleteModalOpen(false)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden animate-modalSlide"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Content */}
+                        <div className="p-6 text-center">
+                            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <FaTrash className="text-red-500 text-2xl" />
+                            </div>
+                            <h3 className="text-xl font-bold text-[#063A41] mb-2">
+                                Delete Booking?
+                            </h3>
+                            <p className="text-gray-500 text-sm">
+                                This action cannot be undone. The booking will be permanently removed from your records.
+                            </p>
+                        </div>
+
+                        {/* Modal Actions */}
+                        <div className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+                            <button
+                                onClick={() => setIsDeleteModalOpen(false)}
+                                className="flex-1 px-4 py-2.5 border-2 border-gray-200 text-[#063A41] font-semibold rounded-xl hover:bg-gray-100 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDeleteBooking}
+                                disabled={isDeleting}
+                                className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            >
+                                {isDeleting ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FaTrash className="text-sm" />
+                                        Delete
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Animations */}
+            <style jsx>{`
+                @keyframes modalSlide {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-20px) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+                .animate-modalSlide {
+                    animation: modalSlide 0.3s ease-out;
+                }
+            `}</style>
+        </div>
     );
 };
 

@@ -27,6 +27,8 @@ import Link from "next/link"
 import { PaymentTransactions } from "./PaymentTransactions"
 import MyServices from "./MyServices"
 import UpdateDocument from "./UpdateDocument"
+import Image from "next/image"
+import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
 
 // Separate PaymentTransactions component
 
@@ -46,13 +48,13 @@ console.log({
 const sidebarItems = [
     { title: "Dashboard", icon: Home, component: <DashboardContent />, active: true },
     // { title: "Urgent Tasks", icon: CheckSquare, component: <UrgentTaskCards /> },
-    { title: "Find Tasks", icon: CheckSquare, component: <AvailableTasks /> },
+    // { title: "Find Tasks", icon: CheckSquare, component: <AvailableTasks /> },
     { title: "Active Tasks", icon: CheckSquare, component: <ActiveTasks /> },
     { title: "All Bookings", icon: Users, component: <PendingBookings /> },
     { title: "All Request-Quotes", icon: FileText, component: <TaskerQuotes /> },
     { title: "Completed Tasks", icon: CheckSquare, component: <CompletedTasks /> },
     { title: "My Services", icon: CheckSquare, component: <MyServices /> },
-    { title: "My Profile", icon: FileText, component: <UpdateDocument /> },
+    // { title: "My Profile", icon: FileText, component: <UpdateDocument /> },
     { title: "Payments", icon: CreditCard, component: <PaymentTransactions /> },
     
 ]
@@ -88,9 +90,15 @@ export function DashboardLayout({ isOpen, toggleSidebar }: DashboardLayoutProps)
                 {/* Logo */}
                 <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="relative">
-                            <h1 className="text-2xl font-bold text-[#063A41]">TaskAllo</h1>
-                            <div className="absolute -top-1 -right-3 w-3 h-3 bg-[#109C3D] rounded-full animate-pulse" />
+                        <div className="flex items-center gap-2">
+                            <Link href="/">
+                                <Image
+                                    src={logo}
+                                    alt="TaskAllo Logo"
+                                    className="w-24 h-auto xs:w-28 sm:w-32 lg:w-36"
+                                    priority
+                                />
+                            </Link>
                         </div>
                     </Link>
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="lg:hidden">
@@ -128,13 +136,15 @@ export function DashboardLayout({ isOpen, toggleSidebar }: DashboardLayoutProps)
 
                 {/* Support */}
                 <div className="p-4 border-t border-gray-200">
-                    <button
-                        className="w-full flex items-center justify-start gap-3 h-11 rounded-xl border border-gray-300 px-4 transition-all hover:border-[#109C3D] hover:text-[#109C3D]"
-                        onClick={() => window.open('mailto:support@taskallo.com', '_blank')}
-                    >
-                        <HelpCircle className="w-5 h-5" />
-                        <span>Support & Help</span>
-                    </button>
+                  <Link href={'/contact-us'}>
+                        <button
+                            className="w-full flex items-center justify-start gap-3 h-11 rounded-xl border border-gray-300 px-4 transition-all hover:border-[#109C3D] hover:text-[#109C3D]"
+                            // onClick={() => window.open('mailto:support@taskallo.com', '_blank')}
+                        >
+                            <HelpCircle className="w-5 h-5" />
+                            <span>Support & Help</span>
+                        </button>
+                  </Link>
                 </div>
 
             </aside>

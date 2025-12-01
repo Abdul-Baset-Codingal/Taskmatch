@@ -1,14 +1,69 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from 'react';
-import { FaClock, FaStar, FaTimes, FaWrench, FaChevronLeft, FaChevronRight, FaCheckCircle } from 'react-icons/fa';
-import Cookies from 'js-cookie';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import {
+    FaClock,
+    FaStar,
+    FaTimes,
+    FaChevronLeft,
+    FaChevronRight,
+    FaCheckCircle,
+    FaCreditCard,
+    FaCalendarAlt,
+    FaShieldAlt,
+    FaArrowLeft,
+    FaUser,
+    FaCheck,
+    FaLock,
+} from 'react-icons/fa';
 import { useCreateBookingMutation } from '@/features/api/taskerApi';
+import { useCreateSetupIntentMutation, useSavePaymentMethodMutation } from '@/features/api/taskApi';
 import { toast } from 'react-toastify';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+    Elements,
+    useStripe,
+    useElements,
+    CardElement,
+} from '@stripe/react-stripe-js';
+import Image from 'next/image';
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+// ============ HELPER FUNCTIONS (OUTSIDE COMPONENT) ============
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const getDayName = (date: Date): string => {
+    return DAY_NAMES[date.getDay()];
+};
+
+const formatDateForAPI = (date: Date): string => {
+    // Create ISO string but preserve local timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+};
+
+const formatTime = (time: string): string => {
+    const [hours, minutes] = time.split(':').map(Number);
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+};
+// ============ END HELPER FUNCTIONS ============
 
 interface Tasker {
     _id: string;
     firstName: string;
-    lastName: string; email: string;
+    lastName: string;
+    email: string;
     phone: string;
     profilePicture: string;
     city: string;
@@ -34,10 +89,259 @@ interface BookServiceModalProps {
     onClose: () => void;
 }
 
-const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
+// Stripe Payment Form Component
+const StripePaymentForm = ({
+    amount,
+    service,
+    selectedDate,
+    onPaymentSuccess,
+    onCancel,
+    taskerName,
+}: {
+    amount: number;
+    service: any;
+    taskerId: string;
+    selectedDate: Date;
+    onPaymentSuccess: (paymentMethodId: string) => void;
+    onCancel: () => void;
+    taskerName: string;
+}) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [cardComplete, setCardComplete] = useState(false);
+    const [createSetupIntent] = useCreateSetupIntentMutation();
+    const [savePaymentMethod] = useSavePaymentMethodMutation();
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!stripe || !elements) {
+            setError('Payment system not ready. Please try again.');
+            return;
+        }
+
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const setupIntentResponse = await createSetupIntent().unwrap();
+            const { clientSecret } = setupIntentResponse;
+
+            const cardElement = elements.getElement(CardElement);
+            if (!cardElement) {
+                throw new Error('Card element not found');
+            }
+
+            const { error: stripeError, setupIntent } = await stripe.confirmCardSetup(clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name: 'Customer',
+                    },
+                },
+            });
+
+            if (stripeError) {
+                throw new Error(stripeError.message || 'Card setup failed');
+            }
+
+            if (!setupIntent?.payment_method) {
+                throw new Error('No payment method returned from Stripe');
+            }
+
+            const paymentMethodId = typeof setupIntent.payment_method === 'string'
+                ? setupIntent.payment_method
+                : setupIntent.payment_method.id;
+
+            await savePaymentMethod(paymentMethodId).unwrap();
+            onPaymentSuccess(paymentMethodId);
+            toast.success('Payment method saved successfully!');
+
+        } catch (err: any) {
+            console.error('Payment error details:', err);
+            let errorMessage = 'Payment setup failed';
+
+            if (err?.data?.error) {
+                errorMessage = err.data.error;
+            } else if (err?.message) {
+                errorMessage = err.message;
+            }
+
+            setError(errorMessage);
+            toast.error(`Payment failed: ${errorMessage}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <div className="w-full">
+            {/* Payment Summary Card */}
+            <div className="bg-[#E5FFDB] border border-[#109C3D]/20 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-[#063A41]">Service</span>
+                    <span className="text-sm font-semibold text-[#063A41]">{service.title}</span>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-[#063A41]">Date</span>
+                    <span className="text-sm font-semibold text-[#063A41]">
+                        {getDayName(selectedDate)}, {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between mb-3">
+                    <span className="text-sm text-[#063A41]">Provider</span>
+                    <span className="text-sm font-semibold text-[#063A41]">{taskerName}</span>
+                </div>
+                <div className="border-t border-[#109C3D]/20 pt-3 mt-3">
+                    <div className="flex items-center justify-between">
+                        <span className="text-base font-semibold text-[#063A41]">Total Amount</span>
+                        <span className="text-xl font-bold text-[#109C3D]">${amount}</span>
+                    </div>
+                </div>
+            </div>
+
+            {error && (
+                <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl mb-4 flex items-start gap-3">
+                    <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <FaTimes className="text-red-500 text-xs" />
+                    </div>
+                    <div>
+                        <p className="font-medium text-sm">Payment Error</p>
+                        <p className="text-sm mt-0.5">{error}</p>
+                    </div>
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                    <label className="block text-sm font-medium text-[#063A41] mb-3">
+                        Card Information
+                    </label>
+                    <div className="relative">
+                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                            <FaCreditCard className="text-gray-400" />
+                        </div>
+                        <div className="p-4 pl-12 border-2 border-gray-200 rounded-xl bg-white focus-within:border-[#109C3D] focus-within:ring-2 focus-within:ring-[#109C3D]/20 transition-all">
+                            <CardElement
+                                options={{
+                                    style: {
+                                        base: {
+                                            fontSize: '16px',
+                                            color: '#063A41',
+                                            fontFamily: 'inherit',
+                                            '::placeholder': {
+                                                color: '#9CA3AF',
+                                            },
+                                        },
+                                        invalid: {
+                                            color: '#DC2626',
+                                        },
+                                    },
+                                }}
+                                onChange={(e) => setCardComplete(e.complete)}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Security Badge */}
+                <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
+                    <FaLock className="text-[#109C3D]" />
+                    <span>Your payment is secured with 256-bit SSL encryption</span>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 border-2 border-gray-200 text-[#063A41] rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                        disabled={isLoading}
+                    >
+                        <FaArrowLeft className="text-sm" />
+                        Back
+                    </button>
+                    <button
+                        type="submit"
+                        disabled={!stripe || isLoading || !cardComplete}
+                        className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-[#109C3D] text-white rounded-xl font-semibold hover:bg-[#0d8a35] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isLoading ? (
+                            <>
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                Processing...
+                            </>
+                        ) : (
+                            <>
+                                <FaShieldAlt />
+                                Pay ${amount}
+                            </>
+                        )}
+                    </button>
+                </div>
+
+                {/* Trust Badges */}
+                <div className="flex items-center justify-center gap-6 pt-2">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <FaShieldAlt className="text-[#109C3D]" />
+                        <span>Secure</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <FaCreditCard className="text-[#109C3D]" />
+                        <span>Stripe</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-400">
+                        <FaCheckCircle className="text-[#109C3D]" />
+                        <span>Verified</span>
+                    </div>
+                </div>
+            </form>
+        </div>
+    );
+};
+
+// Payment Wrapper Component
+const PaymentWrapper = ({
+    amount,
+    service,
+    taskerId,
+    selectedDate,
+    onPaymentSuccess,
+    onCancel,
+    taskerName,
+}: {
+    amount: number;
+    service: any;
+    taskerId: string;
+    selectedDate: Date;
+    onPaymentSuccess: (paymentMethodId: string) => void;
+    onCancel: () => void;
+    taskerName: string;
+}) => {
+    return (
+        <Elements stripe={stripePromise}>
+            <StripePaymentForm
+                amount={amount}
+                service={service}
+                taskerId={taskerId}
+                selectedDate={selectedDate}
+                onPaymentSuccess={onPaymentSuccess}
+                onCancel={onCancel}
+                taskerName={taskerName}
+            />
+        </Elements>
+    );
+};
+
+// Custom Calendar Component
+const CustomCalendar = ({
+    selectedDate,
+    onDateChange,
+    availableDays,
+}: {
     selectedDate: Date | null;
     onDateChange: (date: Date | null) => void;
-    isDateAvailable: (date: Date) => boolean;
+    availableDays: string[];
 }) => {
     const [currentMonth, setCurrentMonth] = useState(selectedDate || new Date());
 
@@ -46,7 +350,7 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
         "July", "August", "September", "October", "November", "December"
     ];
 
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
     const getDaysInMonth = (date: Date) => {
         const year = date.getFullYear();
@@ -56,14 +360,12 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
         const daysInMonth = lastDay.getDate();
         const startingDayOfWeek = firstDay.getDay();
 
-        const days = [];
+        const days: (Date | null)[] = [];
 
-        // Add empty cells for days before the first day of the month
         for (let i = 0; i < startingDayOfWeek; i++) {
             days.push(null);
         }
 
-        // Add all days of the month
         for (let day = 1; day <= daysInMonth; day++) {
             days.push(new Date(year, month, day));
         }
@@ -79,97 +381,200 @@ const CustomCalendar = ({ selectedDate, onDateChange, isDateAvailable }: {
 
     const isToday = (date: Date) => {
         const today = new Date();
-        return date &&
-            date.getDate() === today.getDate() &&
+        return date.getDate() === today.getDate() &&
             date.getMonth() === today.getMonth() &&
             date.getFullYear() === today.getFullYear();
     };
 
     const isSelected = (date: Date) => {
-        return selectedDate && date &&
+        return selectedDate &&
             date.getDate() === selectedDate.getDate() &&
             date.getMonth() === selectedDate.getMonth() &&
             date.getFullYear() === selectedDate.getFullYear();
     };
 
+    const isPast = (date: Date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date < today;
+    };
+
+    const isDateAvailable = (date: Date): boolean => {
+        const dayName = getDayName(date);
+        return availableDays.some(day => day.toLowerCase() === dayName.toLowerCase());
+    };
+
     const days = getDaysInMonth(currentMonth);
 
     return (
-        <div className="w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="w-full bg-white rounded-xl border border-gray-200 overflow-hidden">
             {/* Header */}
-            <div className="color1 text-white p-3 flex items-center justify-between">
+            <div className="bg-[#063A41] text-white px-4 py-3 flex items-center justify-between">
                 <button
+                    type="button"
                     onClick={() => navigateMonth(-1)}
-                    className="p-1 hover:bg-white/20 rounded transition-all duration-200"
+                    className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors"
                 >
                     <FaChevronLeft className="text-sm" />
                 </button>
-                <h3 className="text-base font-semibold">
+                <h3 className="text-sm font-semibold">
                     {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
                 </h3>
                 <button
+                    type="button"
                     onClick={() => navigateMonth(1)}
-                    className="p-1 hover:bg-white/20 rounded transition-all duration-200"
+                    className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors"
                 >
                     <FaChevronRight className="text-sm" />
                 </button>
             </div>
 
             {/* Day Names */}
-            <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-200">
+            <div className="grid grid-cols-7 bg-gray-50 border-b border-gray-100">
                 {dayNames.map((day) => (
-                    <div key={day} className="p-2 text-center text-xs font-medium text-gray-600">
+                    <div key={day} className="py-2 text-center text-xs font-medium text-gray-500">
                         {day}
                     </div>
                 ))}
             </div>
 
             {/* Calendar Days */}
-            <div className="grid grid-cols-7">
-                {days.map((date, index) => (
-                    <div
-                        key={index}
-                        className={`
-                            h-12 flex items-center justify-center text-xs font-medium cursor-pointer transition-all duration-200 border-r border-b border-gray-100 last:border-r-0
-                            ${!date ? 'cursor-default' : ''}
-                            ${date && isToday(date) ? 'bg-color2 text-white font-bold' : ''}
-                            ${date && isSelected(date) ? 'color1 text-white font-bold' : ''}
-                            ${date && !isToday(date) && !isSelected(date) && isDateAvailable(date) ? 'text-gray-800 hover:bg-color3/20' : ''}
-                            ${date && !isDateAvailable(date) ? 'text-gray-300 cursor-not-allowed' : ''}
-                            ${!date ? '' : isDateAvailable(date) ? 'hover:scale-105' : ''}
-                        `}
-                        onClick={() => {
-                            if (date && isDateAvailable(date)) {
-                                onDateChange(date);
-                            }
-                        }}
-                    >
-                        {date ? date.getDate() : ''}
-                    </div>
-                ))}
+            <div className="grid grid-cols-7 p-2 gap-1">
+                {days.map((date, index) => {
+                    if (!date) {
+                        return <div key={index} className="aspect-square" />;
+                    }
+
+                    const dayAvailable = isDateAvailable(date);
+                    const past = isPast(date);
+                    const available = dayAvailable && !past;
+                    const selected = isSelected(date);
+                    const today = isToday(date);
+
+                    return (
+                        <button
+                            key={index}
+                            type="button"
+                            disabled={!available}
+                            onClick={() => {
+                                if (available) {
+                                    onDateChange(date);
+                                }
+                            }}
+                            className={`
+                                aspect-square flex items-center justify-center text-sm font-medium rounded-lg transition-all
+                                ${selected ? 'bg-[#109C3D] text-white shadow-md' : ''}
+                                ${today && !selected ? 'bg-[#E5FFDB] text-[#109C3D] font-bold' : ''}
+                                ${available && !selected && !today ? 'text-[#063A41] hover:bg-[#E5FFDB] cursor-pointer' : ''}
+                                ${!available ? 'text-gray-300 cursor-not-allowed bg-gray-50' : ''}
+                            `}
+                        >
+                            {date.getDate()}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Legend */}
+            <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 flex items-center justify-center gap-4 text-xs text-gray-500">
+                <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-[#E5FFDB] border border-[#109C3D]/20" />
+                    <span>Today</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-[#109C3D]" />
+                    <span>Selected</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <div className="w-3 h-3 rounded bg-gray-200" />
+                    <span>Unavailable</span>
+                </div>
+            </div>
+
+            {/* Available Days Info */}
+            <div className="px-4 py-2 bg-[#E5FFDB]/30 border-t border-gray-100 text-center">
+                <p className="text-xs text-[#063A41]">
+                    <span className="font-medium">Available:</span>{' '}
+                    {availableDays.length > 0 ? availableDays.join(', ') : 'No days available'}
+                </p>
             </div>
         </div>
     );
 };
 
+// Step Indicator Component
+const StepIndicator = ({ currentStep }: { currentStep: number }) => {
+    const steps = [
+        { number: 1, label: 'Service' },
+        { number: 2, label: 'Schedule' },
+        { number: 3, label: 'Payment' },
+    ];
+
+    return (
+        <div className="flex items-center justify-center gap-2 mb-6">
+            {steps.map((step, index) => (
+                <React.Fragment key={step.number}>
+                    <div className="flex items-center gap-2">
+                        <div className={`
+                            w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all
+                            ${currentStep >= step.number
+                                ? 'bg-[#109C3D] text-white'
+                                : 'bg-gray-100 text-gray-400'}
+                        `}>
+                            {currentStep > step.number ? (
+                                <FaCheck className="text-xs" />
+                            ) : (
+                                step.number
+                            )}
+                        </div>
+                        <span className={`text-xs font-medium hidden sm:block ${currentStep >= step.number ? 'text-[#063A41]' : 'text-gray-400'
+                            }`}>
+                            {step.label}
+                        </span>
+                    </div>
+                    {index < steps.length - 1 && (
+                        <div className={`w-8 h-0.5 ${currentStep > step.number ? 'bg-[#109C3D]' : 'bg-gray-200'
+                            }`} />
+                    )}
+                </React.Fragment>
+            ))}
+        </div>
+    );
+};
+
+// Main Booking Modal Component
 const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onClose }) => {
     const [selectedService, setSelectedService] = useState<string | null>(null);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-    const [createBooking, { isLoading, error }] = useCreateBookingMutation();
+    const [showPayment, setShowPayment] = useState(false);
+    const [createBooking, { isLoading }] = useCreateBookingMutation();
 
+    // Memoize available days from tasker availability
+    const availableDays = useMemo(() => {
+        return tasker.availability.map(slot => slot.day);
+    }, [tasker.availability]);
+
+    // Debug logging
     useEffect(() => {
-        console.log('All Cookies:', Cookies.get());
-        console.log('isLoggedIn:', Cookies.get('isLoggedIn'));
-        console.log('Tasker Services:', tasker.services);
-    }, [tasker.services]);
+        console.log('=== BOOKING MODAL DEBUG ===');
+        console.log('Tasker:', tasker.firstName, tasker.lastName);
+        console.log('Tasker availability:', tasker.availability);
+        console.log('Available days:', availableDays);
+        console.log('===========================');
+    }, [tasker, availableDays]);
 
-    if (!isOpen) return null;
+    // Get available time slots for a given date
+    const getAvailableSlots = useCallback((date: Date): string[] => {
+        const dayName = getDayName(date);
+        const availability = tasker.availability.find(
+            (slot) => slot.day.toLowerCase() === dayName.toLowerCase()
+        );
 
-    const getAvailableSlots = (date: Date): string[] => {
-        const dayName = date.toLocaleString('en-US', { weekday: 'long' });
-        const availability = tasker.availability.find((slot) => slot.day === dayName);
-        if (!availability) return [];
+        if (!availability) {
+            console.log(`No availability found for ${dayName}`);
+            return [];
+        }
 
         const slots: string[] = [];
         let [startHour, startMinute] = availability.from.split(':').map(Number);
@@ -178,21 +583,17 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
         while (startHour < endHour || (startHour === endHour && startMinute < endMinute)) {
             const time = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
             slots.push(time);
-            startMinute += 60; // 1-hour slots
+            startMinute += 60;
             if (startMinute >= 60) {
                 startHour += 1;
                 startMinute = 0;
             }
         }
         return slots;
-    };
+    }, [tasker.availability]);
 
-    const isDateAvailable = (date: Date): boolean => {
-        const dayName = date.toLocaleString('en-US', { weekday: 'long' });
-        return tasker.availability.some((slot) => slot.day === dayName);
-    };
-
-    const handleSlotSelection = (slot: string) => {
+    // Handle time slot selection
+    const handleSlotSelection = useCallback((slot: string) => {
         setSelectedSlot(slot);
         if (selectedDate) {
             const [hours, minutes] = slot.split(':').map(Number);
@@ -200,45 +601,29 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
             newDate.setHours(hours, minutes, 0, 0);
             setSelectedDate(newDate);
         }
-    };
+    }, [selectedDate]);
 
-    const handleServiceSelection = (title: string) => {
+    // Handle service selection
+    const handleServiceSelection = useCallback((title: string) => {
         setSelectedService(title);
-        console.log('Service selected:', title); // Debug log
-    };
+    }, []);
 
-    const handleConfirmBooking = async () => {
-        console.log('handleConfirmBooking called');
-
-        // Test toast immediately
-        toast.info('Function called - testing toast!');
-
-        if (!tasker.services || tasker.services.length === 0) {
-            console.log('No services available');
-            alert('No services available for this tasker'); // Fallback alert
-            toast.error('No services available for this tasker');
-            return;
-        }
-        if (!selectedService) {
-            console.log('No service selected');
-            alert('Please select a service'); // Fallback alert
-            toast.error('Please select a service');
-            return;
-        }
-        if (!selectedDate || !selectedSlot) {
-            console.log('No date or slot selected');
-            alert('Please select a date and time slot'); // Fallback alert
-            toast.error('Please select a date and time slot');
-            return;
-        }
+    // Handle payment success
+    const handlePaymentSuccess = useCallback(async (paymentMethodId: string) => {
+        if (!selectedService || !selectedDate) return;
 
         const service = tasker.services.find((s) => s.title === selectedService);
-        if (!service || !service.title || !service.description || !service.hourlyRate || !service.estimatedDuration) {
-            console.log('Selected Service:', selectedService, 'Found Service:', service);
-            alert('Selected service is invalid or missing required details'); // Fallback alert
-            toast.error('Selected service is invalid or missing required details');
-            return;
-        }
+        if (!service) return;
+
+        const dayName = getDayName(selectedDate);
+        const formattedDate = formatDateForAPI(selectedDate);
+
+        console.log('=== SUBMITTING BOOKING ===');
+        console.log('Selected Date:', selectedDate.toString());
+        console.log('Day Name:', dayName);
+        console.log('Formatted Date:', formattedDate);
+        console.log('Available Days:', availableDays);
+        console.log('==========================');
 
         const bookingData = {
             taskerId: tasker._id,
@@ -248,186 +633,340 @@ const BookServiceModal: React.FC<BookServiceModalProps> = ({ tasker, isOpen, onC
                 hourlyRate: service.hourlyRate,
                 estimatedDuration: service.estimatedDuration,
             },
-            date: selectedDate.toISOString(),
-        };
-
-        console.log('Booking Data:', bookingData);
-
+            date: formattedDate,
+            dayOfWeek: dayName,
+            paymentMethodId,
+        }; 
+    
         try {
-            const token = Cookies.get('token');
-            console.log('Sending Token:', token);
-            console.log('About to call createBooking...');
-
             const response = await createBooking(bookingData).unwrap();
             console.log('Booking successful:', response);
 
-            // Try multiple ways to show success
-            alert('Booking created successfully!'); // Fallback alert
-            toast.success('🎉 Booking created successfully!');
-            toast('✅ Success: Booking created!', { type: 'success' });
-
+            toast.success('Booking confirmed and payment completed!');
             setTimeout(() => {
                 onClose();
+                setShowPayment(false);
+                setSelectedService(null);
+                setSelectedDate(null);
+                setSelectedSlot(null);
             }, 2000);
-
         } catch (err: any) {
             console.error('Error creating booking:', err);
-            console.log('Error details:', {
-                message: err?.message,
-                data: err?.data,
-                status: err?.status
-            });
-
-            const errorMessage = err?.data?.message || err?.message || 'Unknown error';
-            alert(`Failed to create booking: ${errorMessage}`); // Fallback alert
-            toast.error(`❌ Failed to create booking: ${errorMessage}`, {
-                style: { zIndex: 99999 },
-                className: 'toast-above-modal',
-                toastId: 'booking-error' // Prevent duplicates
-            });
-
-            // Force toast container to higher z-index
-            const toastContainer = document.querySelector('.Toastify__toast-container');
-            if (toastContainer) {
-                (toastContainer as HTMLElement).style.zIndex = '99999';
-            }
+            toast.error(`Booking failed: ${err?.data?.message || 'Unknown error'}`);
         }
+    }, [selectedService, selectedDate, tasker, availableDays, createBooking, onClose]);
+
+    // Handle confirm booking (proceed to payment)
+    const handleConfirmBooking = useCallback(() => {
+        if (!selectedService || !selectedDate || !selectedSlot) {
+            toast.error('Please select a service, date, and time slot');
+            return;
+        }
+
+        const service = tasker.services.find((s) => s.title === selectedService);
+        if (!service) {
+            toast.error('Selected service not found');
+            return;
+        }
+
+        // Verify the date is still valid
+        const dayName = getDayName(selectedDate);
+        const isValidDay = availableDays.some(
+            day => day.toLowerCase() === dayName.toLowerCase()
+        );
+
+        if (!isValidDay) {
+            toast.error(`This tasker is not available on ${dayName}. Please select a different date.`);
+            return;
+        }
+
+        console.log('Proceeding to payment for:', {
+            service: service.title,
+            date: selectedDate.toString(),
+            dayName,
+            slot: selectedSlot,
+        });
+
+        setShowPayment(true);
+    }, [selectedService, selectedDate, selectedSlot, tasker.services, availableDays]);
+
+    // Handle date change
+    const handleDateChange = useCallback((date: Date | null) => {
+        if (date) {
+            console.log('Date selected:', date.toString(), '- Day:', getDayName(date));
+        }
+        setSelectedDate(date);
+        setSelectedSlot(null);
+    }, []);
+
+    // Reset state when modal closes
+    const handleClose = useCallback(() => {
+        onClose();
+        setShowPayment(false);
+        setSelectedService(null);
+        setSelectedDate(null);
+        setSelectedSlot(null);
+    }, [onClose]);
+
+    // Don't render if modal is not open
+    if (!isOpen) return null;
+
+    const selectedServiceDetails = selectedService
+        ? tasker.services.find((s) => s.title === selectedService)
+        : null;
+
+    const getCurrentStep = () => {
+        if (showPayment) return 3;
+        if (selectedService) return 2;
+        return 1;
     };
 
+    const availableSlots = selectedDate ? getAvailableSlots(selectedDate) : [];
+
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[5000] animate-fade-in p-4">
-            <div className="bg-white rounded-2xl p-6 max-w-lg w-full relative shadow-2xl transform transition-all duration-300 scale-100 hover:scale-105 max-h-[90vh] overflow-y-auto border border-gray-200">
-                <button
-                    onClick={onClose}
-                    className="absolute top-4 right-4 text-gray-500 hover:text-color1 transition-all duration-200"
-                >
-                    <FaTimes className="text-xl" />
-                </button>
-                <h2 className="text-xl font-bold text-color1 mb-6 text-center">
-                    Book a Service
-                </h2>
-
-                {/* Services Section - With radio buttons for clear selection */}
-                <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-color1 mb-3 flex items-center gap-2">
-                        <FaWrench className="text-color2" />
-                        Choose a Service
-                    </h3>
-                    {tasker.services && tasker.services.length > 0 ? (
-                        <div className="space-y-3 max-h-60 overflow-y-auto pr-2">
-                            {tasker.services.map((service, index) => {
-                                const isSelected = selectedService === service.title;
-                                return (
-                                    <label
-                                        key={index}
-                                        className={`flex items-start gap-3 p-4 rounded-xl shadow-sm cursor-pointer transition-all duration-200 border border-gray-200 hover:shadow-md ${isSelected
-                                            ? 'bg-color3 text-color1 border-color1 shadow-md ring-2 ring-color1/20'
-                                            : 'bg-white hover:bg-color3/20 hover:border-color1/50'
-                                            }`}
-                                    >
-                                        <input
-                                            type="radio"
-                                            name="service"
-                                            value={service.title}
-                                            checked={isSelected}
-                                            onChange={() => handleServiceSelection(service.title)}
-                                            className="mt-0.5 h-4 w-4 text-color1 focus:ring-color1 border-gray-300"
-                                        />
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-semibold text-color1 block truncate">{service.title}</span>
-                                                {isSelected && <FaCheckCircle className="text-color2 text-sm ml-auto flex-shrink-0" />}
-                                            </div>
-                                            <p className="text-sm text-gray-600 mt-1 line-clamp-2">{service.description}</p>
-                                            <div className="flex justify-between text-xs text-color1 mt-3 font-medium">
-                                                <span className="flex items-center gap-1">
-                                                    <FaStar className="text-color2" /> ${service.hourlyRate}/hr
-                                                </span>
-                                                <span className="flex items-center gap-1">
-                                                    <FaClock className="text-color1" /> {service.estimatedDuration}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </label>
-                                );
-                            })}
+        <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[5000] p-4"
+            onClick={handleClose}
+        >
+            <div
+                className="bg-white rounded-2xl w-full max-w-lg relative shadow-2xl max-h-[90vh] overflow-hidden animate-modalSlide"
+                onClick={(e) => e.stopPropagation()}
+            >
+                {/* Modal Header */}
+                <div className="bg-[#063A41] px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20">
+                                {tasker.profilePicture ? (
+                                    <Image
+                                        src={tasker.profilePicture}
+                                        alt={`${tasker.firstName} ${tasker.lastName}`}
+                                        width={40}
+                                        height={40}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-[#109C3D] flex items-center justify-center">
+                                        <FaUser className="text-white" />
+                                    </div>
+                                )}
+                            </div>
+                            <div>
+                                <h2 className="text-white font-semibold">
+                                    {showPayment ? 'Complete Payment' : 'Book Service'}
+                                </h2>
+                                <p className="text-white/70 text-sm">
+                                    {tasker.firstName} {tasker.lastName}
+                                </p>
+                            </div>
                         </div>
-                    ) : (
-                        <div className="text-center py-6">
-                            <FaWrench className="text-gray-400 text-2xl mx-auto mb-2" />
-                            <p className="text-gray-600 text-sm">No services available for this tasker.</p>
-                        </div>
-                    )}
-                </div>
-
-                {/* Date Section */}
-                <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-color1 mb-3 flex items-center gap-2">
-                        <FaClock className="text-color1" />
-                        Select a Date
-                    </h3>
-                    <div className="w-full">
-                        <CustomCalendar
-                            selectedDate={selectedDate}
-                            onDateChange={(date) => {
-                                setSelectedDate(date);
-                                setSelectedSlot(null); // Reset slot when date changes
-                            }}
-                            isDateAvailable={isDateAvailable}
-                        />
+                        <button
+                            onClick={handleClose}
+                            className="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                        >
+                            <FaTimes />
+                        </button>
                     </div>
                 </div>
 
-                {/* Time Slots Section */}
-                {selectedDate && (
-                    <div className="mb-6">
-                        <h3 className="text-lg font-semibold text-color1 mb-2 flex items-center gap-2">
-                            Available Slots for {selectedDate.toLocaleDateString()}
-                        </h3>
-                        <div className="grid grid-cols-3 gap-2">
-                            {getAvailableSlots(selectedDate).length > 0 ? (
-                                getAvailableSlots(selectedDate).map((slot, index) => (
-                                    <button
-                                        key={index}
-                                        type="button"
-                                        className={`p-3 text-center rounded-lg font-medium cursor-pointer transition-all duration-200 text-sm border-2 focus:outline-none focus:ring-2 focus:ring-color1/50
-                                            ${selectedSlot === slot
-                                                ? 'bg-color1 text-white border-color1 shadow-md'
-                                                : 'border-color1/30 text-color1 hover:border-color1 hover:bg-color3/50'
-                                            }`}
-                                        onClick={() => handleSlotSelection(slot)}
-                                    >
-                                        {slot}
-                                    </button>
-                                ))
-                            ) : (
-                                <div className="col-span-3 text-center py-4">
-                                    <FaClock className="text-gray-400 text-xl mx-auto mb-2" />
-                                    <p className="text-gray-600 text-sm">No available slots for this day.</p>
+                {/* Step Indicator */}
+                <div className="px-6 pt-4">
+                    <StepIndicator currentStep={getCurrentStep()} />
+                </div>
+
+                {/* Modal Content */}
+                <div className="px-6 pb-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+                    {!showPayment ? (
+                        <div className="space-y-6">
+                            {/* Services Section */}
+                            <div>
+                                <h3 className="text-sm font-semibold text-[#063A41] mb-3 flex items-center gap-2">
+                                    <div className="w-6 h-6 bg-[#E5FFDB] rounded-md flex items-center justify-center">
+                                        <FaStar className="text-[#109C3D] text-xs" />
+                                    </div>
+                                    Select a Service
+                                </h3>
+
+                                {tasker.services && tasker.services.length > 0 ? (
+                                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                                        {tasker.services.map((service, index) => {
+                                            const isSelected = selectedService === service.title;
+                                            return (
+                                                <button
+                                                    key={index}
+                                                    type="button"
+                                                    onClick={() => handleServiceSelection(service.title)}
+                                                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${isSelected
+                                                        ? 'border-[#109C3D] bg-[#E5FFDB]/50'
+                                                        : 'border-gray-100 hover:border-[#109C3D]/30 hover:bg-gray-50'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-start justify-between gap-3">
+                                                        <div className="flex-1 min-w-0">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="font-semibold text-[#063A41] truncate">
+                                                                    {service.title}
+                                                                </span>
+                                                                {isSelected && (
+                                                                    <FaCheckCircle className="text-[#109C3D] flex-shrink-0" />
+                                                                )}
+                                                            </div>
+                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                                                {service.description}
+                                                            </p>
+                                                        </div>
+                                                        <div className="text-right flex-shrink-0">
+                                                            <p className="text-lg font-bold text-[#109C3D]">
+                                                                ${service.hourlyRate}
+                                                            </p>
+                                                            <p className="text-xs text-gray-400">per hour</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-100">
+                                                        <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                                                            <FaClock className="text-[#109C3D]" />
+                                                            {service.estimatedDuration}
+                                                        </span>
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                                        <FaStar className="text-gray-300 text-2xl mx-auto mb-2" />
+                                        <p className="text-gray-500 text-sm">No services available</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Date Section */}
+                            {selectedService && (
+                                <div>
+                                    <h3 className="text-sm font-semibold text-[#063A41] mb-3 flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-[#E5FFDB] rounded-md flex items-center justify-center">
+                                            <FaCalendarAlt className="text-[#109C3D] text-xs" />
+                                        </div>
+                                        Choose a Date
+                                    </h3>
+                                    <CustomCalendar
+                                        selectedDate={selectedDate}
+                                        onDateChange={handleDateChange}
+                                        availableDays={availableDays}
+                                    />
                                 </div>
                             )}
-                        </div>
-                    </div>
-                )}
 
-                {error && (
-                    <div className="text-red-500 text-sm mt-3 text-center bg-red-50 p-3 rounded-lg border border-red-200">
-                        <p>Error: {
-                            'data' in error && error.data && typeof error.data === 'object' && 'message' in error.data
-                                ? (error.data as any).message
-                                : 'Failed to create booking'
-                        }</p>
-                    </div>
-                )}
-                <button
-                    type="button"
-                    onClick={handleConfirmBooking}
-                    className="w-full color1 text-white py-3 rounded-xl font-semibold shadow-lg hover:bg-color1/90 transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-color1/50"
-                    disabled={!selectedService || !selectedDate || !selectedSlot || isLoading || !tasker.services || tasker.services.length === 0}
-                >
-                    {isLoading ? 'Booking...' : 'Confirm Booking'}
-                </button>
+                            {/* Time Slots Section */}
+                            {selectedDate && (
+                                <div>
+                                    <h3 className="text-sm font-semibold text-[#063A41] mb-3 flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-[#E5FFDB] rounded-md flex items-center justify-center">
+                                            <FaClock className="text-[#109C3D] text-xs" />
+                                        </div>
+                                        Available Time Slots
+                                        <span className="text-xs font-normal text-gray-500">
+                                            ({getDayName(selectedDate)})
+                                        </span>
+                                    </h3>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                                        {availableSlots.length > 0 ? (
+                                            availableSlots.map((slot, index) => (
+                                                <button
+                                                    key={index}
+                                                    type="button"
+                                                    onClick={() => handleSlotSelection(slot)}
+                                                    className={`py-2.5 px-3 text-center rounded-lg text-sm font-medium transition-all ${selectedSlot === slot
+                                                        ? 'bg-[#109C3D] text-white shadow-md'
+                                                        : 'bg-gray-50 text-[#063A41] hover:bg-[#E5FFDB] border border-gray-200 hover:border-[#109C3D]/30'
+                                                        }`}
+                                                >
+                                                    {formatTime(slot)}
+                                                </button>
+                                            ))
+                                        ) : (
+                                            <div className="col-span-full text-center py-6 bg-gray-50 rounded-xl">
+                                                <FaClock className="text-gray-300 text-xl mx-auto mb-2" />
+                                                <p className="text-gray-500 text-sm">No available slots for {getDayName(selectedDate)}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Booking Summary */}
+                            {selectedServiceDetails && selectedDate && selectedSlot && (
+                                <div className="bg-[#E5FFDB]/50 border border-[#109C3D]/20 rounded-xl p-4">
+                                    <h4 className="text-sm font-semibold text-[#063A41] mb-3 flex items-center gap-2">
+                                        <FaCheckCircle className="text-[#109C3D]" />
+                                        Booking Summary
+                                    </h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Service</span>
+                                            <span className="font-medium text-[#063A41]">{selectedServiceDetails.title}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Date</span>
+                                            <span className="font-medium text-[#063A41]">
+                                                {getDayName(selectedDate)}, {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                            </span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Time</span>
+                                            <span className="font-medium text-[#063A41]">{formatTime(selectedSlot)}</span>
+                                        </div>
+                                        <div className="flex justify-between pt-2 border-t border-[#109C3D]/20">
+                                            <span className="font-semibold text-[#063A41]">Total</span>
+                                            <span className="font-bold text-[#109C3D] text-lg">${selectedServiceDetails.hourlyRate}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Proceed Button */}
+                            <button
+                                type="button"
+                                onClick={handleConfirmBooking}
+                                disabled={!selectedService || !selectedDate || !selectedSlot || isLoading}
+                                className="w-full flex items-center justify-center gap-2 py-3.5 bg-[#109C3D] text-white rounded-xl font-semibold hover:bg-[#0d8a35] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <FaCreditCard />
+                                {isLoading ? 'Processing...' : 'Proceed to Payment'}
+                            </button>
+                        </div>
+                    ) : (
+                        selectedServiceDetails && selectedDate && (
+                            <PaymentWrapper
+                                amount={selectedServiceDetails.hourlyRate}
+                                service={selectedServiceDetails}
+                                taskerId={tasker._id}
+                                selectedDate={selectedDate}
+                                onPaymentSuccess={handlePaymentSuccess}
+                                onCancel={() => setShowPayment(false)}
+                                taskerName={`${tasker.firstName} ${tasker.lastName}`}
+                            />
+                        )
+                    )}
+                </div>
             </div>
+
+            {/* Custom Animations */}
+            <style jsx>{`
+                @keyframes modalSlide {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-20px) scale(0.95);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
+                }
+                .animate-modalSlide {
+                    animation: modalSlide 0.3s ease-out;
+                }
+            `}</style>
         </div>
     );
 };

@@ -46,7 +46,7 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
   };
-
+  console.log(taskerData)
   const isInProgress = task.status === "in progress";
 
   return (
@@ -63,8 +63,8 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
 
           <span
             className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${isInProgress
-                ? "bg-orange-100 text-orange-700"
-                : "bg-[#109C3D]/10 text-[#109C3D]"
+              ? "bg-orange-100 text-orange-700"
+              : "bg-[#109C3D]/10 text-[#109C3D]"
               }`}
           >
             {isInProgress ? "In Progress" : "Completed"}
@@ -98,10 +98,10 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
         <div className="flex items-center gap-4">
           {/* Avatar */}
           <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200">
-            {taskerData?.profilePicture ? (
+            {taskerData?.user?.profilePicture ? (
               <Image
-                src={taskerData.profilePicture}
-                alt={taskerData.firstName || "Tasker"}
+                src={taskerData.user.profilePicture}
+                alt={taskerData.user.firstName || "Tasker"}
                 width={56}
                 height={56}
                 className="object-cover w-full h-full"
@@ -117,7 +117,7 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
           {/* Name + Rating */}
           <div>
             <p className="font-medium text-[#063A41]">
-              {taskerData?.firstName} {taskerData?.lastName || "Tasker"}
+              {taskerData?.user?.firstName} {taskerData?.user?.lastName}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {[...Array(5)].map((_, i) => (

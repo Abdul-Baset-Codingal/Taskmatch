@@ -4,7 +4,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { FaSearch, FaTimes } from "react-icons/fa";
+import { FaChevronDown, FaSearch, FaSortAmountDown, FaTimes } from "react-icons/fa";
 import { toast } from "react-toastify";
 import AllClientTasks from "./AllClientTasks";
 import {
@@ -162,36 +162,46 @@ const ClientCompletedTasks = () => {
     return (
         <section className="min-h-screen bg-gradient-to-br from-[#F9FAFC] to-[#EDEEF2] p-6 md:p-8">
             {/* Top Filter Bar */}
-            <div className=" top-[4.5rem] z-40 bg-white/80 backdrop-blur-md rounded-2xl shadow-lg p-6 mb-8 border border-[#8560F1]/10">
-                <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-                    {/* Search */}
-                    <div className="relative w-full md:w-1/3">
-                        <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="search"
-                            placeholder="Search tasks by title or description..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-300 text-lg font-medium placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#8560F1] transition-all duration-300"
-                        />
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 mb-6">
+                        <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center justify-between">
+                            {/* Search */}
+                            <div className="relative flex-1 max-w-md">
+                                <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#109C3D]" />
+                                <input
+                                    type="search"
+                                    placeholder="Search tasks..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium placeholder-gray-400 focus:outline-none focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all duration-200"
+                                />
+                                {searchTerm && (
+                                    <button
+                                        onClick={() => setSearchTerm("")}
+                                        className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#063A41] transition-colors"
+                                    >
+                                        <FaTimes />
+                                    </button>
+                                )}
+                            </div>
+        
+                            {/* Sort By */}
+                            <div className="relative">
+                                <FaSortAmountDown className="absolute left-4 top-1/2 transform -translate-y-1/2 text-[#109C3D] pointer-events-none" />
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    className="w-full sm:w-52 pl-11 pr-10 py-3 rounded-xl border-2 border-gray-200 text-sm font-medium text-[#063A41] focus:outline-none focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all duration-200 appearance-none bg-white cursor-pointer"
+                                >
+                                    {SORT_OPTIONS.map((opt) => (
+                                        <option key={opt} value={opt}>
+                                            {opt}
+                                        </option>
+                                    ))}
+                                </select>
+                                <FaChevronDown className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs" />
+                            </div>
+                        </div>
                     </div>
-
-                    {/* Sort By */}
-                    <div className="w-full md:w-auto">
-                        <select
-                            value={sortBy}
-                            onChange={(e) => setSortBy(e.target.value)}
-                            className="w-full md:w-48 px-4 py-3 rounded-xl border border-gray-300 text-lg font-medium focus:outline-none focus:ring-2 focus:ring-[#A78BFA] transition-all duration-300"
-                        >
-                            {SORT_OPTIONS.map((opt) => (
-                                <option key={opt} value={opt}>
-                                    {opt}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-            </div>
 
             {/* Task List */}
             <main className="flex-1  lg:mx-auto lg:px-4 py-6">

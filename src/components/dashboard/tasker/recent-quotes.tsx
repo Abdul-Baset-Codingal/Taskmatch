@@ -219,9 +219,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Eye, MessageSquare, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { MessageSquare, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { useGetQuotesByTaskerIdQuery } from "@/features/api/taskerApi";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
@@ -382,9 +381,9 @@ export function RecentQuotes() {
                                             </Badge>
                                         </div>
 
-                                        <Button size="icon" variant="ghost" className="h-9 w-9">
+                                        {/* <Button size="icon" variant="ghost" className="h-9 w-9">
                                             <Eye className="h-4 w-4" />
-                                        </Button>
+                                        </Button> */}
                                     </div>
                                 </div>
                             );
@@ -392,7 +391,7 @@ export function RecentQuotes() {
                     </div>
                 )}
 
-                {quotes.length > 0 && (
+                {/* {quotes.length > 0 && (
                     <div className="mt-6 pt-4 border-t">
                         <Button variant="outline" className="w-full font-medium" asChild>
                             <a href="/tasker/quotes">
@@ -400,7 +399,7 @@ export function RecentQuotes() {
                             </a>
                         </Button>
                     </div>
-                )}
+                )} */}
             </CardContent>
         </Card>
     );

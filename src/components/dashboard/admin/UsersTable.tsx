@@ -64,6 +64,8 @@ const UsersTable: React.FC<UsersTableProps> = ({
         router.push(`/dashboard/admin/users/${user._id}`);
     };
 
+    console.log(users)
+
     return (
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-white/50">
             <div className="overflow-x-auto">

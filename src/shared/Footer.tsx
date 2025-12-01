@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn } from "react-icons/fa";
 import background from "../../public/Images/ad.jpg";
+import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
 
 export default function Footer() {
     return (
@@ -21,13 +22,15 @@ export default function Footer() {
             <div className="relative max-w-[1300px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 z-10">
                 {/* Logo & About */}
                 <div>
-                    <div className="flex items-center gap-2 mb-4">
+                    <div className="flex items-center gap-2">
                         <Link href="/">
-                            <h1 className="text-3xl font-bold text-white">
-                                TaskAllo
-                            </h1>
+                            <Image
+                                src={logo}
+                                alt="TaskAllo Logo"
+                                className="w-24 h-auto xs:w-28 sm:w-32 lg:w-36"
+                                priority
+                            />
                         </Link>
-                        <span className="w-2 h-2 rounded-full bg-[#109C3D] relative top-3 inline-block"></span>
                     </div>
                     <p className="text-gray-200 leading-relaxed text-sm">
                         TaskAllo is Canada’s trusted platform for home services — connecting
@@ -45,7 +48,7 @@ export default function Footer() {
                         <li><Link href="/">Home</Link></li>
                         <li><Link href="/our-story">About Us</Link></li>
                         <li><Link href="/services">Services</Link></li>
-                        <li><Link href="/contact">Contact</Link></li>
+                        <li><Link href="/contact-us">Contact</Link></li>
                     </ul>
                 </div>
 
@@ -55,10 +58,12 @@ export default function Footer() {
                         Our Services
                     </h3>
                     <ul className="space-y-2 text-gray-200">
-                        <li>Handyman</li>
-                        <li>Renovation & Moving Help</li>
-                        <li>Plumbing, Electrical & HVAC</li>
-                        <li>Beauty & Wellness</li>
+                        <li>Handyman & Home Repairs</li>
+                        <li>Pet Services</li>
+                        <li>Cleaning Services</li>
+                        <li>Plumbing, Electric & HVAC</li>
+                        <li>Automotive Services</li>
+                        <li>All Other Specialized Services</li>
                     </ul>
                 </div>
 
@@ -69,8 +74,7 @@ export default function Footer() {
                     </h3>
                     <p className="text-gray-200 text-sm mb-3">
                         Toronto, Canada<br />
-                        info@taskallo.ca<br />
-                        +1 (647) 123-4567
+                        support@taskallo.com<br />
                     </p>
 
                     {/* Social Icons */}

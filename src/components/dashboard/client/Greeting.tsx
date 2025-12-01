@@ -13,7 +13,7 @@ const Greeting = () => {
   // Check login status
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/auth/verify-token", {
+      const response = await fetch("http://localhost:5000/auth/verify-token", {
         method: "GET",
         credentials: "include",
       });

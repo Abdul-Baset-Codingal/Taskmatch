@@ -102,7 +102,7 @@ const JoinTaskMatch = () => {
         }
       `}</style>
 
-      <div className="flex min-h-screen pt-16">
+      <div className="flex min-h-screen ">
         <Suspense fallback={null}>
           <OpenClientLoginOnQuery setIsClientModalOpen={setIsClientModalOpen} />
         </Suspense>

@@ -167,6 +167,8 @@ import ClientCompletedTasks from "./ClientCompletedTasks";
 import { DashboardHeader } from "../tasker/dashboard-header"; // Reuse header
 import { cn } from "@/app/lib/utils";
 import { ClientPayment } from "./ClientPayment";
+import logo from "../../../../public/Images/taskalloLogo-removebg-preview.png"
+import Image from "next/image";
 
 const navItems = [
     { title: "Dashboard", icon: Home, component: <ClientDashboardContent /> },
@@ -203,9 +205,15 @@ export function ClientDashboardLayout({ isOpen, toggleSidebar }: ClientDashboard
                 {/* Logo */}
                 <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
                     <Link href="/" className="flex items-center gap-2">
-                        <div className="relative">
-                            <h1 className="text-2xl font-bold text-[#063A41]">TaskAllo</h1>
-                            <div className="absolute -top-1 -right-3 w-3 h-3 bg-[#109C3D] rounded-full animate-pulse" />
+                        <div className="flex items-center gap-2">
+                            <Link href="/">
+                                <Image
+                                    src={logo}
+                                    alt="TaskAllo Logo"
+                                    className="w-24 h-auto xs:w-28 sm:w-32 lg:w-36"
+                                    priority
+                                />
+                            </Link>
                         </div>
                     </Link>
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="lg:hidden">

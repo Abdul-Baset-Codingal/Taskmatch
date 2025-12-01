@@ -46,6 +46,13 @@ export const taskApi = createApi({
             providesTags: ['Task'],
         }),
 
+
+        checkPaymentMethod: builder.query({
+            query: () => '/tasks/check-payment-method',
+            providesTags: ['Task'],
+        }),
+
+
         // Get filter options
         getTaskFilters: builder.query({
             query: () => '/tasks/filters',
@@ -111,6 +118,106 @@ export const taskApi = createApi({
             query: (taskId) => `/tasks/${taskId}`,
             providesTags: (result, error, taskId) => [{ type: "Task", id: taskId }],
         }),
+
+
+        getTaskMessages: builder.query({
+            query: (taskId) => `/tasks/${taskId}/messages`,
+            providesTags: ["Task"],
+        }),
+
+        // Send a message in task chat
+        sendMessage: builder.mutation({
+            query: ({ taskId, message }) => ({
+                url: `/tasks/${taskId}/messages`,
+                method: "POST",
+                body: { message },
+            }),
+            invalidatesTags: ["Task"],
+        }),
+
+
+        // In your taskApi endpoints
+        createPaymentIntent: builder.mutation({
+            query: (data: {
+                amount: number;
+                taskId: string;
+                taskerId: string;
+                description: string
+            }) => ({
+                url: '/tasks/create-payment-intent',
+                method: 'POST',
+                body: data,
+            }),
+        }),
+
+
+        createSetupIntent: builder.mutation({
+            query: () => ({
+                url: '/tasks/setup-intent',
+                method: 'POST',
+            }),
+        }),
+
+        savePaymentMethod: builder.mutation({
+            query: (paymentMethodId) => ({
+                url: '/tasks/save-payment-method',
+                method: 'POST',
+                body: { paymentMethodId },
+            }),
+            invalidatesTags: ['Task'],
+        }),
+
+        // Edit a message
+        updateMessage: builder.mutation({
+            query: ({ taskId, messageId, message }) => ({
+                url: `/tasks/${taskId}/messages/${messageId}`,
+                method: "PATCH",
+                body: { message },
+            }),
+            invalidatesTags: ["Task"],
+        }),
+
+        // Delete a messagea
+        deleteMessage: builder.mutation({
+            query: ({ taskId, messageId }) => ({
+                url: `/tasks/${taskId}/messages/${messageId}`,
+                method: "DELETE",
+            }),
+            invalidatesTags: ["Task"],
+        }),
+
+        // Mark messages as read
+        // features/api/taskApi.ts
+
+        // Update your markMessagesAsRead mutation
+        markMessagesAsRead: builder.mutation<
+            { success: boolean; updatedCount?: number; message?: string },
+            string
+        >({
+            query: (taskId) => ({
+                url: `/tasks/${taskId}/messages/mark-read`,
+                method: 'PATCH',
+            }),
+            // Invalidate to refetch fresh data
+            invalidatesTags: (result, error, taskId) => [
+                'Task',
+                { type: 'Task', id: taskId }
+            ],
+        }),
+
+        // Add unread count query
+        getUnreadCount: builder.query<
+            { success: boolean; unreadCount: number; totalMessages: number },
+            string
+        >({
+            query: (taskId) => `/tasks/${taskId}/messages/unread-count`,
+            providesTags: (result, error, taskId) => [{ type: 'Task', id: taskId }],
+        }),
+
+
+
+
+
         addTaskReview: builder.mutation({
             query: ({ taskId, rating, message }) => ({
                 url: "/tasks/reviews",
@@ -202,6 +309,9 @@ export const taskApi = createApi({
             }),
             invalidatesTags: ["Task"],
         }),
+        getMessageStatus: builder.query({
+            query: (taskId) => `/tasks/${taskId}/messages/status`,
+        }),
 
         // ✅ Delete a task
         deleteTask: builder.mutation({
@@ -254,8 +364,19 @@ export const {
     useReplyToCommentMutation,
     useUpdateTaskStatusMutation,
     useUpdateTaskMutation,
+    useGetMessageStatusQuery,
     useDeleteTaskMutation,
     useDeleteTaskAdminMutation,
     useBulkDeleteTasksMutation,
     useGetTaskFiltersQuery,
+    useSendMessageMutation,
+    useUpdateMessageMutation,
+    useDeleteMessageMutation,
+    useMarkMessagesAsReadMutation,
+    useGetTaskMessagesQuery,
+    useCheckPaymentMethodQuery,
+    useCreateSetupIntentMutation,
+    useSavePaymentMethodMutation,
+    useCreatePaymentIntentMutation,
+    useGetUnreadCountQuery
 } = taskApi;

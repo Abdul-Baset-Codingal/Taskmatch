@@ -1,6 +1,6 @@
 /* eslint-disable react/no-unescaped-entities */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client"
 import React, { useEffect, useRef, useState } from "react";
 import { FaUser, FaTimes, FaLock, FaEnvelope } from "react-icons/fa";
@@ -43,17 +43,20 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
   };
   const [login, { isLoading }] = useLoginMutation();
 
+  // Restore body overflow when modal closes
   useEffect(() => {
     if (isOpen) {
       originalOverflow.current = document.body.style.overflow || "auto";
       document.body.style.overflow = "hidden";
       setActiveModal("client");
+    } else {
+      // Restore overflow when modal closes
+      document.body.style.overflow = originalOverflow.current || "auto";
     }
+
     return () => {
-      if (activeModal === "client") {
-        document.body.style.overflow = originalOverflow.current || "auto";
-        setActiveModal(null);
-      }
+      // Cleanup on unmount
+      document.body.style.overflow = originalOverflow.current || "auto";
     };
   }, [isOpen, activeModal, setActiveModal]);
 
@@ -65,11 +68,17 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Close handler that properly restores scroll
+  const handleClose = () => {
+    document.body.style.overflow = originalOverflow.current || "auto";
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
         method: "GET",
         credentials: "include",
         headers: {
@@ -106,7 +115,6 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
     return new Blob([u8arr], { type: mime });
   };
 
-  // Restore pending task from sessionStorage to Redux (without submitting)
   const restorePendingTask = async () => {
     const pendingStr = sessionStorage.getItem('pendingTaskForm');
     if (!pendingStr) return;
@@ -114,17 +122,15 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
     try {
       const stored = JSON.parse(pendingStr);
 
-      // Restore non-file fields to Redux
       Object.entries(stored).forEach(([key, value]) => {
         if (key !== 'photos' && key !== 'video') {
           dispatch(updateTaskField({ field: key as any, value }));
         }
       });
 
-      // Restore photos
       const photoPromises = stored.photos?.map(async (meta: any) => {
         if (meta?.isString) {
-          return meta.value; // Keep as string if it was
+          return meta.value;
         }
         if (meta?.dataURL) {
           const blob = dataURLtoBlob(meta.dataURL);
@@ -135,7 +141,6 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
       const restoredPhotos = (await Promise.all(photoPromises)).filter(Boolean);
       dispatch(setPhotos(restoredPhotos));
 
-      // Restore video
       const videoMeta = stored.video;
       let restoredVideo = null;
       if (videoMeta) {
@@ -152,7 +157,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
       console.log("Pending task form restored successfully.");
     } catch (error) {
       console.error("Error restoring pending task:", error);
-      sessionStorage.removeItem('pendingTaskForm'); // Clear on error to avoid loops
+      sessionStorage.removeItem('pendingTaskForm');
       toast.error("Failed to restore task form. Please try again.");
     }
   };
@@ -164,9 +169,11 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
       toast.success("Login successful!");
       console.log("Login response:", res);
       await checkLoginStatus();
+
+      // Restore body scroll before closing and navigating
+      document.body.style.overflow = originalOverflow.current || "auto";
       onClose();
 
-      // Check for pending task after successful login
       const hasPending = !!sessionStorage.getItem('pendingTaskForm');
       if (hasPending) {
         await restorePendingTask();
@@ -183,73 +190,37 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4 modal-fade-in"
-      onClick={onClose}
+      onClick={handleClose} // Use the new handleClose function
     >
       <style>{`
-        .modal-fade-in {
-          animation: fadeIn 0.3s ease-out;
-        }
-        .modal-slide-up {
-          animation: slideUp 0.4s ease-out;
-        }
-        .input-focus {
-          transition: all 0.3s ease;
-        }
-        .input-focus:focus {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(16, 156, 61, 0.15);
-        }
-        .brand-gradient {
-          background: linear-gradient(135deg, #063A41 0%, #109C3D 100%);
-        }
-        .btn-gradient {
-          background: linear-gradient(135deg, #109C3D 0%, #0db53a 100%);
-          transition: all 0.3s ease;
-        }
-        .btn-gradient:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 20px rgba(16, 156, 61, 0.3);
-        }
-        .btn-gradient:active:not(:disabled) {
-          transform: translateY(0);
-        }
-        .btn-gradient:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .input-icon {
-          color: #109C3D;
-        }
+        .modal-fade-in { animation: fadeIn 0.3s ease-out; }
+        .modal-slide-up { animation: slideUp 0.4s ease-out; }
+        .input-focus { transition: all 0.3s ease; }
+        .input-focus:focus { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(16, 156, 61, 0.15); }
+        .brand-gradient { background: linear-gradient(135deg, #063A41 0%, #109C3D 100%); }
+        .btn-gradient { background: linear-gradient(135deg, #109C3D 0%, #0db53a 100%); transition: all 0.3s ease; }
+        .btn-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 156, 61, 0.3); }
+        .btn-gradient:active:not(:disabled) { transform: translateY(0); }
+        .btn-gradient:disabled { opacity: 0.7; cursor: not-allowed; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        .input-icon { color: #109C3D; }
       `}</style>
 
       <div
         className="bg-white w-full max-w-md rounded-2xl relative shadow-2xl overflow-hidden modal-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
+        {/* Close Button - Use handleClose */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 z-10 text-white hover:text-gray-200 transition p-2 rounded-full hover:bg-white/10"
           aria-label="Close modal"
         >
           <FaTimes className="w-5 h-5" />
         </button>
 
-        {/* Header with Brand Gradient */}
+        {/* Rest of your modal JSX remains the same */}
         <div className="brand-gradient pt-8 pb-12 px-6 text-center relative">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
             <FaUser className="text-3xl text-white" />
@@ -262,10 +233,8 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
           </p>
         </div>
 
-        {/* Form Container */}
         <div className="px-6 sm:px-8 py-8 -mt-6 bg-white rounded-t-3xl relative z-10">
           <form onSubmit={handleSubmit} className="space-y-5">
-
             {/* Email Input */}
             <div>
               <label htmlFor="client-email" className="block text-sm font-medium mb-2" style={{ color: '#063A41' }}>
@@ -281,9 +250,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm input-focus"
-                  style={{
-                    outline: 'none',
-                  }}
+                  style={{ outline: 'none' }}
                   onFocus={(e) => e.target.style.borderColor = '#109C3D'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   placeholder="you@example.com"
@@ -307,9 +274,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border-2 border-gray-200 rounded-xl text-sm input-focus"
-                  style={{
-                    outline: 'none',
-                  }}
+                  style={{ outline: 'none' }}
                   onFocus={(e) => e.target.style.borderColor = '#109C3D'}
                   onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
                   placeholder="Enter your password"
@@ -357,11 +322,10 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
             </button>
           </form>
 
-          {/* Sign Up Link */}
           <div className="mt-6 pt-6 border-t border-gray-200 text-center">
             <p className="text-sm text-gray-600">
               Don't have an account?{" "}
-              <Link href="/signup/client">
+              <Link href="/client-sign-up">
                 <span className="font-semibold hover:underline transition" style={{ color: '#109C3D' }}>
                   Sign Up
                 </span>
@@ -369,7 +333,6 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
             </p>
           </div>
 
-          {/* Security Badge */}
           <div className="mt-4 text-center">
             <p className="text-xs text-gray-400 flex items-center justify-center gap-1">
               <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">

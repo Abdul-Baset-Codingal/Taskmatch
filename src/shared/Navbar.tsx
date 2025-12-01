@@ -7,10 +7,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useState, useRef } from "react";
-import { FiMenu, FiX, FiChevronDown } from "react-icons/fi";
+import { FiMenu, FiX, FiChevronDown, FiBell } from "react-icons/fi";
 import { FaPlusCircle, FaUser, FaBriefcase, FaClipboardList, FaTasks, FaUserShield } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -27,6 +28,7 @@ const Navbar = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [taskerProfileCheck, setTaskerProfileCheck] = useState(false);
   const [wasLoggedIn, setWasLoggedIn] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0); // Add notification count state
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
@@ -47,9 +49,44 @@ const Navbar = () => {
     setIsOpen(false);
   }, [router]);
 
+  // Fetch notifications count
+  const fetchNotificationCount = async () => {
+    if (!isLoggedIn) return;
+
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/notifications", {
+        method: "GET",
+        credentials: "include",
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadNotifications(data.unreadCount || 0);
+      } else {
+        console.error("Failed to fetch notifications");
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  // Fetch notifications when user logs in or role changes
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchNotificationCount();
+
+      // Poll for new notifications every 30 seconds
+      const interval = setInterval(fetchNotificationCount, 30000);
+
+      return () => clearInterval(interval);
+    } else {
+      setUnreadNotifications(0);
+    }
+  }, [isLoggedIn, userRole]);
+
   const handleLogout = async () => {
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
+      const response = await fetch("http://localhost:5000/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
@@ -67,6 +104,7 @@ const Navbar = () => {
         setShowDropdown(false);
         setErrorMessage(null);
         setIsOpen(false);
+        setUnreadNotifications(0); // Reset notification count
         router.push("/");
         toast.success("Logged out successfully!");
       } else {
@@ -86,7 +124,7 @@ const Navbar = () => {
     }
 
     try {
-      const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${userId}`, {
+      const response = await fetch(`http://localhost:5000/api/auth/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
@@ -98,6 +136,8 @@ const Navbar = () => {
         toast.success(`Switched to ${newRole} mode successfully!`);
         setShowDropdown(false);
         setErrorMessage(null);
+        // Refresh notification count after role switch
+        fetchNotificationCount();
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("Switch role failed:", errorData);
@@ -146,7 +186,7 @@ const Navbar = () => {
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
         method: "GET",
         credentials: "include",
       });
@@ -184,6 +224,7 @@ const Navbar = () => {
         setEmail(null);
         setProfilePicture(null);
         setErrorMessage(null);
+        setUnreadNotifications(0); // Reset notification count
 
         if (response.status === 401 && prevLoggedIn) {
           console.warn("Verify-token failed with status: 401 - Session expired, clearing auth state.");
@@ -204,6 +245,7 @@ const Navbar = () => {
       setEmail(null);
       setProfilePicture(null);
       setErrorMessage(null);
+      setUnreadNotifications(0); // Reset notification count
       if (prevLoggedIn) {
         toast.error("Authentication check failed. Please refresh or log in.");
       }
@@ -249,7 +291,7 @@ const Navbar = () => {
 
   // Dynamic nav links based on user role
   const getNavLinks = () => {
-    const baseLinks = [{ href: "/browse-tasks", label: "Browse Tasks", icon: FaTasks }];
+    const baseLinks = [{ href: "/browse-tasks", label: "Browse Tasks", icon: FaTasks, showBadge: false }];
 
     if (isLoggedIn && userRole) {
       let workspaceHref: string;
@@ -271,8 +313,13 @@ const Navbar = () => {
         default:
           return baseLinks; // Fallback if role is unknown
       }
-
-      baseLinks.push({ href: workspaceHref, label: "My Workspace", icon: workspaceIcon });
+      
+      baseLinks.push({
+        href: workspaceHref,
+        label: "My Workspace",
+        icon: workspaceIcon,
+        showBadge: true // Mark this link to show the notification badge
+      });
     }
 
     return baseLinks;
@@ -295,12 +342,15 @@ const Navbar = () => {
               {/* Logo */}
               <div className="flex items-center gap-2">
                 <Link href="/">
-                  <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent">
-                    TaskAllo
-                  </h1>
+                  <Image
+                    src={logo}
+                    alt="TaskAllo Logo"
+                    className="w-24 h-auto xs:w-28 sm:w-32 lg:w-36"
+                    priority
+                  />
                 </Link>
-                <span className="w-2 h-2 rounded-full color2 inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span>
               </div>
+
 
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-8">
@@ -323,6 +373,12 @@ const Navbar = () => {
                         <button className="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all duration-200 group">
                           <Icon className="w-4 h-4 text-gray-700 group-hover:text-gray-900 flex-shrink-0" />
                           <span className="font-medium">{link.label}</span>
+                          {/* Notification Badge */}
+                          {link.showBadge && unreadNotifications > 0 && (
+                            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
+                              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                            </span>
+                          )}
                           <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-0.5 color1 transition-all duration-300 group-hover:w-3/4"></span>
                         </button>
                       </Link>
@@ -335,22 +391,26 @@ const Navbar = () => {
                   <div className="relative" ref={dropdownRef}>
                     <button
                       onClick={() => setShowDropdown(!showDropdown)}
-                      className="flex items-center gap-3 px-4 py-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
+                      className="relative flex items-center gap-3 px-4 py-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
                     >
+                      {/* Notification dot on profile */}
+                      {/* {unreadNotifications > 0 && (
+                        <>
+                          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
+                          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
+                        </>
+                      )} */}
                       <ProfileAvatar size={36} />
-                      <div className="text-left">
-                        <p className="text-sm font-semibold text-gray-900">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate text-sm">
                           {firstName} {lastName}
                         </p>
-                        <p className="text-xs text-gray-500 capitalize">{userRole}</p>
-                      </div>
-                      <FiChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
-                    </button>
+                      </div>                    </button>
 
                     {/* Dropdown Menu */}
                     {showDropdown && (
                       <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fadeIn">
-                        {/* User Info */}
+                        {/* User Info with Notification */}
                         <div className="px-6 py-4 color3 border-b border-gray-100">
                           <div className="flex items-center gap-3">
                             <ProfileAvatar size={48} />
@@ -359,6 +419,13 @@ const Navbar = () => {
                                 {firstName} {lastName}
                               </p>
                               <p className="text-sm text-gray-600 truncate">{email}</p>
+                              {/* Notification count in dropdown */}
+                              {unreadNotifications > 0 && (
+                                <p className="text-xs text-red-600 mt-1">
+                                  <FiBell className="inline w-3 h-3 mr-1" />
+                                  {unreadNotifications} unread notification{unreadNotifications !== 1 ? 's' : ''}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -385,7 +452,7 @@ const Navbar = () => {
                                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                                 }`}
                             >
-                              Client
+                              Booker
                             </button>
                           </div>
                         </div>
@@ -420,12 +487,18 @@ const Navbar = () => {
                 )}
               </div>
 
-              {/* Mobile Menu Button */}
+              {/* Mobile Menu Button with Notification Badge */}
               <button
                 onClick={toggleMenu}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                className="lg:hidden relative p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                 aria-label="Toggle menu"
               >
+                {/* Mobile notification badge */}
+                {unreadNotifications > 0 && !isOpen && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </span>
+                )}
                 {isOpen ? (
                   <FiX className="w-6 h-6 text-gray-900" />
                 ) : (
@@ -442,7 +515,7 @@ const Navbar = () => {
               <div className="px-4 pb-6 pt-2 border-t border-gray-100 max-h-[70vh] overflow-y-auto"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
-                {/* User Info Mobile */}
+                {/* User Info Mobile with Notification Count */}
                 {isLoggedIn && (
                   <div className="flex items-center gap-3 p-4 mb-4 color3 rounded-xl">
                     <ProfileAvatar size={48} />
@@ -451,7 +524,17 @@ const Navbar = () => {
                         {firstName} {lastName}
                       </p>
                       <p className="text-sm text-gray-600 truncate">{email}</p>
-                      <p className="text-xs text-gray-500 capitalize mt-1">{userRole} Mode</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-xs text-gray-500 capitalize">{userRole} Mode</p>
+                        {unreadNotifications > 0 && (
+                          <>
+                            <span className="text-gray-300">•</span>
+                            <p className="text-xs text-red-600 font-medium">
+                              {unreadNotifications} notification{unreadNotifications !== 1 ? 's' : ''}
+                            </p>
+                          </>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -485,7 +568,7 @@ const Navbar = () => {
                           : "bg-white text-gray-700 border border-gray-200"
                           }`}
                       >
-                        Client
+                        Booker
                       </button>
                     </div>
                   </div>
@@ -507,9 +590,15 @@ const Navbar = () => {
                     const Icon = link.icon;
                     return (
                       <Link key={link.href} href={link.href} onClick={() => setIsOpen(false)}>
-                        <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150">
+                        <button className="relative w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150">
                           <Icon className="w-4 h-4 text-gray-400" />
-                          <span className="font-medium">{link.label}</span>
+                          <span className="font-medium flex-1">{link.label}</span>
+                          {/* Mobile notification badge */}
+                          {link.showBadge && unreadNotifications > 0 && (
+                            <span className="min-w-[24px] px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
+                              {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                            </span>
+                          )}
                         </button>
                       </Link>
                     );

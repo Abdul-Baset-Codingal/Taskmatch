@@ -306,9 +306,8 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, MapPin, Phone, Clock, CheckCircle2 } from "lucide-react";
+import { Calendar, MapPin, Clock, CheckCircle2 } from "lucide-react";
 import { format, isToday, isTomorrow, formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 
@@ -339,7 +338,7 @@ export function UpcomingBookings() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch("/api/auth/verify-token", { credentials: "include" });
+                const res = await fetch("http://localhost:5000/api/auth/verify-token", { credentials: "include" });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.user?.currentRole === "tasker") {
@@ -360,7 +359,7 @@ export function UpcomingBookings() {
         const fetchBookings = async () => {
             try {
                 setLoading(true);
-                const res = await fetch(`/api/taskerBookings/tasker/${taskerId}`, {
+                const res = await fetch(`http://localhost:5000/api/taskerBookings/tasker/${taskerId}`, {
                     credentials: "include",
                 });
                 if (res.ok) {
@@ -514,7 +513,7 @@ export function UpcomingBookings() {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2 mt-4">
+                                    {/* <div className="flex gap-2 mt-4">
                                         <Button size="sm" variant="outline" className="flex-1 h-9 text-xs font-medium">
                                             <Phone className="w-3.5 h-3.5 mr-1.5" />
                                             Call Client
@@ -523,13 +522,13 @@ export function UpcomingBookings() {
                                             <MapPin className="w-3.5 h-3.5 mr-1.5" />
                                             Directions
                                         </Button>
-                                    </div>
+                                    </div> */}
                                 </div>
                             );
                         })}
                     </div>
                 )}
-
+{/* 
                 {upcoming.length > 0 && (
                     <div className="mt-6 pt-4 border-t">
                         <Button variant="outline" className="w-full font-medium" asChild>
@@ -538,7 +537,7 @@ export function UpcomingBookings() {
                             </a>
                         </Button>
                     </div>
-                )}
+                )} */}
             </CardContent>
         </Card>
     );
