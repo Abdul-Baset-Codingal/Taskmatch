@@ -55,7 +55,7 @@ export default function ClientActiveTasks() {
     const [replyToComment] = useReplyToCommentMutation();
     const [updateTaskStatus] = useUpdateTaskStatusMutation();
     const [updateTask] = useUpdateTaskMutation();
-    console.log(clientTasks)
+    // console.log(clientTasks)
 
     // Handle Reply to Comment
     const handleReplySubmit = async (taskId: string, commentId: string, message: string) => {
@@ -69,7 +69,7 @@ export default function ClientActiveTasks() {
             setReplyingTo(null);
             toast.success("Reply submitted successfully!");
         } catch (err) {
-            console.error("Reply failed", err);
+         //    console.error("Reply failed", err);
             toast.error("Failed to submit reply!");
         }
     };
@@ -87,7 +87,7 @@ export default function ClientActiveTasks() {
                 setIsRatingPopupOpen(true);
             }
         } catch (err) {
-            console.error("Status update failed", err);
+           //  console.error("Status update failed", err);
             toast.error("Failed to update status!");
         }
     };
@@ -128,7 +128,7 @@ export default function ClientActiveTasks() {
             setEditFormData(initialTaskState);
         } catch (error: any) {
             toast.error(error?.data?.error || "Failed to update task!");
-            console.error(error);
+          //   console.error(error);
         }
     };
 
@@ -157,7 +157,7 @@ export default function ClientActiveTasks() {
         return new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime();
     });
 
-    console.log(sortedTasks)
+   //  console.log(sortedTasks)
 
     return (
         <section className="min-h-screen bg-gradient-to-br from-[#F9FAFC] to-[#EDEEF2] p-6 md:p-8">

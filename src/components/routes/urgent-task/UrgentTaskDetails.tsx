@@ -40,15 +40,21 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
     );
     const searchParams = useSearchParams();
     const searchQuery = searchParams ? searchParams.get("search") || "" : "";
-    const [taskInput, setTaskInput] = useState(searchQuery);
-    const [inputValue, setInputValue] = useState(searchQuery);
 
     const isGeneralService = searchQuery?.toLowerCase() === "general service";
 
+    // Initialize as empty for general service
+    const [taskInput, setTaskInput] = useState(isGeneralService ? "" : searchQuery);
+    const [inputValue, setInputValue] = useState(isGeneralService ? "" : searchQuery);
+
     // Sync search query → task title
     useEffect(() => {
-        setTaskInput(searchQuery);
-        if (!isGeneralService && searchQuery) {
+        if (isGeneralService) {
+            setTaskInput("");
+            setInputValue("");
+            dispatch(updateTaskField({ field: "taskTitle", value: "" }));
+        } else if (searchQuery) {
+            setTaskInput(searchQuery);
             dispatch(updateTaskField({ field: "taskTitle", value: searchQuery }));
         }
     }, [searchQuery, isGeneralService, dispatch]);
@@ -97,7 +103,7 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
         dispatch(updateTaskField({ field: "serviceTitle", value: servicesData[serviceKey].title }));
     };
 
-    // ---------- Validation Logic ----------
+    // Validation Logic
     const isFormValid = useMemo(() => {
         const hasTitle = taskForm.taskTitle?.trim().length > 0;
 
@@ -228,7 +234,7 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                     </div>
                 </div>
 
-                {/* Image Upload (still optional) */}
+                {/* Image Upload */}
                 <div className="mb-8">
                     <label className="block text-[#063A41] font-semibold mb-3 text-lg">
                         Add photos (optional)
@@ -284,8 +290,8 @@ const UrgentTaskDetails = ({ onBack, onContinue }: Props) => {
                         onClick={handleContinue}
                         disabled={!isFormValid}
                         className={`px-8 py-3 rounded-lg font-semibold transition-all shadow-md ${isFormValid
-                                ? "bg-[#109C3D] text-white hover:bg-[#0d8332] hover:shadow-lg cursor-pointer"
-                                : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                            ? "bg-[#109C3D] text-white hover:bg-[#0d8332] hover:shadow-lg cursor-pointer"
+                            : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }`}
                     >
                         Continue

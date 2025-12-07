@@ -54,7 +54,7 @@ const Navbar = () => {
     if (!isLoggedIn) return;
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/notifications", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/notifications", {
         method: "GET",
         credentials: "include",
       });
@@ -63,10 +63,10 @@ const Navbar = () => {
         const data = await response.json();
         setUnreadNotifications(data.unreadCount || 0);
       } else {
-        console.error("Failed to fetch notifications");
+       // console.error("Failed to fetch notifications");
       }
     } catch (error) {
-      console.error("Error fetching notifications:", error);
+    //  console.error("Error fetching notifications:", error);
     }
   };
 
@@ -84,38 +84,95 @@ const Navbar = () => {
     }
   }, [isLoggedIn, userRole]);
 
+  // const handleLogout = async () => {
+  //   try {
+  //     const response = await fetch("/api/auth/logout", {
+  //       method: "POST",
+  //       credentials: "include",
+  //     });
+  //     if (response.ok) {
+  //       setWasLoggedIn(true);
+  //       setIsLoggedIn(false);
+  //       setUserRole(null);
+  //       setUserRoles([]);
+  //       setUserId(null);
+  //       setFirstName(null);
+  //       setLastName(null);
+  //       setEmail(null);
+  //       setProfilePicture(null);
+  //       setTaskerProfileCheck(false);
+  //       setShowDropdown(false);
+  //       setErrorMessage(null);
+  //       setIsOpen(false);
+  //       setUnreadNotifications(0); // Reset notification count
+  //       router.push("/");
+  //       toast.success("Logged out successfully!");
+  //     } else {
+  //    //   console.error("Logout failed with status:", response.status);
+  //       toast.error("Logout failed. Please try again.");
+  //     }
+  //   } catch (error) {
+  //   //  console.error("Logout failed", error);
+  //     toast.error("An error occurred during logout.");
+  //   }
+  // };
+
+
   const handleLogout = async () => {
+    console.log("=== FRONTEND LOGOUT DEBUG ===");
+
     try {
-      const response = await fetch("http://localhost:5000/api/auth/logout", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
         method: "POST",
-        credentials: "include",
+        credentials: "include",  // ← This is REQUIRED
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
+
+      console.log("Response status:", response.status);
+      console.log("Response headers:", [...response.headers.entries()]);
+
+      const data = await response.json();
+      console.log("Response data:", data);
+
+      // Check if cookies still exist after logout
+      console.log("Document cookies after logout:", document.cookie);
+
       if (response.ok) {
-        setWasLoggedIn(true);
-        setIsLoggedIn(false);
-        setUserRole(null);
-        setUserRoles([]);
-        setUserId(null);
-        setFirstName(null);
-        setLastName(null);
-        setEmail(null);
-        setProfilePicture(null);
-        setTaskerProfileCheck(false);
-        setShowDropdown(false);
-        setErrorMessage(null);
-        setIsOpen(false);
-        setUnreadNotifications(0); // Reset notification count
+        // Force clear on frontend
+        clearAuthState();
         router.push("/");
         toast.success("Logged out successfully!");
       } else {
-        console.error("Logout failed with status:", response.status);
-        toast.error("Logout failed. Please try again.");
+        console.error("Logout failed:", data);
+        toast.error("Logout failed");
       }
     } catch (error) {
-      console.error("Logout failed", error);
-      toast.error("An error occurred during logout.");
+      console.error("Logout error:", error);
+      // Still clear local state
+      clearAuthState();
+      toast.error("Logout error, cleared local state");
     }
   };
+
+  const clearAuthState = () => {
+    setIsLoggedIn(false);
+    setUserRole(null);
+    setUserRoles([]);
+    setUserId(null);
+    setFirstName(null);
+    setLastName(null);
+    setEmail(null);
+    setProfilePicture(null);
+    setTaskerProfileCheck(false);
+    setShowDropdown(false);
+    setErrorMessage(null);
+    setIsOpen(false);
+    setUnreadNotifications(0);
+  };
+
+
 
   const switchRole = async (newRole: "tasker" | "client") => {
     if (!userId) {
@@ -124,7 +181,7 @@ const Navbar = () => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/auth/users/${userId}`, {
+      const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
@@ -140,7 +197,7 @@ const Navbar = () => {
         fetchNotificationCount();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Switch role failed:", errorData);
+      //  console.error("Switch role failed:", errorData);
 
         if (errorData.missingFields && newRole === "tasker") {
           const fieldsQuery = errorData.missingFields.join(",");
@@ -151,7 +208,7 @@ const Navbar = () => {
         }
       }
     } catch (error) {
-      console.error("Switch role failed", error);
+   //   console.error("Switch role failed", error);
       toast.error("An error occurred while switching roles.");
     }
   };
@@ -186,7 +243,7 @@ const Navbar = () => {
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
         method: "GET",
         credentials: "include",
       });
@@ -197,8 +254,9 @@ const Navbar = () => {
         setWasLoggedIn(false);
         const currentRole = data.user.currentRole || data.user.role;
         setUserRole(currentRole);
-
         console.log(data.user)
+
+      //  console.log(data.user)
 
         const rawRoles = data.user.roles || [data.user.currentRole || "client"];
         const validRoles = rawRoles.filter((role: string) =>
@@ -227,13 +285,13 @@ const Navbar = () => {
         setUnreadNotifications(0); // Reset notification count
 
         if (response.status === 401 && prevLoggedIn) {
-          console.warn("Verify-token failed with status: 401 - Session expired, clearing auth state.");
+       //   console.warn("Verify-token failed with status: 401 - Session expired, clearing auth state.");
           toast.warn("Session expired. Please log in again.");
           router.push("/authentication");
         }
       }
     } catch (error) {
-      console.error("Verify token failed", error);
+    //  console.error("Verify token failed", error);
       const prevLoggedIn = isLoggedIn;
       setIsLoggedIn(false);
       setUserRole(null);
@@ -340,7 +398,7 @@ const Navbar = () => {
           >
             <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16 lg:h-20">
               {/* Logo */}
-              <div className="flex items-center gap-2">
+              {/* <div className="flex items-center gap-2">
                 <Link href="/">
                   <Image
                     src={logo}
@@ -349,8 +407,10 @@ const Navbar = () => {
                     priority
                   />
                 </Link>
-              </div>
-
+              </div> */}
+              <div className="flex items-center gap-2"> <Link href="/"> <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent"> Taskallo </h1> </Link> 
+              {/* <span className="w-2 h-2 rounded-full color2 inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span> */}
+               </div>
 
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-8">

@@ -1,3 +1,4 @@
+
 /* eslint-disable react/no-unescaped-entities */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -14,6 +15,7 @@ import { useDispatch } from "react-redux";
 import { updateTaskField, setPhotos } from "@/features/taskForm/taskFormSlice";
 import { RootState } from "@/app/store";
 import { useSelector } from "react-redux";
+import ForgotPasswordModal from "./ForgetPasswordModal";
 
 interface ClientLoginModalProps {
   isOpen: boolean;
@@ -37,7 +39,21 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch();
   const taskForm = useSelector((state: RootState) => state.taskForm);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
+  // Add handlers
+  const handleForgotPasswordClick = () => {
+    setShowForgotPassword(true);
+  };
+
+  const handleBackToLogin = () => {
+    setShowForgotPassword(false);
+  };
+
+  const handleForgotPasswordClose = () => {
+    setShowForgotPassword(false);
+    handleClose();
+  };
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
@@ -78,28 +94,41 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+      // Get token from localStorage (fallback for iOS/Safari)
+      const token = localStorage.getItem('token');
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Add Authorization header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const response = await fetch("/api/auth/verify-token", {
         method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "include", // Still try cookies first
+        headers,
       });
 
       if (response.ok) {
         const data = await response.json();
         setIsLoggedIn(true);
         setUserRole(data.user.role);
-        console.log("Token verified. User logged in:", data.user);
+      //   console.log("Token verified. User logged in:", data.user);
       } else {
         setIsLoggedIn(false);
         setUserRole(null);
-        console.log("Token verification failed. User logged out.");
+        // Clear invalid token
+        localStorage.removeItem('token');
+      //   console.log("Token verification failed. User logged out.");
       }
     } catch (error) {
       setIsLoggedIn(false);
       setUserRole(null);
-      console.error("Error verifying token:", error);
+      localStorage.removeItem('token');
+      // console.error("Error verifying token:", error);
     }
   };
 
@@ -154,9 +183,9 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
       }
 
       sessionStorage.removeItem('pendingTaskForm');
-      console.log("Pending task form restored successfully.");
+    //   console.log("Pending task form restored successfully.");
     } catch (error) {
-      console.error("Error restoring pending task:", error);
+     //  console.error("Error restoring pending task:", error);
       sessionStorage.removeItem('pendingTaskForm');
       toast.error("Failed to restore task form. Please try again.");
     }
@@ -166,8 +195,15 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
     e.preventDefault();
     try {
       const res = await login({ email, password }).unwrap();
+
+      // ✅ SAVE TOKEN TO LOCALSTORAGE (iOS/Safari Fix)
+      if (res.token) {
+        localStorage.setItem('token', res.token);
+        // console.log("✅ Token saved to localStorage");
+      }
+
       toast.success("Login successful!");
-      console.log("Login response:", res);
+     //  console.log("Login response:", res);
       await checkLoginStatus();
 
       // Restore body scroll before closing and navigating
@@ -182,15 +218,26 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
         router.push("/");
       }
     } catch (error: any) {
-      console.error("Login error:", error);
+     //  console.error("Login error:", error);
       toast.error(error?.data?.message || "Login failed. Please try again.");
     }
   };
 
+  if (showForgotPassword) {
+    return (
+      <ForgotPasswordModal
+        isOpen={showForgotPassword}
+        onClose={handleForgotPasswordClose}
+        onBackToLogin={handleBackToLogin}
+      />
+    );
+  }
+
+
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[10000] p-4 modal-fade-in"
-      onClick={handleClose} // Use the new handleClose function
+      onClick={handleClose}
     >
       <style>{`
         .modal-fade-in { animation: fadeIn 0.3s ease-out; }
@@ -211,7 +258,6 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
         className="bg-white w-full max-w-md rounded-2xl relative shadow-2xl overflow-hidden modal-slide-up"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button - Use handleClose */}
         <button
           onClick={handleClose}
           className="absolute top-4 right-4 z-10 text-white hover:text-gray-200 transition p-2 rounded-full hover:bg-white/10"
@@ -220,7 +266,6 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
           <FaTimes className="w-5 h-5" />
         </button>
 
-        {/* Rest of your modal JSX remains the same */}
         <div className="brand-gradient pt-8 pb-12 px-6 text-center relative">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
             <FaUser className="text-3xl text-white" />
@@ -292,16 +337,13 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
             </div>
 
             {/* Forgot Password Link */}
-            <div className="text-right">
-              <Link
-                href="/forgot-password"
-                className="text-sm font-medium hover:underline transition"
-                style={{ color: '#109C3D' }}
-              >
-                Forgot Password?
-              </Link>
+            <div
+              className="text-right text-sm font-medium hover:underline transition cursor-pointer"
+              onClick={handleForgotPasswordClick}
+              style={{ color: "#109C3D" }}
+            >
+              Forgot Password?
             </div>
-
             {/* Submit Button */}
             <button
               type="submit"

@@ -175,7 +175,7 @@ import Cookies from 'js-cookie';
 export const taskerApi = createApi({
     reducerPath: 'taskerApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/taskerBookings`,
+        baseUrl: `https://taskmatch-backend.vercel.app/api/taskerBookings`,
         credentials: 'include',
         prepareHeaders: (headers) => {
             const token = Cookies.get('token');

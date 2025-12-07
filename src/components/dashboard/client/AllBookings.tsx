@@ -85,7 +85,7 @@ const AllBookings: React.FC = () => {
     // Check login status
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
             });
@@ -99,7 +99,7 @@ const AllBookings: React.FC = () => {
                 setUser(null);
             }
         } catch (error) {
-            console.error('Error checking login status:', error);
+        //     console.error('Error checking login status:', error);
             setIsLoggedIn(false);
             setUser(null);
         }
@@ -130,7 +130,7 @@ const AllBookings: React.FC = () => {
             setIsDeleteModalOpen(false);
             setBookingToDelete(null);
         } catch (err: any) {
-            console.error("Error deleting booking:", err);
+         //    console.error("Error deleting booking:", err);
             alert(`Failed to delete booking: ${err?.data?.message || "Unknown error"}`);
         }
     };
@@ -159,7 +159,7 @@ const AllBookings: React.FC = () => {
 
     const handleReviewSubmit = async (bookingId: string) => {
         try {
-            const response = await fetch("http://localhost:5000/api/taskerBookings/reviews", {
+            const response = await fetch("https://taskmatch-backend.vercel.app/api/taskerBookings/reviews", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -175,7 +175,7 @@ const AllBookings: React.FC = () => {
                 alert(`Failed to submit review: ${errorData.message || "Unknown error"}`);
             }
         } catch (error) {
-            console.error("Error submitting review:", error);
+           //  console.error("Error submitting review:", error);
             alert("Server error");
         }
     };
@@ -273,10 +273,10 @@ const AllBookings: React.FC = () => {
                     </div>
                     <h3 className="text-lg font-semibold text-[#063A41] mb-2">No Bookings Yet</h3>
                     <p className="text-gray-500 text-sm mb-6">You haven't made any bookings yet.</p>
-                    <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors">
+                    {/* <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors">
                         <FaBriefcase className="text-sm" />
                         Browse Services
-                    </button>
+                    </button> */}
                 </div>
             </div>
         );

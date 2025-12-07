@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn } from "react-icons/fa";
 import background from "../../public/Images/ad.jpg";
-import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
+// import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
 
 export default function Footer() {
     return (
@@ -22,7 +22,7 @@ export default function Footer() {
             <div className="relative max-w-[1300px] mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 z-10">
                 {/* Logo & About */}
                 <div>
-                    <div className="flex items-center gap-2">
+                    {/* <div className="flex items-center gap-2">
                         <Link href="/">
                             <Image
                                 src={logo}
@@ -31,8 +31,11 @@ export default function Footer() {
                                 priority
                             />
                         </Link>
+                    </div> */}
+
+                    <div className="flex items-center gap-2"> <Link href="/"> <h1 className="text-2xl xs:text-3xl sm:text-4xl text-white lg:text-3xl font-bold color1 bg-clip-text "> Taskallo </h1> </Link>
                     </div>
-                    <p className="text-gray-200 leading-relaxed text-sm">
+                    <p className="text-gray-200 leading-relaxed text-sm mt-3">
                         TaskAllo is Canada’s trusted platform for home services — connecting
                         clients with professional Taskers for everything from plumbing to
                         beauty & wellness.
@@ -47,7 +50,6 @@ export default function Footer() {
                     <ul className="space-y-2 text-gray-200">
                         <li><Link href="/">Home</Link></li>
                         <li><Link href="/our-story">About Us</Link></li>
-                        <li><Link href="/services">Services</Link></li>
                         <li><Link href="/contact-us">Contact</Link></li>
                     </ul>
                 </div>
@@ -69,9 +71,9 @@ export default function Footer() {
 
                 {/* Contact & Social */}
                 <div>
-                    <h3 className="text-xl font-semibold text-[#E5FFDB] mb-4">
+                    {/* <h3 className="text-xl font-semibold text-[#E5FFDB] mb-4">
                         Contact
-                    </h3>
+                    </h3> */}
                     <p className="text-gray-200 text-sm mb-3">
                         Toronto, Canada<br />
                         support@taskallo.com<br />

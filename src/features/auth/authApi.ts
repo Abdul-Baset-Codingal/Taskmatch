@@ -34,7 +34,7 @@ interface GetTaskersParams {
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/auth`,
+        baseUrl: `https://taskmatch-backend.vercel.app/api/auth`,
         credentials: "include", // ✅ This is correct
         prepareHeaders: (headers) => {
             // Ensure proper headers for CORS
@@ -66,6 +66,35 @@ export const authApi = createApi({
             query: () => ({
                 url: "/logout",
                 method: "POST",
+            }),
+        }),
+        // Forgot Password endpoints
+        forgotPassword: builder.mutation({
+            query: (data) => ({
+                url: "/forgot-password",
+                method: "POST",
+                body: data,
+            }),
+        }),
+        verifyResetOtp: builder.mutation({
+            query: (data) => ({
+                url: "/verify-reset-otp",
+                method: "POST",
+                body: data,
+            }),
+        }),
+        resetPassword: builder.mutation({
+            query: (data) => ({
+                url: "/reset-password",
+                method: "POST",
+                body: data,
+            }),
+        }),
+        resendResetOtp: builder.mutation({
+            query: (data) => ({
+                url: "/resend-reset-otp",
+                method: "POST",
+                body: data,
             }),
         }),
 
@@ -157,7 +186,7 @@ export const authApi = createApi({
 
         updateUser: builder.mutation({
             query: ({ userId, ...userData }) => {
-                console.log('Sending update user request with data:', { userId, ...userData });
+             //   console.log('Sending update user request with data:', { userId, ...userData });
                 return {
                     url: `/updateProfile/${userId}`,
                     method: 'PUT',
@@ -165,7 +194,7 @@ export const authApi = createApi({
                 };
             },
             invalidatesTags: (result, error, { userId }) => {
-                console.log('Invalidating tags for user ID:', userId);
+            //    console.log('Invalidating tags for user ID:', userId);
                 return userId ? [{ type: 'User', id: userId }, 'User'] : ['User'];
             },
         }),
@@ -253,6 +282,10 @@ export const {
     useBlockUserMutation,
     useToggleTaskerProfileCheckMutation,
     useSubmitTaskerApplicationMutation,
-    useApproveRejectTaskerMutation
+    useApproveRejectTaskerMutation, 
+    useForgotPasswordMutation,
+    useVerifyResetOtpMutation,
+    useResetPasswordMutation,
+    useResendResetOtpMutation,
 
 } = authApi;

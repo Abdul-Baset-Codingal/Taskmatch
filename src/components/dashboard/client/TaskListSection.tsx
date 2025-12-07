@@ -15,7 +15,11 @@ import {
   FaClock,
   FaExclamationCircle,
   FaChevronDown,
-  FaPlus
+  FaPlus,
+  FaMapMarkerAlt,
+  FaCalendarAlt,
+  FaLaptop,
+  FaUser
 } from "react-icons/fa";
 import { toast } from "react-toastify";
 import AllClientTasks from "./AllClientTasks";
@@ -40,12 +44,25 @@ const SORT_OPTIONS = [
   { value: "Price: Low to High", label: "Price: Low to High", icon: FaSortAmountDown },
 ];
 
+// Location and Schedule type options
+const LOCATION_TYPES = [
+  { value: "remote", label: "Remote", icon: FaLaptop },
+  { value: "in-person", label: "In-Person", icon: FaUser },
+];
+
+const SCHEDULE_TYPES = [
+  { value: "flexible", label: "Flexible", icon: FaClock },
+  { value: "scheduled", label: "Scheduled", icon: FaCalendarAlt },
+];
+
 type TaskFormData = {
   taskTitle: string;
   taskDescription: string;
   price: number | string;
-  location: string;
-  schedule: string;
+  locationType: string;
+  address: string;
+  scheduleType: string;
+  scheduledDateTime: string;
   additionalInfo: string;
 };
 
@@ -53,13 +70,39 @@ const initialTaskState: TaskFormData = {
   taskTitle: "",
   taskDescription: "",
   price: "",
-  location: "",
-  schedule: "",
+  locationType: "",
+  address: "",
+  scheduleType: "",
+  scheduledDateTime: "",
   additionalInfo: "",
 };
 
 // Validate MongoDB ObjectId
 const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+
+// Helper function to parse existing location
+const parseLocation = (location: string): { type: string; address: string } => {
+  if (!location || location.toLowerCase() === "remote") {
+    return { type: "remote", address: "" };
+  }
+  return { type: "in-person", address: location };
+};
+
+// Helper function to parse existing schedule
+const parseSchedule = (schedule: string): { type: string; dateTime: string } => {
+  if (!schedule || schedule.toLowerCase() === "flexible") {
+    return { type: "flexible", dateTime: "" };
+  }
+  // Check if it's a valid date string
+  const date = new Date(schedule);
+  if (!isNaN(date.getTime())) {
+    // Format for datetime-local input
+    const formatted = date.toISOString().slice(0, 16);
+    return { type: "scheduled", dateTime: formatted };
+  }
+  // If it's not "flexible" but also not a valid date, treat as scheduled with the value
+  return { type: "scheduled", dateTime: schedule };
+};
 
 export default function TaskListSection() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,7 +120,6 @@ export default function TaskListSection() {
   const [replyToComment] = useReplyToCommentMutation();
   const [updateTaskStatus] = useUpdateTaskStatusMutation();
   const [updateTask] = useUpdateTaskMutation();
-  console.log(clientTasks);
 
   // Compute dynamic TASK_STATUS counts
   const TASK_STATUS = useMemo(() => {
@@ -113,7 +155,6 @@ export default function TaskListSection() {
       setReplyingTo(null);
       toast.success("Reply submitted successfully!");
     } catch (err) {
-      console.error("Reply failed", err);
       toast.error("Failed to submit reply!");
     }
   };
@@ -131,7 +172,6 @@ export default function TaskListSection() {
         setIsRatingPopupOpen(true);
       }
     } catch (err) {
-      console.error("Status update failed", err);
       toast.error("Failed to update status!");
     }
   };
@@ -142,13 +182,19 @@ export default function TaskListSection() {
       toast.error("Invalid task ID!");
       return;
     }
+
+    const parsedLocation = parseLocation(task.location || "");
+    const parsedSchedule = parseSchedule(task.schedule || "");
+
     setEditTaskId(task._id);
     setEditFormData({
       taskTitle: task.taskTitle || "",
       taskDescription: task.taskDescription || "",
       price: task.price || "",
-      location: task.location || "",
-      schedule: task.schedule || "",
+      locationType: parsedLocation.type,
+      address: parsedLocation.address,
+      scheduleType: parsedSchedule.type,
+      scheduledDateTime: parsedSchedule.dateTime,
       additionalInfo: task.additionalInfo || "",
     });
   };
@@ -161,24 +207,48 @@ export default function TaskListSection() {
       toast.error("Invalid task ID!");
       return;
     }
+
+    // Validate conditional fields
+    if (editFormData.locationType === "in-person" && !editFormData.address.trim()) {
+      toast.error("Please enter an address for in-person location!");
+      return;
+    }
+    if (editFormData.scheduleType === "scheduled" && !editFormData.scheduledDateTime) {
+      toast.error("Please select a date and time for scheduled tasks!");
+      return;
+    }
+
     try {
+      // Format location and schedule for API
+      const location = editFormData.locationType === "remote"
+        ? "Remote"
+        : editFormData.address;
+
+      const schedule = editFormData.scheduleType === "flexible"
+        ? "Flexible"
+        : editFormData.scheduledDateTime;
+
       const updateData = {
-        ...editFormData,
+        taskTitle: editFormData.taskTitle,
+        taskDescription: editFormData.taskDescription,
         price: parseFloat(editFormData.price as string) || 0,
+        location,
+        schedule,
+        additionalInfo: editFormData.additionalInfo,
       };
+
       await updateTask({ taskId: editTaskId, updateData }).unwrap();
       toast.success("Task updated successfully!");
       setEditTaskId(null);
       setEditFormData(initialTaskState);
     } catch (error: any) {
       toast.error(error?.data?.error || "Failed to update task!");
-      console.error(error);
     }
   };
 
   // Handle Form Change
   const handleFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({ ...prev, [name]: value }));
@@ -209,8 +279,6 @@ export default function TaskListSection() {
     );
   });
 
-  console.log(sortedTasks);
-
   return (
     <section className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Header Section */}
@@ -226,12 +294,12 @@ export default function TaskListSection() {
                 Manage and track all your posted tasks
               </p>
             </div>
-           <Link href={'/urgent-task'}>
+            <Link href={'/urgent-task?search=general%20service'}>
               <button className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg shadow-[#109C3D]/20">
                 <FaPlus className="text-sm" />
                 Post New Task
               </button>
-           </Link>
+            </Link>
           </div>
         </div>
       </div>
@@ -244,8 +312,8 @@ export default function TaskListSection() {
               key={label}
               onClick={() => setSelectedStatus(label)}
               className={`relative bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-sm border-2 transition-all duration-200 hover:shadow-md ${selectedStatus === label
-                  ? "border-[#109C3D] shadow-md"
-                  : "border-transparent hover:border-gray-200"
+                ? "border-[#109C3D] shadow-md"
+                : "border-transparent hover:border-gray-200"
                 }`}
             >
               <div className="flex items-center gap-3">
@@ -331,8 +399,8 @@ export default function TaskListSection() {
                             setIsSortOpen(false);
                           }}
                           className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${sortBy === option.value
-                              ? "bg-[#E5FFDB] text-[#063A41] font-medium"
-                              : "text-gray-600 hover:bg-gray-50"
+                            ? "bg-[#E5FFDB] text-[#063A41] font-medium"
+                            : "text-gray-600 hover:bg-gray-50"
                             }`}
                         >
                           <option.icon className={sortBy === option.value ? "text-[#109C3D]" : "text-gray-400"} />
@@ -376,10 +444,12 @@ export default function TaskListSection() {
                   ? `No ${selectedStatus.toLowerCase()} tasks at the moment`
                   : "You haven't posted any tasks yet. Start by creating your first task!"}
             </p>
-            <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors">
-              <FaPlus className="text-sm" />
-              Post Your First Task
-            </button>
+            <Link href={'/urgent-task?search=general%20service'}>
+              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#109C3D] hover:bg-[#0d8a35] text-white font-semibold rounded-xl transition-colors">
+                <FaPlus className="text-sm" />
+                Post Your First Task
+              </button>
+            </Link>
           </div>
         ) : (
           <>
@@ -459,58 +529,125 @@ export default function TaskListSection() {
                   />
                 </div>
 
-                {/* Two Column Layout */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Price */}
-                  <div>
-                    <label htmlFor="price" className="block text-sm font-medium text-[#063A41] mb-2">
-                      Budget ($) <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      id="price"
-                      type="number"
-                      name="price"
-                      placeholder="0.00"
-                      value={editFormData.price}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
-                      required
-                    />
-                  </div>
-
-                  {/* Location */}
-                  <div>
-                    <label htmlFor="location" className="block text-sm font-medium text-[#063A41] mb-2">
-                      Location <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      id="location"
-                      type="text"
-                      name="location"
-                      placeholder="e.g., New York, NY"
-                      value={editFormData.location}
-                      onChange={handleFormChange}
-                      className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
-                      required
-                    />
-                  </div>
-                </div>
-
-                {/* Schedule */}
+                {/* Price */}
                 <div>
-                  <label htmlFor="schedule" className="block text-sm font-medium text-[#063A41] mb-2">
-                    Schedule <span className="text-red-500">*</span>
+                  <label htmlFor="price" className="block text-sm font-medium text-[#063A41] mb-2">
+                    Budget ($) <span className="text-red-500">*</span>
                   </label>
                   <input
-                    id="schedule"
-                    type="text"
-                    name="schedule"
-                    placeholder="e.g., Today, Tomorrow, Urgent"
-                    value={editFormData.schedule}
+                    id="price"
+                    type="number"
+                    name="price"
+                    placeholder="0.00"
+                    value={editFormData.price}
                     onChange={handleFormChange}
                     className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
                     required
                   />
+                </div>
+
+                {/* Location Type Selection */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-[#063A41]">
+                    Location Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {LOCATION_TYPES.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setEditFormData(prev => ({
+                            ...prev,
+                            locationType: option.value,
+                            address: option.value === "remote" ? "" : prev.address
+                          }))}
+                          className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${editFormData.locationType === option.value
+                              ? "border-[#109C3D] bg-[#E5FFDB] text-[#063A41]"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                            }`}
+                        >
+                          <Icon className={`text-lg ${editFormData.locationType === option.value ? "text-[#109C3D]" : "text-gray-400"}`} />
+                          <span className="font-medium">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Address Field - Shows only when In-Person is selected */}
+                  {editFormData.locationType === "in-person" && (
+                    <div className="animate-fadeIn">
+                      <label htmlFor="address" className="block text-sm font-medium text-[#063A41] mb-2">
+                        Address <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <FaMapMarkerAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          id="address"
+                          type="text"
+                          name="address"
+                          placeholder="Enter full address (e.g., 123 Main St, New York, NY 10001)"
+                          value={editFormData.address}
+                          onChange={handleFormChange}
+                          className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
+                          required={editFormData.locationType === "in-person"}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Schedule Type Selection */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-[#063A41]">
+                    Schedule <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {SCHEDULE_TYPES.map((option) => {
+                      const Icon = option.icon;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => setEditFormData(prev => ({
+                            ...prev,
+                            scheduleType: option.value,
+                            scheduledDateTime: option.value === "flexible" ? "" : prev.scheduledDateTime
+                          }))}
+                          className={`flex items-center justify-center gap-3 p-4 rounded-xl border-2 transition-all duration-200 ${editFormData.scheduleType === option.value
+                              ? "border-[#109C3D] bg-[#E5FFDB] text-[#063A41]"
+                              : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                            }`}
+                        >
+                          <Icon className={`text-lg ${editFormData.scheduleType === option.value ? "text-[#109C3D]" : "text-gray-400"}`} />
+                          <span className="font-medium">{option.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Date Time Field - Shows only when Scheduled is selected */}
+                  {editFormData.scheduleType === "scheduled" && (
+                    <div className="animate-fadeIn">
+                      <label htmlFor="scheduledDateTime" className="block text-sm font-medium text-[#063A41] mb-2">
+                        Date & Time <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <FaCalendarAlt className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                          id="scheduledDateTime"
+                          type="datetime-local"
+                          name="scheduledDateTime"
+                          value={editFormData.scheduledDateTime}
+                          onChange={handleFormChange}
+                          min={new Date().toISOString().slice(0, 16)}
+                          className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-0 transition-colors text-[#063A41] placeholder-gray-400"
+                          required={editFormData.scheduleType === "scheduled"}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Task Description */}
@@ -585,6 +722,19 @@ export default function TaskListSection() {
         }
         .animate-modalSlide {
           animation: modalSlide 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.2s ease-out;
         }
       `}</style>
     </section>

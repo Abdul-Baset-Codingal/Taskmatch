@@ -119,7 +119,7 @@ const JoinTaskMatch = () => {
           <div className="absolute inset-0 z-10 flex items-center justify-center p-12">
             <div className="text-center slide-in-left">
               <h2 className="text-4xl xl:text-5xl font-bold text-white mb-6">
-                Welcome to TaskAllo
+                Welcome to Taskallo
               </h2>
               <p className="text-lg xl:text-xl text-gray-100 max-w-md mx-auto leading-relaxed">
                 Connect with trusted professionals and get your tasks done efficiently
@@ -138,7 +138,7 @@ const JoinTaskMatch = () => {
                 Get Started Today
               </h1>
               <p className="text-gray-600 text-base sm:text-lg">
-                Join thousands of satisfied clients who trust TaskAllo
+                Join thousands of satisfied clients who trust Taskallo
               </p>
             </div>
 
@@ -160,7 +160,7 @@ const JoinTaskMatch = () => {
                 <ul className="space-y-3">
                   {[
                     "Post any task you need help with",
-                    "Get quotes from verified professionals",
+                    "Get quotes from professionals",
                     "Secure payment protection",
                     "24/7 customer support"
                   ].map((item, i) => (

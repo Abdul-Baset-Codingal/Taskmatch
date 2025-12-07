@@ -28,7 +28,6 @@ import { PaymentTransactions } from "./PaymentTransactions"
 import MyServices from "./MyServices"
 import UpdateDocument from "./UpdateDocument"
 import Image from "next/image"
-import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
 
 // Separate PaymentTransactions component
 
@@ -91,14 +90,7 @@ export function DashboardLayout({ isOpen, toggleSidebar }: DashboardLayoutProps)
                 <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
                     <Link href="/" className="flex items-center gap-2">
                         <div className="flex items-center gap-2">
-                            <Link href="/">
-                                <Image
-                                    src={logo}
-                                    alt="TaskAllo Logo"
-                                    className="w-24 h-auto xs:w-28 sm:w-32 lg:w-36"
-                                    priority
-                                />
-                            </Link>
+                            <div className="flex items-center gap-2"> <Link href="/"> <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent"> Taskallo </h1> </Link> </div>
                         </div>
                     </Link>
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="lg:hidden">

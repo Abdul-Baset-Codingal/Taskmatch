@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { Bell, Settings, User, X, Menu, Clock, CheckCircle, MessageCircle, AlertCircle, Package, Star } from "lucide-react";
@@ -73,7 +74,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
         const fetchNotifications = async () => {
             try {
                 setLoadingNotifications(true);
-                const response = await fetch("http://localhost:5000/api/auth/notifications", {
+                const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/notifications", {
                     method: "GET",
                     credentials: "include",
                     headers: {
@@ -83,14 +84,14 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log("Notifications received:", data);
+                 //    console.log("Notifications received:", data);
                     setNotifications(data.notifications || []);
                     setUnreadCount(data.unreadCount || 0);
                 } else {
-                    console.error("Failed to fetch notifications:", response.status);
+                 //    console.error("Failed to fetch notifications:", response.status);
                 }
             } catch (error) {
-                console.error("Error fetching notifications:", error);
+              //   console.error("Error fetching notifications:", error);
             } finally {
                 setLoadingNotifications(false);
             }
@@ -105,7 +106,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
     // Handle logout
     const handleLogout = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/logout", {
+            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
                 method: "POST",
                 credentials: "include",
             });
@@ -116,17 +117,17 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
                 setUnreadCount(0);
                 router.push("/");
             } else {
-                console.error("Logout failed with status:", response.status);
+               //  console.error("Logout failed with status:", response.status);
             }
         } catch (error) {
-            console.error("Logout failed", error);
+         //    console.error("Logout failed", error);
         }
     };
 
     // Mark notification as read
     const markAsRead = async (id: string) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/auth/notifications/${id}/read`, {
+            const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/notifications/${id}/read`, {
                 method: "PATCH",
                 credentials: "include",
                 headers: {
@@ -135,7 +136,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
             });
 
             if (response.ok) {
-                console.log("Notification marked as read");
+               //  console.log("Notification marked as read");
 
                 setNotifications((prev) =>
                     prev.map((notif) =>
@@ -145,10 +146,10 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
 
                 setUnreadCount((prev) => Math.max(0, prev - 1));
             } else {
-                console.error("Failed to mark as read:", response.status);
+              //   console.error("Failed to mark as read:", response.status);
             }
         } catch (error) {
-            console.error("Error marking as read:", error);
+         //    console.error("Error marking as read:", error);
         }
     };
 
@@ -208,7 +209,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
                         )}
                     </Button>
                     <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground truncate">
-                        {isTasker ? "Tasker's Workspace" : "Client's Workspace"}
+                        {isTasker ? "Tasker's Workspace" : "Booker's Workspace"}
                     </h1>
                 </div>
 
@@ -381,7 +382,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
                                         <p className="text-xs leading-none text-muted-foreground">
                                             {isLoggedIn && user?.email ? user.email : "Not logged in"}
                                         </p>
-                                        {isLoggedIn && user?.currentRole && (
+                                        {/* {isLoggedIn && user?.currentRole && (
                                             <Badge
                                                 variant="outline"
                                                 className={cn(
@@ -393,7 +394,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
                                             >
                                                 {isTasker ? "Tasker" : "Client"}
                                             </Badge>
-                                        )}
+                                        )} */}
                                     </div>
                                 </div>
                             </DropdownMenuLabel>

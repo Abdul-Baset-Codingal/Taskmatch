@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 export const taskApi = createApi({
     reducerPath: "taskApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api`,
+        baseUrl: `https://taskmatch-backend.vercel.app/api`,
         credentials: "include", // keep if you want to send cookies too
         prepareHeaders: (headers) => {
             const token = Cookies.get("token"); // get your JWT token from cookies (or change source if needed)

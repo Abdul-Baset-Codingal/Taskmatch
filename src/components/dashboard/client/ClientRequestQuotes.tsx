@@ -268,7 +268,7 @@ export function ClientRecentQuotes() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch("http://localhost:5000/api/auth/verify-token", { credentials: "include" });
+                const res = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", { credentials: "include" });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.user?.currentRole === "client") {

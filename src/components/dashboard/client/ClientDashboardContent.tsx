@@ -97,11 +97,11 @@
 import { useEffect, useState } from "react";
 import { checkLoginStatus } from "@/resusable/CheckUser";
 import { ClientDashboardStats } from "./ClientDashboardStats";
-import { ClientSpentChart } from "./ClientIncomeChart";
 import { ClientTaskOverview } from "./ClientTaskOverview";
 import { ClientTaskCalendar } from "./ClientTaskCalender";
 import { ClientRecentQuotes } from "./ClientRequestQuotes";
 import { ClientUpcomingBookings } from "./ClientUpcomingBookings";
+import { ClientProductivityChart } from "./ClientProductivityChart";
 
 export function ClientDashboardContent() {
     const [user, setUser] = useState<any>(null);
@@ -146,21 +146,10 @@ export function ClientDashboardContent() {
             {/* Main Grid */}
             <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-3">
                 {/* Spending Chart - Larger */}
-                <div className="xl:col-span-2">
-                    <ClientSpentChart />
-                </div>
-
-                {/* Task Overview */}
                 <div>
-                    <ClientTaskOverview />
-                </div>
-
-                {/* Calendar */}
-                <div className="lg:col-span-2 xl:col-span-1">
                     <ClientTaskCalendar />
                 </div>
 
-                {/* Recent Quotes */}
                 <div>
                     <ClientRecentQuotes />
                 </div>
@@ -169,6 +158,18 @@ export function ClientDashboardContent() {
                 <div>
                     <ClientUpcomingBookings />
                 </div>
+              
+                {/* Task Overview */}
+                <div>
+                    <ClientTaskOverview />
+                </div>
+                {/* Calendar */}
+            
+                {/* Recent Quotes */}
+                <div className="xl:col-span-2">
+                    <ClientProductivityChart />
+                </div>
+
             </div>
         </div>
     );

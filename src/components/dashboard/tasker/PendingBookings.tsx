@@ -31,7 +31,7 @@ const PendingBookings = () => {
 
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
                 headers: {
@@ -64,7 +64,7 @@ const PendingBookings = () => {
 
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/taskerBookings/tasker/${userId}`, {
+            const response = await fetch(`https://taskmatch-backend.vercel.app/api/taskerBookings/tasker/${userId}`, {
                 method: "GET",
                 credentials: "include",
                 headers: {
@@ -92,7 +92,7 @@ const PendingBookings = () => {
 
     const updateStatus = async (bookingId: string, newStatus: string) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/taskerBookings/${bookingId}`, {
+            const response = await fetch(`https://taskmatch-backend.vercel.app/api/taskerBookings/${bookingId}`, {
                 method: "PUT",
                 credentials: "include",
                 headers: {

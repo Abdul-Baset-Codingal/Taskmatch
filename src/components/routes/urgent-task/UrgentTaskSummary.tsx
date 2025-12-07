@@ -366,7 +366,7 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
 
         setSwitching(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/auth/users/${user._id}`, {
+            const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${user._id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ role: "client" }),

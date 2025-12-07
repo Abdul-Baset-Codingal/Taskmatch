@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Mail, Clock, Send, MessageCircle, Users, CheckCircle, Globe, MapPin } from 'lucide-react';
 import Navbar from '@/shared/Navbar';
 import Footer from '@/shared/Footer';
+import { toast } from 'react-toastify';
 
 const ContactPage = () => {
     const [scrollY, setScrollY] = useState(0);
@@ -35,29 +36,36 @@ const ContactPage = () => {
         setIsSubmitting(true);
 
         try {
-            const form = e.target as HTMLFormElement;
-            const formDataToSend = new FormData(form);
+            const payload = {
+                ...formData,
+                _subject: "New Contact Form Submission from Taskallo",
+                _captcha: "false",
+                _template: "table",
+                _autoresponse: "Thank you for contacting Taskallo! We have received your message and will get back to you within 24 hours."
+            };
 
-            const response = await fetch('https://formsubmit.co/support@taskallo.com', {
+            const response = await fetch('https://formsubmit.co/ajax/taskallo88@gmail.com', {
                 method: 'POST',
-                body: formDataToSend,
                 headers: {
-                    'Accept': 'application/json'
-                }
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify(payload)
             });
 
-            if (response.ok) {
+            const result = await response.json();
+
+            if (response.ok && result.success) {
                 setIsSubmitted(true);
                 setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
 
                 // Reset success message after 5 seconds
                 setTimeout(() => setIsSubmitted(false), 5000);
             } else {
-                throw new Error('Failed to send message');
+                throw new Error(result.message || 'Failed to send message');
             }
         } catch (error) {
-            console.error('Error sending message:', error);
-            alert('Failed to send message. Please try again or email us directly at abdulbaset.ayon@gmail.com');
+            toast.error('Failed to send message.');
         } finally {
             setIsSubmitting(false);
         }
@@ -138,8 +146,8 @@ const ContactPage = () => {
                                     <Mail className="w-6 h-6 text-white" />
                                 </div>
                                 <h3 className="text-lg font-bold text-[#063A41] mb-2">Email Us</h3>
-                                <p className="text-[#063A41]/70 text-sm">support@taskallo.ca</p>
-                                <p className="text-[#063A41]/70 text-sm">hello@taskallo.ca</p>
+                                <p className="text-[#063A41]/70 text-sm">support@taskallo.com</p>
+                                <p className="text-[#063A41]/70 text-sm">taskallo88@gmail.com</p>
                             </div>
 
                             <div className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 border border-[#E5FFDB] text-center group hover:-translate-y-1">
@@ -196,11 +204,7 @@ const ContactPage = () => {
                                     )}
 
                                     <form onSubmit={handleSubmit} className="space-y-5">
-                                        {/* FormSubmit.co Configuration */}
-                                        <input type="hidden" name="_subject" value="New Contact Form Submission from Taskallo" />
-                                        <input type="hidden" name="_captcha" value="false" />
-                                        <input type="hidden" name="_template" value="table" />
-                                        <input type="hidden" name="_autoresponse" value="Thank you for contacting Taskallo! We have received your message and will get back to you within 24 hours." />
+                                        {/* No need for hidden inputs here anymore; they're in the payload */}
 
                                         <div className="grid md:grid-cols-2 gap-5">
                                             <div>
