@@ -71,6 +71,10 @@ const categoryMap: { [key: string]: string } = {
     All_Other_Specialized_Services: "All Other Specialized Services"
 };
 
+const reverseCategoryMap: { [key: string]: string } = Object.fromEntries(
+    Object.entries(categoryMap).map(([key, value]) => [value, key])
+);
+
 const availabilityOptions = ["All", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const ratingOptions = ["All Ratings", "4", "3", "2", "1"];
 const experienceOptions = ["All Levels", "1", "3", "5", "10"];
@@ -83,10 +87,16 @@ const sortOptions = [
 ];
 
 const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
+    const getKeyFromCategory = (cat: string) => {
+        if (categoryMap[cat]) return cat;
+        return reverseCategoryMap[cat] || "";
+    };
+
+    const initialCategory = service?.category || "";
     const [page, setPage] = useState(1);
     const [search, setSearch] = useState("");
     const [province, setProvince] = useState("");
-    const [serviceType, setServiceType] = useState(service?.category || "");
+    const [serviceType, setServiceType] = useState(getKeyFromCategory(initialCategory));
     const [availability, setAvailability] = useState("All");
     const [rating, setRating] = useState("All Ratings");
     const [experience, setExperience] = useState("All Levels");
@@ -221,7 +231,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                 </div>
             </div>
 
-        
+
 
             {/* Availability */}
             <div>
@@ -234,8 +244,8 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                             key={option}
                             onClick={() => setAvailability(option)}
                             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${availability === option
-                                    ? 'bg-[#109C3D] text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-[#E5FFDB] hover:text-[#063A41]'
+                                ? 'bg-[#109C3D] text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-[#E5FFDB] hover:text-[#063A41]'
                                 }`}
                         >
                             {option}
@@ -255,8 +265,8 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                             key={option}
                             onClick={() => setRating(option)}
                             className={`flex-1 flex items-center justify-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${rating === option
-                                    ? 'bg-[#109C3D] text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-[#E5FFDB] hover:text-[#063A41]'
+                                ? 'bg-[#109C3D] text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-[#E5FFDB] hover:text-[#063A41]'
                                 }`}
                         >
                             {option !== "All Ratings" && <FaStar className="text-yellow-400 text-[10px]" />}
@@ -371,7 +381,7 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
                     <div className="text-center">
                         <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-3">
-                            Find Your Perfect Tasker
+                            Find Your Perfect {serviceType ? `${categoryMap[serviceType]} ` : ''}Tasker
                         </h1>
                         <p className="text-white/70 text-sm sm:text-base max-w-2xl mx-auto">
                             Browse verified professionals ready to help with your tasks
@@ -449,102 +459,8 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                             </span>
                                         )}
                                     </button>
-
-                                    {/* Sort Dropdown */}
-                                    {/* <div className="relative flex-1 sm:flex-none">
-                                        <FaSortAmountDown className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm" />
-                                        <select
-                                            value={sort}
-                                            onChange={(e) => setSort(e.target.value)}
-                                            className="w-full sm:w-48 pl-10 pr-10 py-2 rounded-lg border border-gray-200 bg-white text-sm font-medium text-[#063A41] focus:outline-none focus:ring-2 focus:ring-[#109C3D]/20 focus:border-[#109C3D] appearance-none cursor-pointer"
-                                        >
-                                            {sortOptions.map((option) => (
-                                                <option key={option.value} value={option.value}>
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <FaChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs rotate-90 pointer-events-none" />
-                                    </div> */}
-
-                                    {/* View Mode Toggle */}
-                                    {/* <div className="hidden sm:flex items-center bg-gray-100 rounded-lg p-1">
-                                        <button
-                                            onClick={() => setViewMode("split")}
-                                            className={`p-2 rounded-md transition-colors ${viewMode === "split"
-                                                    ? 'bg-white text-[#109C3D] shadow-sm'
-                                                    : 'text-gray-400 hover:text-gray-600'
-                                                }`}
-                                        >
-                                            <FaListUl />
-                                        </button>
-                                        <button
-                                            onClick={() => setViewMode("list")}
-                                            className={`p-2 rounded-md transition-colors ${viewMode === "list"
-                                                    ? 'bg-white text-[#109C3D] shadow-sm'
-                                                    : 'text-gray-400 hover:text-gray-600'
-                                                }`}
-                                        >
-                                            <FaTh />
-                                        </button>
-                                    </div> */}
                                 </div>
                             </div>
-
-                            {/* Active Filters Tags */}
-                            {/* {activeFiltersCount > 0 && (
-                                <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-gray-100">
-                                    <span className="text-xs text-gray-500">Active:</span>
-                                    {serviceType && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E5FFDB] text-[#063A41] rounded-full text-xs font-medium">
-                                            {categoryMap[serviceType]}
-                                            <button onClick={() => setServiceType("")} className="hover:text-red-500">
-                                                <FaTimes className="text-[10px]" />
-                                            </button>
-                                        </span>
-                                    )}
-                                    {search && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E5FFDB] text-[#063A41] rounded-full text-xs font-medium">
-                                            "{search}"
-                                            <button onClick={() => setSearch("")} className="hover:text-red-500">
-                                                <FaTimes className="text-[10px]" />
-                                            </button>
-                                        </span>
-                                    )}
-                                    {availability !== "All" && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E5FFDB] text-[#063A41] rounded-full text-xs font-medium">
-                                            {availability}
-                                            <button onClick={() => setAvailability("All")} className="hover:text-red-500">
-                                                <FaTimes className="text-[10px]" />
-                                            </button>
-                                        </span>
-                                    )}
-                                    {rating !== "All Ratings" && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E5FFDB] text-[#063A41] rounded-full text-xs font-medium">
-                                            {rating}+ Stars
-                                            <button onClick={() => setRating("All Ratings")} className="hover:text-red-500">
-                                                <FaTimes className="text-[10px]" />
-                                            </button>
-                                        </span>
-                                    )}
-                                    {experience !== "All Levels" && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E5FFDB] text-[#063A41] rounded-full text-xs font-medium">
-                                            {experience}+ Years
-                                            <button onClick={() => setExperience("All Levels")} className="hover:text-red-500">
-                                                <FaTimes className="text-[10px]" />
-                                            </button>
-                                        </span>
-                                    )}
-                                    {(minPrice || maxPrice) && (
-                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#E5FFDB] text-[#063A41] rounded-full text-xs font-medium">
-                                            ${minPrice || '0'} - ${maxPrice || '∞'}
-                                            <button onClick={() => { setMinPrice(""); setMaxPrice(""); }} className="hover:text-red-500">
-                                                <FaTimes className="text-[10px]" />
-                                            </button>
-                                        </span>
-                                    )}
-                                </div>
-                            )} */}
                         </div>
 
                         {/* Tasker Cards */}
@@ -594,8 +510,8 @@ const TaskerSlider: React.FC<DetailsBannerProps> = ({ service }) => {
                                                         key={pageNum}
                                                         onClick={() => setPage(pageNum)}
                                                         className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${page === pageNum
-                                                                ? 'bg-[#109C3D] text-white'
-                                                                : 'bg-white border border-gray-200 text-[#063A41] hover:bg-[#E5FFDB]'
+                                                            ? 'bg-[#109C3D] text-white'
+                                                            : 'bg-white border border-gray-200 text-[#063A41] hover:bg-[#E5FFDB]'
                                                             }`}
                                                     >
                                                         {pageNum}

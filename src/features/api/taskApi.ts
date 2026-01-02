@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 export const taskApi = createApi({
     reducerPath: "taskApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `https://taskmatch-backend.vercel.app/api`,
+        baseUrl: `http://localhost:5000/api`,
         credentials: "include", // keep if you want to send cookies too
         prepareHeaders: (headers) => {
             const token = Cookies.get("token"); // get your JWT token from cookies (or change source if needed)
@@ -167,6 +167,88 @@ export const taskApi = createApi({
             invalidatesTags: ['Task'],
         }),
 
+        // -------------------------------for bid 
+
+        // createSetupIntentForBid: builder.mutation({
+        //     query: (data) => ({
+        //         url: '/tasks/setup-intent-bid',
+        //         method: 'POST',
+        //         body: data
+        //     })
+        // }),
+        // confirmBidPaymentSetup: builder.mutation({
+        //     query: (data) => ({
+        //         url: '/tasks/confirm-bid-setup',
+        //         method: 'POST',
+        //         body: data
+        //     })
+        // }),
+
+        // In your taskApi.ts
+        createSetupIntentForBid: builder.mutation({
+            query: (data: {
+                bidAmount: number;
+                taskId: string;
+                taskerId: string;
+                customerInfo?: {
+                    id: string;
+                    name: string;
+                    email: string;
+                    phone?: string;
+                };
+            }) => ({
+                url: '/tasks/setup-intent-bid',
+                method: 'POST',
+                body: data,
+            }),
+        }),
+
+        confirmBidPaymentSetup: builder.mutation({
+            query: (data: {
+                paymentMethodId: string;
+                taskId: string;
+                taskerId: string;
+                bidAmount: number;
+                customerInfo?: {
+                    id: string;
+                    name: string;
+                    email: string;
+                    phone?: string;
+                };
+            }) => ({
+                url: '/tasks/confirm-bid-setup',
+                method: 'POST',
+                body: data,
+            }),
+        }),
+
+
+        // createSetupIntent: builder.mutation({
+        //     query: ({ taskId, taskerId, bidAmount }: {
+        //         taskId: string;
+        //         taskerId: string;
+        //         bidAmount: number
+        //     }) => ({
+        //         url: '/tasks/setup-intent',
+        //         method: 'POST',
+        //         body: { taskId, taskerId, bidAmount },
+        //     }),
+        // }),
+
+        // savePaymentMethod: builder.mutation({
+        //     query: ({ paymentMethodId, taskId, taskerId, bidAmount }: {
+        //         paymentMethodId: string;
+        //         taskId: string;
+        //         taskerId: string;
+        //         bidAmount: number
+        //     }) => ({
+        //         url: '/tasks/save-payment-method',
+        //         method: 'POST',
+        //         body: { paymentMethodId, taskId, taskerId, bidAmount },
+        //     }),
+        //     invalidatesTags: ['Task'],
+        // }),
+
         // Edit a message
         updateMessage: builder.mutation({
             query: ({ taskId, messageId, message }) => ({
@@ -272,10 +354,13 @@ export const taskApi = createApi({
 
         // accept bid by the client
         acceptBid: builder.mutation({
-            query: ({ taskId, taskerId }) => ({
+            query: ({ taskId, taskerId, paymentMethodId }) => ({
                 url: `/tasks/${taskId}/accept-bid`,
                 method: "PATCH",
-                body: { taskerId },
+                body: {
+                    taskerId,
+                    paymentMethodId
+                 },
             }),
             invalidatesTags: ["Task"],
         }),
@@ -378,5 +463,7 @@ export const {
     useCreateSetupIntentMutation,
     useSavePaymentMethodMutation,
     useCreatePaymentIntentMutation,
-    useGetUnreadCountQuery
+    useGetUnreadCountQuery,
+    useCreateSetupIntentForBidMutation,
+    useConfirmBidPaymentSetupMutation
 } = taskApi;

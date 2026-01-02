@@ -22,14 +22,14 @@ const PopularServices = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <span className="inline-block px-4 py-2 bg-[#E5FFDB] text-[#109C3D] text-sm font-semibold rounded-full mb-4">
+          {/* <span className="inline-block px-4 py-2 bg-[#E5FFDB] text-[#109C3D] text-sm font-semibold rounded-full mb-4">
             Our Services
-          </span>
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#063A41] mb-4">
-            Popular Services
-          </h2>
+          </span> */}
+          <SectionHeader
+            title="Popular Services"
+            description="Find trusted professionals for all your needs, from everyday tasks to specialized help"
+          />
           <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-            Find trusted professionals for all your needs, from everyday tasks to specialized help
           </p>
         </div>
 

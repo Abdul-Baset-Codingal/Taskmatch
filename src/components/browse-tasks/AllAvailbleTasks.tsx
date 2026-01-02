@@ -1,7 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// @ts-nocheck
+// AllAvailableTasks.tsx
 "use client";
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
@@ -10,9 +7,18 @@ import {
     FiMessageCircle,
     FiCalendar,
     FiX,
-    FiSearch,
     FiDollarSign,
     FiList,
+    FiCamera,
+    FiImage,
+    FiChevronDown,
+    FiMaximize2,
+    FiChevronLeft,
+    FiChevronRight,
+    FiSend,
+    FiCornerDownRight,
+    FiLock,
+    FiClock,
 } from "react-icons/fi";
 import { MdWorkOutline } from "react-icons/md";
 import {
@@ -23,16 +29,18 @@ import {
     useGetScheduleTasksQuery,
     useGetFlexibleTasksQuery,
     useSendMessageMutation,
+    useReplyToCommentMutation,
 } from "@/features/api/taskApi";
-import { AiFillHourglass } from "react-icons/ai";
-import Image from 'next/image';
 import { checkLoginStatus } from "@/resusable/CheckUser";
 import { useRouter } from "next/navigation";
 import Footer from "@/shared/Footer";
-import MessengerInbox from "./MessengerInbox";
-import MessengerChat from "./MessengerChat";
 import { toast } from "react-toastify";
+import CommentSection from "./CommentSection";
+import BidConfirmationModal from "./BidConfirmationModal";
 
+// ============================================
+// TYPES
+// ============================================
 interface UserType {
     _id: string;
     firstName: string;
@@ -40,6 +48,32 @@ interface UserType {
     email: string;
     currentRole: string;
     profilePicture?: string;
+}
+
+interface ReplyType {
+    _id?: string;
+    userId: string;
+    role: "client" | "tasker";
+    firstName?: string;
+    lastName?: string;
+    profilePicture?: string;
+    message: string;
+    createdAt: string;
+    isBlocked?: boolean;
+}
+
+interface CommentType {
+    _id: string;
+    userId: string;
+    role: "client" | "tasker";
+    firstName?: string;
+    lastName?: string;
+    profilePicture?: string;
+    email?: string;
+    message: string;
+    createdAt: string;
+    isBlocked?: boolean;
+    replies?: ReplyType[];
 }
 
 interface TaskType {
@@ -54,6 +88,7 @@ interface TaskType {
     offerDeadline: string;
     status: string;
     createdAt: string;
+    photos?: string[];
     client: {
         _id: string;
         firstName: string;
@@ -68,26 +103,464 @@ interface TaskType {
     };
     messages?: any[];
     bids?: any[];
+    comments?: CommentType[];
 }
 
-const AllAvailableTasks = () => {
-    // ============================================
-    // ALL HOOKS AT THE TOP - BEFORE ANY CONDITIONAL RETURNS
-    // ============================================
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays < 30) return `${diffDays} days ago`;
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    });
+};
+
+const getRoleBadgeStyle = (role: string): string => {
+    return role === "client"
+        ? "bg-blue-100 text-blue-700 border border-blue-200"
+        : "bg-emerald-100 text-emerald-700 border border-emerald-200";
+};
+
+const avatarColors = [
+    "from-[#109C3D] to-[#063A41]",
+    "from-blue-500 to-indigo-600",
+    "from-purple-500 to-pink-500",
+    "from-amber-500 to-orange-500",
+    "from-cyan-500 to-teal-500",
+    "from-rose-500 to-red-500",
+];
+
+const getAvatarColor = (index: number): string => {
+    return avatarColors[index % avatarColors.length];
+};
+
+// ============================================
+// AVATAR COMPONENT
+// ============================================
+const Avatar = ({
+    firstName,
+    lastName,
+    profilePicture,
+    size = "md",
+    colorIndex = 0,
+}: {
+    firstName?: string;
+    lastName?: string;
+    profilePicture?: string | null;
+    size?: "xs" | "sm" | "md" | "lg";
+    colorIndex?: number;
+}) => {
+    const sizeClasses = {
+        xs: "w-5 h-5 text-[8px]",
+        sm: "w-6 h-6 text-[10px]",
+        md: "w-8 h-8 text-xs",
+        lg: "w-10 h-10 text-sm",
+    };
+
+    const initials = firstName?.charAt(0)?.toUpperCase() || "U";
+
+    return (
+        <div
+            className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0 ring-2 ring-white shadow-sm`}
+            title={`${firstName || ""} ${lastName || ""}`}
+        >
+            {profilePicture ? (
+                <img
+                    src={profilePicture}
+                    alt={`${firstName} ${lastName}`}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                />
+            ) : (
+                <div
+                    className={`w-full h-full bg-gradient-to-br ${getAvatarColor(colorIndex)} flex items-center justify-center`}
+                >
+                    <span className="text-white font-bold">{initials}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============================================
+// REPLY ITEM COMPONENT
+// ============================================
+const ReplyItem = ({
+    reply,
+    index,
+}: {
+    reply: ReplyType;
+    index: number;
+}) => {
+    if (reply.isBlocked) return null;
+
+    return (
+        <div className="flex gap-2.5 py-2.5 group">
+            <Avatar
+                firstName={reply.firstName}
+                lastName={reply.lastName}
+                profilePicture={reply.profilePicture}
+                size="sm"
+                colorIndex={index + 3}
+            />
+            <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                    <span className="font-semibold text-xs text-[#063A41]">
+                        {reply.firstName || "User"} {reply.lastName || ""}
+                    </span>
+                    <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium ${getRoleBadgeStyle(reply.role)}`}
+                    >
+                        {reply.role === "client" ? "Client" : "Tasker"}
+                    </span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                        <FiClock size={10} />
+                        {formatDate(reply.createdAt)}
+                    </span>
+                </div>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                    {reply.message}
+                </p>
+            </div>
+        </div>
+    );
+};
+
+// ============================================
+// COMMENT ITEM COMPONENT
+// ============================================
+const CommentItem = ({
+    comment,
+    taskId,
+    user,
+    onReply,
+    isReplying,
+    commentIndex,
+}: {
+    comment: CommentType;
+    taskId: string;
+    user: UserType | null;
+    onReply: (commentId: string, message: string) => Promise<void>;
+    isReplying: boolean;
+    commentIndex: number;
+}) => {
+    const [showReplyForm, setShowReplyForm] = useState(false);
+    const [replyMessage, setReplyMessage] = useState("");
+    const [showReplies, setShowReplies] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmitReply = async () => {
+        if (!replyMessage.trim()) return;
+        setIsSubmitting(true);
+        try {
+            await onReply(comment._id, replyMessage);
+            setReplyMessage("");
+            setShowReplyForm(false);
+            setShowReplies(true);
+        } catch (error) {
+            console.error("Failed to submit reply:", error);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (comment.isBlocked) return null;
+
+    const validReplies = comment.replies?.filter((r) => !r.isBlocked) || [];
+    const hasReplies = validReplies.length > 0;
+
+    return (
+        <div className="border-b border-gray-100 last:border-b-0 py-4 first:pt-0">
+            <div className="flex gap-3">
+                <Avatar
+                    firstName={comment.firstName}
+                    lastName={comment.lastName}
+                    profilePicture={comment.profilePicture}
+                    size="lg"
+                    colorIndex={commentIndex}
+                />
+                <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className="font-semibold text-sm text-[#063A41]">
+                            {comment.firstName || "User"} {comment.lastName || ""}
+                        </span>
+                        <span
+                            className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${getRoleBadgeStyle(comment.role)}`}
+                        >
+                            {comment.role === "client" ? "Client" : "Tasker"}
+                        </span>
+                        <span className="text-xs text-gray-400 flex items-center gap-1">
+                            <FiClock size={11} />
+                            {formatDate(comment.createdAt)}
+                        </span>
+                    </div>
+
+                    <p className="text-sm text-gray-700 leading-relaxed mb-2.5">
+                        {comment.message}
+                    </p>
+
+                    <div className="flex items-center gap-4">
+                        {user && (
+                            <button
+                                onClick={() => setShowReplyForm(!showReplyForm)}
+                                className="text-xs text-[#109C3D] hover:text-[#063A41] font-medium flex items-center gap-1 transition-colors"
+                            >
+                                <FiCornerDownRight size={12} />
+                                {showReplyForm ? "Cancel" : "Reply"}
+                            </button>
+                        )}
+
+                        {hasReplies && (
+                            <button
+                                onClick={() => setShowReplies(!showReplies)}
+                                className="text-xs text-gray-500 hover:text-[#109C3D] font-medium flex items-center gap-1 transition-colors"
+                            >
+                                <FiChevronDown
+                                    size={14}
+                                    className={`transform transition-transform duration-200 ${showReplies ? "rotate-180" : ""}`}
+                                />
+                                {showReplies ? "Hide" : "View"} {validReplies.length}{" "}
+                                {validReplies.length === 1 ? "reply" : "replies"}
+                            </button>
+                        )}
+                    </div>
+
+                    {showReplyForm && user && (
+                        <div className="mt-3 flex gap-2 items-start animate-fadeIn">
+                            <Avatar
+                                firstName={user.firstName}
+                                lastName={user.lastName}
+                                profilePicture={user.profilePicture}
+                                size="sm"
+                                colorIndex={99}
+                            />
+                            <div className="flex-1 flex gap-2">
+                                <input
+                                    type="text"
+                                    value={replyMessage}
+                                    onChange={(e) => setReplyMessage(e.target.value)}
+                                    placeholder={`Reply to ${comment.firstName || "User"}...`}
+                                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all bg-white"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleSubmitReply();
+                                        }
+                                    }}
+                                    disabled={isSubmitting}
+                                    autoFocus
+                                />
+                                <button
+                                    onClick={handleSubmitReply}
+                                    disabled={isSubmitting || !replyMessage.trim()}
+                                    className="px-3 py-2 bg-[#109C3D] text-white rounded-lg text-sm font-medium hover:bg-[#0d8a35] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-w-[40px]"
+                                >
+                                    {isSubmitting ? (
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    ) : (
+                                        <FiSend size={14} />
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {hasReplies && showReplies && (
+                        <div className="mt-3 pl-3 border-l-2 border-[#109C3D]/20 animate-fadeIn">
+                            {validReplies.map((reply, idx) => (
+                                <ReplyItem
+                                    key={reply._id || `reply-${idx}`}
+                                    reply={reply}
+                                    index={idx}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ============================================
+// COMMENT SECTION COMPONENT
+// ============================================
+
+
+// ============================================
+// PHOTO GALLERY COMPONENT
+// ============================================
+const PhotoGallery = ({
+    photos,
+    taskId,
+    expandedPhotoTaskId,
+    setExpandedPhotoTaskId,
+    selectedPhotoIndex,
+    setSelectedPhotoIndex,
+}: {
+    photos: string[];
+    taskId: string;
+    expandedPhotoTaskId: string | null;
+    setExpandedPhotoTaskId: (id: string | null) => void;
+    selectedPhotoIndex: number;
+    setSelectedPhotoIndex: (index: number) => void;
+}) => {
+    const isPhotoExpanded = expandedPhotoTaskId === taskId;
+
+    if (!photos || photos.length === 0) return null;
+
+    return (
+        <div className="border-t border-gray-100">
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (isPhotoExpanded) {
+                        setExpandedPhotoTaskId(null);
+                    } else {
+                        setExpandedPhotoTaskId(taskId);
+                        setSelectedPhotoIndex(0);
+                    }
+                }}
+                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#109C3D]/20 to-[#063A41]/20 flex items-center justify-center">
+                        <FiImage className="text-[#109C3D]" size={16} />
+                    </div>
+                    <span className="text-sm font-semibold text-[#063A41]">
+                        Photos ({photos.length})
+                    </span>
+                </div>
+                <FiChevronDown
+                    className={`text-gray-400 transform transition-transform duration-300 ${isPhotoExpanded ? "rotate-180" : ""}`}
+                    size={20}
+                />
+            </button>
+
+            {isPhotoExpanded && (
+                <div className="px-4 pb-4 animate-fadeIn">
+                    <div className="relative mb-3 rounded-xl overflow-hidden bg-gray-100 aspect-video">
+                        <img
+                            src={photos[selectedPhotoIndex]}
+                            alt={`Task photo ${selectedPhotoIndex + 1}`}
+                            className="w-full h-full object-contain"
+                        />
+
+                        {photos.length > 1 && (
+                            <>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPhotoIndex(
+                                            selectedPhotoIndex === 0 ? photos.length - 1 : selectedPhotoIndex - 1
+                                        );
+                                    }}
+                                    className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                                >
+                                    <FiChevronLeft size={24} />
+                                </button>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPhotoIndex(
+                                            selectedPhotoIndex === photos.length - 1 ? 0 : selectedPhotoIndex + 1
+                                        );
+                                    }}
+                                    className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                                >
+                                    <FiChevronRight size={24} />
+                                </button>
+                            </>
+                        )}
+
+                        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                            {selectedPhotoIndex + 1} / {photos.length}
+                        </div>
+
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                window.open(photos[selectedPhotoIndex], "_blank");
+                            }}
+                            className="absolute top-2 right-2 w-8 h-8 rounded-lg bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-all"
+                        >
+                            <FiMaximize2 size={16} />
+                        </button>
+                    </div>
+
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                        {photos.map((photo: string, index: number) => (
+                            <button
+                                key={index}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedPhotoIndex(index);
+                                }}
+                                className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden transition-all ${selectedPhotoIndex === index
+                                        ? "ring-2 ring-[#109C3D] ring-offset-2 scale-105"
+                                        : "border-2 border-gray-200 hover:border-[#109C3D] opacity-70 hover:opacity-100"
+                                    }`}
+                            >
+                                <img
+                                    src={photo}
+                                    alt={`Thumbnail ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// ============================================
+// SERVICE CATEGORIES
+// ============================================
+const SERVICE_CATEGORIES = [
+    { value: "", label: "All Categories" },
+    { value: "Handyman & Home Repairs", label: "Handyman & Home Repairs" },
+    { value: "Pet Services", label: "Pet Services" },
+    { value: "Cleaning Services", label: "Cleaning Services" },
+    { value: "Plumbing, Electrical & HVAC (PEH)", label: "Plumbing, Electrical & HVAC" },
+    { value: "Automotive Services", label: "Automotive Services" },
+    { value: "All Other Specialized Services", label: "All Other Specialized Services" },
+];
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+const AllAvailableTasks = () => {
     // RTK Query hooks
     const {
         data: scheduleTasks = [],
         error: scheduleError,
         isLoading: scheduleLoading,
-        refetch: refetchSchedule
+        refetch: refetchSchedule,
     } = useGetScheduleTasksQuery({});
 
     const {
         data: flexibleTasks = [],
         error: flexibleError,
         isLoading: flexibleLoading,
-        refetch: refetchFlexible
+        refetch: refetchFlexible,
     } = useGetFlexibleTasksQuery({});
 
     // Mutation hooks
@@ -95,12 +568,12 @@ const AllAvailableTasks = () => {
     const [addBid, { isLoading: isBidding }] = useBidOnTaskMutation();
     const [acceptTask, { isLoading: isAccepting }] = useAcceptTaskMutation();
     const [addComment, { isLoading: isCommenting }] = useAddCommentMutation();
+    const [replyToComment, { isLoading: isReplying }] = useReplyToCommentMutation();
     const [sendMessage] = useSendMessageMutation();
 
-    // Router hook
     const router = useRouter();
 
-    // State hooks
+    // State
     const [user, setUser] = useState<UserType | null>(null);
     const [bidFormOpenId, setBidFormOpenId] = useState<string | null>(null);
     const [bidOfferPrice, setBidOfferPrice] = useState<number | "">("");
@@ -108,14 +581,16 @@ const AllAvailableTasks = () => {
     const [activeChatUserId, setActiveChatUserId] = useState<string | null>(null);
     const [activeInitialTaskId, setActiveInitialTaskId] = useState<string | null>(null);
     const [seenConversations, setSeenConversations] = useState<Set<string>>(new Set());
-
-    // Filter states
-    const [searchTerm, setSearchTerm] = useState("");
+    const [categoryFilter, setCategoryFilter] = useState("");
     const [locationFilter, setLocationFilter] = useState("");
     const [minPrice, setMinPrice] = useState<number | null>(null);
     const [maxPrice, setMaxPrice] = useState<number | null>(null);
     const [deadlineFilter, setDeadlineFilter] = useState("");
-
+    const [expandedPhotoTaskId, setExpandedPhotoTaskId] = useState<string | null>(null);
+    const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(0);
+    const [showBidConfirmModal, setShowBidConfirmModal] = useState(false);
+    const [pendingBidTaskId, setPendingBidTaskId] = useState<string | null>(null);
+    const [pendingBidTaskTitle, setPendingBidTaskTitle] = useState<string>("");
     // Memoized values
     const allTasks = useMemo(() => {
         const combinedTasks = [...scheduleTasks, ...flexibleTasks] as TaskType[];
@@ -136,7 +611,7 @@ const AllAvailableTasks = () => {
             const diffInMs = deadline.getTime() - now.getTime();
             const isUrgent = diffInMs > 0 && diffInMs < 24 * 60 * 60 * 1000;
 
-            const matchesTitle = !searchTerm || task.taskTitle.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = !categoryFilter || task.serviceTitle === categoryFilter;
             const matchesLocation = !locationFilter || task.location.toLowerCase().includes(locationFilter.toLowerCase());
             const matchesPrice = (minPrice === null || task.price >= minPrice) && (maxPrice === null || task.price <= maxPrice);
 
@@ -149,11 +624,11 @@ const AllAvailableTasks = () => {
                 matchesDeadline = task.schedule !== "Flexible" && !isUrgent;
             }
 
-            return matchesTitle && matchesLocation && matchesPrice && matchesDeadline;
+            return matchesCategory && matchesLocation && matchesPrice && matchesDeadline;
         });
-    }, [allTasks, searchTerm, locationFilter, minPrice, maxPrice, deadlineFilter]);
+    }, [allTasks, categoryFilter, locationFilter, minPrice, maxPrice, deadlineFilter]);
 
-    // Callback hooks - ALL MUST BE BEFORE ANY RETURNS
+    // Callbacks
     const refetchAll = useCallback(() => {
         refetchSchedule();
         refetchFlexible();
@@ -162,13 +637,11 @@ const AllAvailableTasks = () => {
     const handleOpenChat = useCallback((userId: string, taskId: string | null = null) => {
         setActiveChatUserId(userId);
         setActiveInitialTaskId(taskId);
-
-        // Mark conversation as seen
         if (taskId) {
             const convKey = `${taskId}-${userId}`;
-            setSeenConversations(prev => new Set([...prev, convKey]));
+            setSeenConversations((prev) => new Set([...prev, convKey]));
         } else {
-            setSeenConversations(prev => new Set([...prev, userId]));
+            setSeenConversations((prev) => new Set([...prev, userId]));
         }
     }, []);
 
@@ -177,19 +650,22 @@ const AllAvailableTasks = () => {
         setActiveInitialTaskId(null);
     }, []);
 
-    const handleSendMessage = useCallback(async (taskId: string, message: string) => {
-        try {
-            await sendMessage({ taskId, message }).unwrap();
-            refetchAll();
-        } catch (err) {
-            toast.error("Failed to send message");
-            console.error(err);
-            throw err;
-        }
-    }, [sendMessage, refetchAll]);
+    const handleSendMessage = useCallback(
+        async (taskId: string, message: string) => {
+            try {
+                await sendMessage({ taskId, message }).unwrap();
+                refetchAll();
+            } catch (err) {
+                toast.error("Failed to send message");
+                console.error(err);
+                throw err;
+            }
+        },
+        [sendMessage, refetchAll]
+    );
 
     const handleAuthRedirect = useCallback(() => {
-        router.push('/authentication');
+        router.push("/authentication");
     }, [router]);
 
     const toggleBidForm = useCallback((id: string) => {
@@ -199,56 +675,146 @@ const AllAvailableTasks = () => {
     }, []);
 
     const clearFilters = useCallback(() => {
-        setSearchTerm("");
+        setCategoryFilter("");
         setLocationFilter("");
         setMinPrice(null);
         setMaxPrice(null);
         setDeadlineFilter("");
     }, []);
 
-    const handlePlaceBid = useCallback(async (taskId: string) => {
-        if (bidOfferPrice === "" || bidOfferPrice <= 0) {
-            toast.error("Please enter a valid offer price");
+    const handlePlaceBid = useCallback(
+        async (taskId: string) => {
+            if (bidOfferPrice === "" || bidOfferPrice <= 0) {
+                toast.error("Please enter a valid offer price");
+                return;
+            }
+            try {
+                await addBid({ taskId, offerPrice: bidOfferPrice, message: bidMessage }).unwrap();
+                toast.success("Bid placed successfully!");
+                setBidFormOpenId(null);
+                setBidOfferPrice("");
+                setBidMessage("");
+                refetchAll();
+            } catch (err) {
+                toast.error("Failed to place bid");
+                console.error(err);
+            }
+        },
+        [addBid, bidOfferPrice, bidMessage, refetchAll]
+    );
+
+    const handleAcceptTask = useCallback(
+        async (taskId: string) => {
+            if (!window.confirm("Are you sure you want to accept this task?")) return;
+            try {
+                await acceptTask(taskId).unwrap();
+                toast.success("Task accepted!");
+                refetchAll();
+            } catch (err) {
+                toast.error("Failed to accept task");
+                console.error(err);
+            }
+        },
+        [acceptTask, refetchAll]
+    );
+
+    const handleRequestCompletion = useCallback(
+        async (taskId: string) => {
+            if (!window.confirm("Are you sure you want to request task completion?")) return;
+            try {
+                await requestCompletion(taskId).unwrap();
+                toast.success("Completion request sent!");
+                refetchAll();
+            } catch (err) {
+                console.error(err);
+                toast.error("Failed to request completion.");
+            }
+        },
+        [requestCompletion, refetchAll]
+    );
+
+    const handleAddComment = useCallback(
+        async (taskId: string, message: string) => {
+            try {
+                await addComment({ taskId, message }).unwrap();
+                toast.success("Comment added!");
+                refetchAll();
+            } catch (err) {
+                toast.error("Failed to add comment");
+                console.error(err);
+            }
+        },
+        [addComment, refetchAll]
+    );
+
+    const handleReplyToComment = useCallback(
+        async (taskId: string, commentId: string, message: string) => {
+            try {
+                await replyToComment({ taskId, commentId, message }).unwrap();
+                toast.success("Reply added!");
+                refetchAll();
+            } catch (err) {
+                toast.error("Failed to add reply");
+                console.error(err);
+            }
+        },
+        [replyToComment, refetchAll]
+    );
+
+    // Update handlePlaceBid to show modal first
+    const handleShowBidConfirmation = useCallback(
+        (taskId: string, taskTitle: string) => {
+            if (bidOfferPrice === "" || bidOfferPrice <= 0) {
+                toast.error("Please enter a valid offer price");
+                return;
+            }
+            setPendingBidTaskId(taskId);
+            setPendingBidTaskTitle(taskTitle);
+            setShowBidConfirmModal(true);
+        },
+        [bidOfferPrice]
+    );
+
+    // This is called when user confirms in the modal
+    const handleConfirmBid = useCallback(async () => {
+        if (!pendingBidTaskId || bidOfferPrice === "" || bidOfferPrice <= 0) {
             return;
         }
         try {
-            await addBid({ taskId, offerPrice: bidOfferPrice, message: bidMessage }).unwrap();
+            await addBid({
+                taskId: pendingBidTaskId,
+                offerPrice: bidOfferPrice,
+                message: bidMessage
+            }).unwrap();
+
             toast.success("Bid placed successfully!");
+
+            // Reset all states
+            setShowBidConfirmModal(false);
+            setPendingBidTaskId(null);
+            setPendingBidTaskTitle("");
             setBidFormOpenId(null);
             setBidOfferPrice("");
             setBidMessage("");
+
             refetchAll();
         } catch (err) {
             toast.error("Failed to place bid");
             console.error(err);
         }
-    }, [addBid, bidOfferPrice, bidMessage, refetchAll]);
+    }, [addBid, pendingBidTaskId, bidOfferPrice, bidMessage, refetchAll]);
 
-    const handleAcceptTask = useCallback(async (taskId: string) => {
-        if (!window.confirm("Are you sure you want to accept this task?")) return;
-        try {
-            await acceptTask(taskId).unwrap();
-            toast.success("Task accepted!");
-            refetchAll();
-        } catch (err) {
-            toast.error("Failed to accept task");
-            console.error(err);
-        }
-    }, [acceptTask, refetchAll]);
+    // Close modal handler
+    const handleCloseBidConfirmModal = useCallback(() => {
+        setShowBidConfirmModal(false);
+        setPendingBidTaskId(null);
+        setPendingBidTaskTitle("");
+    }, []);
 
-    const handleRequestCompletion = useCallback(async (taskId: string) => {
-        if (!window.confirm("Are you sure you want to request task completion?")) return;
-        try {
-            await requestCompletion(taskId).unwrap();
-            toast.success("Completion request sent!");
-            refetchAll();
-        } catch (err) {
-            console.error(err);
-            toast.error("Failed to request completion.");
-        }
-    }, [requestCompletion, refetchAll]);
 
-    // Effect hooks
+    console.log(filteredTasks)
+
+    // Effects
     useEffect(() => {
         const fetchUser = async () => {
             const { isLoggedIn, user: fetchedUser } = await checkLoginStatus();
@@ -259,10 +825,7 @@ const AllAvailableTasks = () => {
         fetchUser();
     }, []);
 
-    // ============================================
-    // CONDITIONAL RETURNS - AFTER ALL HOOKS
-    // ============================================
-
+    // Loading state
     if (isAnyLoading) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -271,6 +834,7 @@ const AllAvailableTasks = () => {
         );
     }
 
+    // Error state
     if (hasAnyError) {
         return (
             <div className="flex justify-center items-center h-64">
@@ -278,10 +842,6 @@ const AllAvailableTasks = () => {
             </div>
         );
     }
-
-    // ============================================
-    // MAIN RENDER
-    // ============================================
 
     return (
         <div>
@@ -295,16 +855,21 @@ const AllAvailableTasks = () => {
                         </h2>
                         <div className="bg-gradient-to-r from-white via-[#E5FFDB]/30 to-white rounded-3xl p-6 shadow-lg border border-[#109C3D]/10 backdrop-blur-sm">
                             <div className="flex flex-wrap gap-4 items-end justify-between">
-                                {/* Search by Task Title */}
+                                {/* Category Filter */}
                                 <div className="relative flex-1 min-w-[220px]">
-                                    <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                    <input
-                                        type="text"
-                                        placeholder="Search by title..."
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#109C3D]/50 focus:ring-2 focus:ring-[#109C3D]/20 transition-all bg-white/80 text-sm placeholder-gray-500"
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                    />
+                                    <MdWorkOutline className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <select
+                                        className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#109C3D]/50 focus:ring-2 focus:ring-[#109C3D]/20 transition-all bg-white/80 text-sm appearance-none cursor-pointer"
+                                        value={categoryFilter}
+                                        onChange={(e) => setCategoryFilter(e.target.value)}
+                                    >
+                                        {SERVICE_CATEGORIES.map((category) => (
+                                            <option key={category.value} value={category.value}>
+                                                {category.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                 </div>
 
                                 {/* Location Filter */}
@@ -349,7 +914,7 @@ const AllAvailableTasks = () => {
                                 <div className="relative min-w-[180px]">
                                     <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                                     <select
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#109C3D]/50 focus:ring-2 focus:ring-[#109C3D]/20 transition-all bg-white/80 text-sm appearance-none"
+                                        className="w-full pl-10 pr-10 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:border-[#109C3D]/50 focus:ring-2 focus:ring-[#109C3D]/20 transition-all bg-white/80 text-sm appearance-none"
                                         value={deadlineFilter}
                                         onChange={(e) => setDeadlineFilter(e.target.value)}
                                     >
@@ -358,9 +923,10 @@ const AllAvailableTasks = () => {
                                         <option value="Flexible">Flexible</option>
                                         <option value="Standard">Standard</option>
                                     </select>
+                                    <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={16} />
                                 </div>
 
-                                {/* Clear Filters Button */}
+                                {/* Clear Filters */}
                                 <div className="flex-shrink-0">
                                     <button
                                         onClick={clearFilters}
@@ -381,9 +947,7 @@ const AllAvailableTasks = () => {
                                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#109C3D]/10 to-[#063A41]/10 flex items-center justify-center mx-auto mb-6">
                                     <MdWorkOutline className="text-6xl text-[#109C3D]" />
                                 </div>
-                                <p className="text-xl text-gray-600 font-medium">
-                                    No tasks available right now.
-                                </p>
+                                <p className="text-xl text-gray-600 font-medium">No tasks available right now.</p>
                                 <p className="text-gray-500 mt-2">Check back soon for new opportunities!</p>
                             </div>
                         ) : filteredTasks.length === 0 ? (
@@ -391,9 +955,7 @@ const AllAvailableTasks = () => {
                                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-[#109C3D]/10 to-[#063A41]/10 flex items-center justify-center mx-auto mb-6">
                                     <MdWorkOutline className="text-6xl text-[#109C3D]" />
                                 </div>
-                                <p className="text-xl text-gray-600 font-medium">
-                                    No tasks match your filters.
-                                </p>
+                                <p className="text-xl text-gray-600 font-medium">No tasks match your filters.</p>
                                 <p className="text-gray-500 mt-2">Try adjusting your search criteria!</p>
                             </div>
                         ) : (
@@ -414,6 +976,8 @@ const AllAvailableTasks = () => {
                                 const deadlineDate = new Date(task.offerDeadline).toLocaleDateString();
                                 const isBidFormOpen = bidFormOpenId === task._id;
                                 const isAccepted = task.status === "in progress" || task.status === "completed";
+                                const isOwnTask = user && (task.client?._id === user._id || (task.client as any) === user._id);
+                                const hasPhotos = task.photos && task.photos.length > 0;
 
                                 return (
                                     <div
@@ -431,6 +995,7 @@ const AllAvailableTasks = () => {
                                                         <span className={`${getBadgeStyle()} px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide shadow-md`}>
                                                             {displaySchedule}
                                                         </span>
+
                                                         {task.status === "in progress" && (
                                                             <span className="bg-blue-500 text-white px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide shadow-md">
                                                                 In Progress
@@ -441,13 +1006,20 @@ const AllAvailableTasks = () => {
                                                                 Completed
                                                             </span>
                                                         )}
+                                                        {hasPhotos && (
+                                                            <span className="bg-white/20 text-white px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wide shadow-md flex items-center gap-1">
+                                                                <FiCamera size={12} />
+                                                                {task.photos!.length}
+                                                            </span>
+                                                        )}
                                                     </div>
-                                                    <h3 className="text-xl font-bold mb-1 text-white drop-shadow-md truncate">
-                                                        {task.taskTitle}
-                                                    </h3>
-                                                    <p className="text-[#E5FFDB] text-xs opacity-90">
-                                                        Posted {postedDate}
-                                                    </p>
+                                                    <div className="flex">
+                                                        <h3 className="text-xl font-bold mb-1 text-white drop-shadow-md truncate">
+                                                            {task.taskTitle}
+                                                        </h3>
+                                                    </div>
+                                                    <p className="text-white/90 text-sm font-medium mb-1">{task.serviceTitle}</p>
+                                                    <p className="text-[#E5FFDB] text-xs opacity-90">Posted {postedDate}</p>
                                                 </div>
                                                 <div className="flex-shrink-0">
                                                     <div className="bg-white/15 backdrop-blur-sm px-4 py-2 rounded-xl shadow-lg border border-white/20">
@@ -460,7 +1032,6 @@ const AllAvailableTasks = () => {
                                                 </div>
                                             </div>
                                         </div>
-
                                         {/* Card Body */}
                                         <div className="p-6 flex flex-col">
                                             {/* Description */}
@@ -477,7 +1048,7 @@ const AllAvailableTasks = () => {
                                             </div>
 
                                             {/* Info Grid */}
-                                            <div className="grid grid-cols-2 gap-4 mb-6">
+                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                                                 {/* Location */}
                                                 <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-100">
                                                     <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#109C3D]/20 to-[#063A41]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -485,18 +1056,11 @@ const AllAvailableTasks = () => {
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Location</p>
-                                                        <p className="text-[#063A41] font-semibold text-xs truncate">{task.location}</p>
-                                                    </div>
-                                                </div>
-
-                                                {/* Estimated Time */}
-                                                <div className="flex items-start gap-2 p-3 rounded-xl bg-gradient-to-br from-gray-50 to-white border border-gray-100">
-                                                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#109C3D]/20 to-[#063A41]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-                                                        <AiFillHourglass className="text-[#109C3D]" size={16} />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-0.5">Est. Time</p>
-                                                        <p className="text-[#063A41] font-semibold text-xs">{task.estimatedTime || "N/A"}h</p>
+                                                        <p className="text-[#063A41] font-semibold text-xs truncate">
+                                                            {task.location === "Remote"
+                                                                ? "Remote"
+                                                                : task.location.split(",").slice(-2).map((s) => s.trim()).join(", ")}
+                                                        </p>
                                                     </div>
                                                 </div>
 
@@ -527,84 +1091,65 @@ const AllAvailableTasks = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Action Buttons */}
-                                            <div className="flex flex-col sm:flex-row gap-3 mb-4">
-                                                {task.status === "in progress" && user?.currentRole === "tasker" && (
+                                            {/* Action Buttons - Only for logged-in taskers */}
+                                            {user && user.currentRole !== "client" && (
+                                                <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                                                    {task.status === "in progress" && user.currentRole === "tasker" && (
+                                                        <button
+                                                            disabled={isCommenting}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleRequestCompletion(task._id);
+                                                            }}
+                                                            className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transform hover:scale-105"
+                                                        >
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <span>✓</span>
+                                                                <span>Request Completion</span>
+                                                            </div>
+                                                        </button>
+                                                    )}
+
+                                                    {task.status === "pending" && user.currentRole === "tasker" && (
+                                                        <button
+                                                            disabled={isAccepted || isBidding}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleBidForm(task._id);
+                                                            }}
+                                                            className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md ${!(isAccepted || isBidding)
+                                                                    ? "bg-gradient-to-r from-[#109C3D] to-[#063A41] text-white hover:from-[#0d7a30] hover:to-[#042a2f] transform hover:scale-105"
+                                                                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                                                }`}
+                                                        >
+                                                            <div className="flex items-center justify-center gap-1">
+                                                                <span>💰</span>
+                                                                <span>{isBidFormOpen ? "Cancel" : "Place Bid"}</span>
+                                                            </div>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {/* Login Prompt for non-logged in users */}
+                                            {!user && (
+                                                <div className="mb-4 p-4 bg-gradient-to-r from-[#E5FFDB]/50 to-white rounded-xl border border-[#109C3D]/20 text-center">
+                                                    <FiLock className="mx-auto text-[#109C3D] mb-2" size={24} />
+                                                    <p className="text-sm text-gray-600 mb-3">
+                                                        Log in to place bids and message clients
+                                                    </p>
                                                     <button
-                                                        disabled={isCommenting}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (!user) {
-                                                                handleAuthRedirect();
-                                                                return;
-                                                            }
-                                                            handleRequestCompletion(task._id);
-                                                        }}
-                                                        className="flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transform hover:scale-105"
+                                                        onClick={handleAuthRedirect}
+                                                        className="px-6 py-2 bg-gradient-to-r from-[#109C3D] to-[#063A41] text-white rounded-xl font-semibold text-sm hover:from-[#0d7a30] hover:to-[#042a2f] transition-all shadow-sm hover:shadow-md"
                                                     >
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <span>✓</span>
-                                                            <span>Request Completion</span>
-                                                        </div>
+                                                        Log In / Sign Up
                                                     </button>
-                                                )}
-
-                                                {task.status === "pending" && user?.currentRole === "tasker" && (
-                                                    <button
-                                                        disabled={isAccepted || isBidding}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (!user) {
-                                                                handleAuthRedirect();
-                                                                return;
-                                                            }
-                                                            toggleBidForm(task._id);
-                                                        }}
-                                                        className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all shadow-sm hover:shadow-md ${!(isAccepted || isBidding)
-                                                            ? "bg-gradient-to-r from-[#109C3D] to-[#063A41] text-white hover:from-[#0d7a30] hover:to-[#042a2f] transform hover:scale-105"
-                                                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                                                            }`}
-                                                    >
-                                                        <div className="flex items-center justify-center gap-1">
-                                                            <span>💰</span>
-                                                            <span>{isBidFormOpen ? "Cancel" : "Place Bid"}</span>
-                                                        </div>
-                                                    </button>
-                                                )}
-
-                                                {/* Message Button - Always visible for logged in users */}
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (!user) {
-                                                            handleAuthRedirect();
-                                                            return;
-                                                        }
-
-                                                        const clientId = task.client?._id || task.client;
-                                                        if (!clientId) {
-                                                            toast.error('Client information not available.');
-                                                            return;
-                                                        }
-
-                                                        // Don't allow messaging yourself
-                                                        if (clientId === user._id) {
-                                                            toast.info("This is your own task");
-                                                            return;
-                                                        }
-
-                                                        handleOpenChat(clientId, task._id);
-                                                    }}
-                                                    className="flex-1 py-3 px-4 bg-gradient-to-r from-[#109C3D] to-[#063A41] text-white rounded-xl font-semibold text-sm hover:from-[#0d7a30] hover:to-[#042a2f] transition-all shadow-sm hover:shadow-md transform hover:scale-105 flex items-center justify-center gap-2"
-                                                >
-                                                    <FiMessageCircle size={16} />
-                                                    <span>Message Booker</span>
-                                                </button>
-                                            </div>
+                                                </div>
+                                            )}
 
                                             {/* Bid Form */}
-                                            {isBidFormOpen && (
-                                                <div className="bg-gradient-to-br from-[#E5FFDB]/20 to-white p-6 rounded-2xl border border-[#109C3D]/10 shadow-md">
+                                            {isBidFormOpen && user && (
+                                                <div className="bg-gradient-to-br from-[#E5FFDB]/20 to-white p-6 rounded-2xl border border-[#109C3D]/10 shadow-md mb-4">
                                                     <div className="flex items-center gap-2 mb-4">
                                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#109C3D] to-[#063A41] flex items-center justify-center shadow-md">
                                                             <span className="text-xl">💰</span>
@@ -645,12 +1190,13 @@ const AllAvailableTasks = () => {
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                handlePlaceBid(task._id);
+                                                                // Change this line to show modal instead of directly submitting
+                                                                handleShowBidConfirmation(task._id, task.taskTitle);
                                                             }}
                                                             disabled={isBidding}
                                                             className="flex-1 bg-gradient-to-r from-[#109C3D] to-[#063A41] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:from-[#0d7a30] hover:to-[#042a2f] transition-all shadow-sm hover:shadow-md transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
-                                                            {isBidding ? "Submitting..." : "Submit Bid"}
+                                                            {isBidding ? "Submitting..." : "Review & Submit Bid"}
                                                         </button>
                                                         <button
                                                             onClick={(e) => {
@@ -666,45 +1212,84 @@ const AllAvailableTasks = () => {
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Photo Gallery */}
+                                        {hasPhotos && (
+                                            <PhotoGallery
+                                                photos={task.photos!}
+                                                taskId={task._id}
+                                                expandedPhotoTaskId={expandedPhotoTaskId}
+                                                setExpandedPhotoTaskId={setExpandedPhotoTaskId}
+                                                selectedPhotoIndex={selectedPhotoIndex}
+                                                setSelectedPhotoIndex={setSelectedPhotoIndex}
+                                            />
+                                        )}
+
+                                        {/* Comment Section */}
+                                        <CommentSection
+                                            task={task}
+                                            user={user}
+                                            onAddComment={handleAddComment}
+                                            onReplyToComment={handleReplyToComment}
+                                            isCommenting={isCommenting || isReplying}
+                                        />
                                     </div>
                                 );
                             })
                         )}
                     </div>
                 </div>
-
-                {/* Messenger Inbox - Always rendered when user is logged in */}
-                {user && (
-                    <MessengerInbox
-                        user={user}
-                        allTasks={allTasks}
-                        onOpenChat={handleOpenChat}
-                        seenConversations={seenConversations}
-                        refetchTasks={refetchAll}
-                    />
-                )}
-
-                {/* Active Chat - Conditionally rendered */}
-                {user && activeChatUserId && (
-                    <MessengerChat
-                        isOpen={true}
-                        onClose={handleCloseChat}
-                        otherUserId={activeChatUserId}
-                        initialTaskId={activeInitialTaskId || undefined}
-                        allTasks={allTasks}
-                        user={user}
-                        onSendMessage={handleSendMessage}
-                        isCommenting={isCommenting}
-                        refetchTasks={refetchAll}
-                    />
-                )}
             </section>
+
+            <BidConfirmationModal
+                isOpen={showBidConfirmModal}
+                onClose={handleCloseBidConfirmModal}
+                onConfirm={handleConfirmBid}
+                bidAmount={typeof bidOfferPrice === "number" ? bidOfferPrice : 0}
+                taskTitle={pendingBidTaskTitle}
+                isLoading={isBidding}
+            />
             <Footer />
+
+            {/* Global Styles */}
+            <style jsx global>{`
+                @keyframes fadeIn {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-8px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+                .animate-fadeIn {
+                    animation: fadeIn 0.3s ease-out;
+                }
+                .custom-scrollbar::-webkit-scrollbar {
+                    width: 5px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #f1f1f1;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #d1d1d1;
+                    border-radius: 10px;
+                }
+                .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #b1b1b1;
+                }
+                .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                }
+                .scrollbar-hide {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
         </div>
     );
 };
 
 export default AllAvailableTasks;
-
-
-

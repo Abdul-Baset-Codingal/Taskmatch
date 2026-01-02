@@ -5,7 +5,7 @@
 // @ts-nocheck
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 import { usePostTaskMutation } from "@/features/api/taskApi";
@@ -21,26 +21,22 @@ type Props = {
 };
 
 const servicesData = {
-    SelectYourService: {
-        title: "Select Your Service",
-    },
     handyMan: {
         title: "Handyman & Home Repairs",
     },
     PetServices: {
         title: "Pet Services",
     },
-    cleaningServices: {
+    CompleteCleaning: {
         title: "Cleaning Services",
     },
-    automotiveServices: {
+    plumbingElectricalHVAC: {
         title: "Plumbing, Electrical & HVAC (PEH)",
     },
     automotiveServices: {
         title: "Automotive Services",
     },
-    allOtherSpecializedServices
-        : {
+    beautyWellness: {
         title: "All Other Specialized Services",
     },
 } as const;
@@ -111,9 +107,19 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
     // New state for location and schedule modes
     const [locationType, setLocationType] = useState<'remote' | 'in-person'>('remote');
     const [scheduleType, setScheduleType] = useState<'Schedule' | 'Flexible'>('Flexible');
-    const [address, setAddress] = useState('');
+    const [street, setStreet] = useState('');
+    const [city, setCity] = useState('');
+    const [province, setProvince] = useState('');
     const [scheduledDate, setScheduledDate] = useState('');
     const [scheduledTime, setScheduledTime] = useState('');
+
+
+    const taskFormWithDefaults = useMemo(() => ({
+        ...taskForm,
+        serviceId: taskForm.serviceId || 'handyMan',
+        serviceTitle: taskForm.serviceTitle || servicesData['handyMan']?.title || 'Handyman & Home Repairs',
+    }), [taskForm]);
+
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -149,20 +155,29 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
             dispatch(updateTaskField({ field: key as keyof typeof taskForm, value }));
         });
 
-        // Also sync the new fields
+        // Sync location
         if (locationType === 'in-person') {
-            dispatch(updateTaskField({ field: 'location', value: address }));
+            const components = [street, city, province].filter(Boolean);
+            const fullAddress = components.join(', ');
+            dispatch(updateTaskField({ field: 'location', value: fullAddress }));
         } else {
             dispatch(updateTaskField({ field: 'location', value: 'Remote' }));
         }
 
-        // Fix the schedule sync to match your schema
+        // Sync schedule
         if (scheduleType === 'Schedule' && scheduledDate && scheduledTime) {
             dispatch(updateTaskField({ field: 'schedule', value: 'Schedule' }));
-            // You might want to store the actual date/time in a separate field
-            // or combine it with the schedule field based on your backend requirements
+            // Combine date and time into ISO string for customDeadline
+            const combinedDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+            dispatch(updateTaskField({ field: 'customDeadline', value: combinedDateTime.toISOString() }));
+        } else if (scheduleType === 'Schedule' && scheduledDate) {
+            // If only date is provided
+            dispatch(updateTaskField({ field: 'schedule', value: 'Schedule' }));
+            const combinedDateTime = new Date(`${scheduledDate}T00:00`);
+            dispatch(updateTaskField({ field: 'customDeadline', value: combinedDateTime.toISOString() }));
         } else {
             dispatch(updateTaskField({ field: 'schedule', value: 'Flexible' }));
+            dispatch(updateTaskField({ field: 'customDeadline', value: '' }));
         }
     };
 
@@ -248,8 +263,12 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
     const handleSubmit = async () => {
         const formData = new FormData();
 
-        formData.append("serviceId", taskForm.serviceId || "");
-        formData.append("serviceTitle", taskForm.serviceTitle || "");
+        // Use defaults if not set
+        const serviceId = taskForm.serviceId || 'handyMan';
+        const serviceTitle = taskForm.serviceTitle || servicesData['handyMan']?.title || 'Handyman & Home Repairs';
+
+        formData.append("serviceId", serviceId);
+        formData.append("serviceTitle", serviceTitle);
         formData.append("taskTitle", taskForm.taskTitle || "");
         formData.append("estimatedTime", taskForm.estimatedTime ? String(taskForm.estimatedTime) : "1");
         formData.append("taskDescription", taskForm.taskDescription || "");
@@ -321,6 +340,16 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
         }
     };
 
+    useEffect(() => {
+        // Set default service values if not already set
+        if (!taskForm.serviceId) {
+            dispatch(updateTaskField({ field: 'serviceId', value: 'handyMan' }));
+        }
+        if (!taskForm.serviceTitle) {
+            dispatch(updateTaskField({ field: 'serviceTitle', value: servicesData['handyMan']?.title || 'Handyman & Home Repairs' }));
+        }
+    }, []); // Run once on mount
+
 
 
     const toggleEditMode = () => {
@@ -329,26 +358,100 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                 setEditMode(false);
             }
         } else {
-            setLocalForm({ ...taskForm, photos: [...taskForm.photos], video: taskForm.video });
+            // Create a copy of taskForm for local editing
+            // If serviceId is empty but we have a default, use 'handyMan'
+            const serviceId = taskForm.serviceId || 'handyMan';
+            const serviceTitle = taskForm.serviceTitle || servicesData['handyMan']?.title || '';
 
-            // Initialize location and schedule states based on current values
-            if (taskForm.location === 'Remote') {
+            setLocalForm({
+                ...taskForm,
+                serviceId,
+                serviceTitle,
+                photos: [...taskForm.photos],
+                video: taskForm.video
+            });
+
+            // Initialize location states based on current values
+            if (taskForm.location === 'Remote' || !taskForm.location) {
                 setLocationType('remote');
+                setStreet('');
+                setCity('');
+                setProvince('');
             } else {
                 setLocationType('in-person');
-                setAddress(taskForm.location || '');
+                const parts = (taskForm.location || '').split(',').map(p => p.trim());
+                if (parts.length >= 3) {
+                    const provincePart = parts.pop() || '';
+                    const cityPart = parts.pop() || '';
+                    const streetPart = parts.join(', ');
+                    setProvince(provincePart);
+                    setCity(cityPart);
+                    setStreet(streetPart);
+                } else if (parts.length === 2) {
+                    setStreet(parts[0]);
+                    setCity(parts[1]);
+                    setProvince('');
+                } else {
+                    setStreet(taskForm.location || '');
+                    setCity('');
+                    setProvince('');
+                }
             }
 
-            if (taskForm.schedule === 'Flexible') {
+            // Initialize schedule states based on current values
+            if (taskForm.schedule === 'Flexible' || !taskForm.schedule) {
                 setScheduleType('Flexible');
+                setScheduledDate('');
+                setScheduledTime('');
+            } else if (taskForm.schedule === 'Schedule') {
+                setScheduleType('Schedule');
+                if (taskForm.customDeadline) {
+                    try {
+                        const dateObj = new Date(taskForm.customDeadline);
+                        if (!isNaN(dateObj.getTime())) {
+                            const year = dateObj.getFullYear();
+                            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                            const day = String(dateObj.getDate()).padStart(2, '0');
+                            setScheduledDate(`${year}-${month}-${day}`);
+
+                            const hours = String(dateObj.getHours()).padStart(2, '0');
+                            const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                            setScheduledTime(`${hours}:${minutes}`);
+                        } else {
+                            setScheduledDate('');
+                            setScheduledTime('');
+                        }
+                    } catch (error) {
+                        console.error('Error parsing customDeadline:', error);
+                        setScheduledDate('');
+                        setScheduledTime('');
+                    }
+                } else {
+                    setScheduledDate('');
+                    setScheduledTime('');
+                }
             } else {
-                setScheduleType('Scheduled');
-                // Try to parse existing schedule if it's a date-time string
-                const scheduleStr = taskForm.schedule || '';
-                const parts = scheduleStr.split(' ');
-                if (parts.length >= 2) {
-                    setScheduledDate(parts[0]);
-                    setScheduledTime(parts[1]);
+                setScheduleType('Schedule');
+                try {
+                    const dateObj = new Date(taskForm.schedule);
+                    if (!isNaN(dateObj.getTime())) {
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        setScheduledDate(`${year}-${month}-${day}`);
+
+                        const hours = String(dateObj.getHours()).padStart(2, '0');
+                        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+                        setScheduledTime(`${hours}:${minutes}`);
+                    } else {
+                        setScheduleType('Flexible');
+                        setScheduledDate('');
+                        setScheduledTime('');
+                    }
+                } catch (error) {
+                    setScheduleType('Flexible');
+                    setScheduledDate('');
+                    setScheduledTime('');
                 }
             }
 
@@ -356,8 +459,19 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
         }
     };
 
-    const getCurrentValue = (field: keyof typeof taskForm) => (editMode ? localForm[field] : taskForm[field]);
+    const getCurrentValue = (field: keyof typeof taskForm) => {
+        const value = editMode ? localForm[field] : taskForm[field];
 
+        // Handle default values for specific fields
+        if (field === 'serviceId' && !value) {
+            return 'handyMan';
+        }
+        if (field === 'serviceTitle' && !value) {
+            return servicesData['handyMan']?.title || '';
+        }
+
+        return value;
+    };
     const handleSwitch = async () => {
         if (!user?._id) {
             toast.error("User ID not found.");
@@ -366,7 +480,7 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
 
         setSwitching(true);
         try {
-            const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${user._id}`, {
+            const response = await fetch(`http://localhost:5000/api/auth/users/${user._id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ role: "client" }),
@@ -404,16 +518,22 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
             syncToRedux();
         }
 
+        // Ensure serviceId and serviceTitle have values before proceeding
+        if (!taskForm.serviceId) {
+            dispatch(updateTaskField({ field: 'serviceId', value: 'handyMan' }));
+        }
+        if (!taskForm.serviceTitle) {
+            dispatch(updateTaskField({ field: 'serviceTitle', value: servicesData['handyMan']?.title || 'Handyman & Home Repairs' }));
+        }
+
         if (user.currentRole === 'tasker') {
             setRoleToggle('tasker');
             setRoleSwitchModalOpen(true);
             return;
         }
 
-        // Show confirmation modal first
         setIsModalOpen(true);
     };
-
     const calculateTotalAmount = () => {
         const budget = parseFloat(taskForm.price) || 0;
         const isUrgent = taskForm.schedule === "Urgent";
@@ -472,7 +592,7 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                 <p className="text-sm text-gray-500 mb-2">Category</p>
                                 {editMode ? (
                                     <SelectField
-                                        value={localForm.serviceId}
+                                        value={localForm.serviceId || 'handyMan'}
                                         onChange={(newValue) => {
                                             handleLocalChange('serviceId', newValue);
                                             const selected = servicesData[newValue as keyof typeof servicesData];
@@ -487,7 +607,7 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                     <div className="flex items-center gap-2">
                                         <span className="text-[#109C3D]">🔧</span>
                                         <p className="font-medium text-[#063A41]">
-                                            {getCurrentValue('serviceTitle') || "Not specified"}
+                                            {getCurrentValue('serviceTitle') || servicesData['handyMan']?.title || "Not specified"}
                                         </p>
                                     </div>
                                 )}
@@ -517,13 +637,38 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                                             </button>
                                         </div>
                                         {locationType === 'in-person' && (
-                                            <input
-                                                type="text"
-                                                value={address}
-                                                onChange={(e) => setAddress(e.target.value)}
-                                                placeholder="Enter address"
-                                                className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#109C3D]"
-                                            />
+                                            <div className="space-y-3">
+                                                <div>
+                                                    <label className="block text-[#063A41] font-semibold mb-1 text-sm">Street Address</label>
+                                                    <input
+                                                        type="text"
+                                                        value={street}
+                                                        onChange={(e) => setStreet(e.target.value)}
+                                                        placeholder="Street Address"
+                                                        className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#109C3D]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[#063A41] font-semibold mb-1 text-sm">City</label>
+                                                    <input
+                                                        type="text"
+                                                        value={city}
+                                                        onChange={(e) => setCity(e.target.value)}
+                                                        placeholder="City"
+                                                        className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#109C3D]"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[#063A41] font-semibold mb-1 text-sm">Province</label>
+                                                    <input
+                                                        type="text"
+                                                        value={province}
+                                                        onChange={(e) => setProvince(e.target.value)}
+                                                        placeholder="Province"
+                                                        className="w-full p-3 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-[#109C3D]"
+                                                    />
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 ) : (
@@ -826,12 +971,12 @@ const UrgentTaskSummary = ({ onBack }: Props) => {
                 onClose={() => setIsModalOpen(false)}
                 onConfirm={() => {
                     setIsModalOpen(false);
-                    handleSubmit(); // Directly submit after confirmation
+                    handleSubmit();
                 }}
-                taskForm={taskForm}
-                timing={taskForm.schedule || ""}
-                price={taskForm.price || ""}
-                info={taskForm.additionalInfo || ""}
+                taskForm={taskFormWithDefaults}
+                timing={taskFormWithDefaults.schedule || ""}
+                price={taskFormWithDefaults.price || ""}
+                info={taskFormWithDefaults.additionalInfo || ""}
                 isLoading={isLoading}
             />
         </div>

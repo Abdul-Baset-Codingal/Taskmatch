@@ -3,7 +3,7 @@
 export const checkLoginStatus = async () => {
     try {
         const response = await fetch(
-            `https://taskmatch-backend.vercel.app/api/auth/verify-token`,
+            `http://localhost:5000/api/auth/verify-token`,
             {
                 method: "GET",
                 credentials: "include",

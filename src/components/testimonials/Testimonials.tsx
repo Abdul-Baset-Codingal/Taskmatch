@@ -309,6 +309,7 @@ import { ReactElement, JSXElementConstructor, ReactNode, ReactPortal, Key } from
 const Testimonials = () => {
   const { data: reviews = [], isLoading, error } = useGetTopTaskerReviewsQuery(undefined);
 
+  console.log(reviews)
   // Fallback data
   const fallbackReviews = [
     {

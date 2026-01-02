@@ -138,7 +138,7 @@ const JoinTaskMatch = () => {
                 Get Started Today
               </h1>
               <p className="text-gray-600 text-base sm:text-lg">
-                Join thousands of satisfied clients who trust Taskallo
+                Join thousands of satisfied people who trust Taskallo
               </p>
             </div>
 

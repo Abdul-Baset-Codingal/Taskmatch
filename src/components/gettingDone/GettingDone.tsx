@@ -46,25 +46,25 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
   };
-  console.log(taskerData)
+
   const isInProgress = task.status === "in progress";
 
   return (
     <div
       key={task._id || index}
-      className="group relative mx-6 w-[380px] rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-gray-200 hover:-translate-y-1"
+      className="group relative mx-6 w-[380px] h-[320px] rounded-2xl bg-white shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-gray-200 hover:-translate-y-1 flex flex-col"
     >
       {/* Clean Header */}
-      <div className="p-6 pb-4">
+      <div className="p-6 pb-4 flex-1 flex flex-col min-h-0">
         <div className="flex items-start justify-between gap-4">
-          <h3 className="text-xl font-semibold text-[#063A41] line-clamp-2 leading-tight">
+          <h3 className="text-xl font-semibold text-[#063A41] line-clamp-1 leading-tight flex-1" title={task.serviceTitle}>
             {task.serviceTitle}
           </h3>
 
           <span
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap ${isInProgress
-              ? "bg-orange-100 text-orange-700"
-              : "bg-[#109C3D]/10 text-[#109C3D]"
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap shrink-0 ${isInProgress
+                ? "bg-orange-100 text-orange-700"
+                : "bg-[#109C3D]/10 text-[#109C3D]"
               }`}
           >
             {isInProgress ? "In Progress" : "Completed"}
@@ -72,32 +72,32 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
         </div>
 
         {/* Task Title */}
-        <h4 className="mt-4 text-lg font-medium text-[#109C3D]">
+        <h4 className="mt-4 text-lg font-medium text-[#109C3D] line-clamp-1 truncate" title={task.taskTitle}>
           {task.taskTitle}
         </h4>
 
         {/* Description */}
-        <p className="mt-2 text-gray-600 text-sm leading-relaxed line-clamp-2">
+        <p className="mt-2 text-gray-600 text-sm leading-relaxed line-clamp-2 flex-1" title={task.taskDescription}>
           {task.taskDescription}
         </p>
 
         {/* Time */}
-        <div className="mt-4 flex items-center gap-2 text-gray-500 text-xs">
-          <BiTimeFive className="text-[#109C3D]" />
-          <span>
+        <div className="mt-auto pt-4 flex items-center gap-2 text-gray-500 text-xs">
+          <BiTimeFive className="text-[#109C3D] shrink-0" />
+          <span className="truncate">
             {isInProgress ? "Started" : "Completed"} {formatTimeAgo(task.updatedAt)}
           </span>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gray-100" />
+      <div className="h-px bg-gray-100 shrink-0" />
 
       {/* Footer – Tasker + Price */}
-      <div className="p-6 pt-5 flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="p-6 pt-5 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-4 min-w-0 flex-1">
           {/* Avatar */}
-          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200">
+          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-gray-200 shrink-0">
             {taskerData?.user?.profilePicture ? (
               <Image
                 src={taskerData.user.profilePicture}
@@ -115,13 +115,13 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
           </div>
 
           {/* Name + Rating */}
-          <div>
-            <p className="font-medium text-[#063A41]">
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-[#063A41] truncate" title={`${taskerData?.user?.firstName} ${taskerData?.user?.lastName}`}>
               {taskerData?.user?.firstName} {taskerData?.user?.lastName}
             </p>
             <div className="flex items-center gap-1 mt-1">
               {[...Array(5)].map((_, i) => (
-                <FaStar key={i} className="w-3.5 h-3.5 text-yellow-500 fill-current" />
+                <FaStar key={i} className="w-3.5 h-3.5 text-yellow-500 fill-current shrink-0" />
               ))}
               <span className="text-xs text-gray-500 ml-1">5.0</span>
             </div>
@@ -130,7 +130,7 @@ const TaskCard = ({ task, index }: { task: Task; index: number }) => {
 
         {/* Price – only if exists */}
         {task.price && (
-          <div className="text-right">
+          <div className="text-right shrink-0 ml-4">
             <span className="text-2xl font-bold text-[#063A41]">
               ${task.price}
             </span>

@@ -6,8 +6,10 @@ import { Heart, Users, Sparkles, TrendingUp, Shield, Clock } from 'lucide-react'
 import Image from 'next/image';
 import image from "../../../public/Images/ad.jpg";
 import image2 from "../../../public/Images/taskMatch works.jpg";
+import ourStory from '../../../public/Images/our-story.jpeg' // Background image
 import Navbar from '@/shared/Navbar';
 import Footer from '@/shared/Footer';
+import Link from 'next/link';
 
 const Page = () => {
     const [scrollY, setScrollY] = useState(0);
@@ -22,42 +24,35 @@ const Page = () => {
         <div>
             <Navbar />
             <div className="font-sans text-[#063A41] bg-white">
-                {/* Hero Section with Parallax */}
+                {/* Hero Section with Background Image */}
                 <section className="relative h-[85vh] flex items-center justify-center overflow-hidden">
-                    {/* Animated Background */}
-                    <div className="absolute inset-0 color1">
-                        <div className="absolute inset-0 opacity-10">
-                            {[...Array(50)].map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="absolute rounded-full bg-white"
-                                    style={{
-                                        width: Math.random() * 3 + 1 + 'px',
-                                        height: Math.random() * 3 + 1 + 'px',
-                                        left: Math.random() * 100 + '%',
-                                        top: Math.random() * 100 + '%',
-                                        animation: `float ${Math.random() * 10 + 10}s ease-in-out infinite`,
-                                        animationDelay: Math.random() * 5 + 's'
-                                    }}
-                                />
-                            ))}
-                        </div>
+                    {/* Background Image with Dark Gradient Overlay */}
+                    <div className="absolute inset-0 z-0">
+                        <Image
+                            src={ourStory}
+                            alt="Our Story Background"
+                            fill
+                            priority
+                            className="object-cover object-center"
+                        />
+                        {/* Dark gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-[#063A41]/60 via-[#063A41]/70 to-[#063A41]/80"></div>
                     </div>
 
                     {/* Hero Content */}
                     <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
-                        <div className="mb-6 inline-block">
+                        {/* <div className="mb-6 inline-block">
                             <div className="px-4 py-2 bg-[#109C3D]/20 backdrop-blur-sm rounded-full border border-[#109C3D]/30">
                                 <span className="text-[#E5FFDB] text-xs font-semibold tracking-wider uppercase">Est. 2024</span>
                             </div>
-                        </div>
+                        </div> */}
 
                         <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                            Our <span className="text-[#109C3D]">Story</span>
+                            Our <span className="text-[#E5FFDB]">Story</span>
                         </h1>
 
-                        <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto leading-relaxed">
-                            From a single moment of frustration to Canada's most trusted community task platform
+                        <p className="text-lg md:text-xl text-white/90 mb-10 max-w-3xl mx-auto leading-relaxed">
+                            From a single moment of frustration to Canada's most trusted community platform
                         </p>
 
                         <div className="flex justify-center gap-3 flex-wrap">
@@ -77,13 +72,14 @@ const Page = () => {
                     </div>
 
                     {/* Scroll Indicator */}
-                    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2">
+                    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10">
                         <div className="w-5 h-8 border-2 border-white/30 rounded-full flex justify-center">
                             <div className="w-1 h-2 bg-white rounded-full mt-1.5 animate-bounce"></div>
                         </div>
                     </div>
                 </section>
 
+                {/* Rest of the sections remain unchanged */}
                 {/* The Genesis Section */}
                 <section className="py-16 md:py-20 bg-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-1/3 h-full bg-gradient-to-l from-[#E5FFDB]/30 to-transparent"></div>
@@ -238,7 +234,7 @@ const Page = () => {
                                         <div className="absolute inset-0 bg-gradient-to-br from-[#063A41]/20 to-[#063A41]/70"></div>
                                         <div className="relative flex items-center justify-center h-full p-8">
                                             <div className="text-center">
-                                                <div className="text-7xl mb-4">🇨🇦</div>
+                                                {/* <div className="text-7xl mb-4">🇨🇦</div> */}
                                                 <div className="text-2xl font-bold text-white mb-2">Coast to Coast</div>
                                                 <div className="text-white/90">Building stronger Canadian communities</div>
                                             </div>
@@ -275,7 +271,7 @@ const Page = () => {
                                             <span className="text-lg text1">✓</span>
                                         </div>
                                         <div>
-                                            <div className="font-semibold text-white text-sm">Verified Helpers</div>
+                                            <div className="font-semibold text-white text-sm">Trusted Taskers</div>
                                             <div className="text-white/70 text-xs">Background checked and reviewed</div>
                                         </div>
                                     </div>
@@ -313,12 +309,10 @@ const Page = () => {
                             Whether you need help or want to help others, Taskallo is where Canadians come together to make life easier.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                            <button className="px-6 py-3 bg-gradient-to-r from-[#063A41] to-[#109C3D] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
-                                Get Started Today
-                            </button>
-                            <button className="px-6 py-3 bg-white border-2 border-[#063A41] text-[#063A41] rounded-full font-semibold hover:bg-[#E5FFDB] transition-all duration-300">
-                                Become a Helper
-                            </button>
+                            <Link href={'/urgent-task?search=general%20service'}>
+                                <button className="px-6 py-3 bg-gradient-to-r from-[#063A41] to-[#109C3D] text-white rounded-full font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                                    Post a Task Now
+                                </button></Link>
                         </div>
                     </div>
                 </section>

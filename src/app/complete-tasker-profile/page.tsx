@@ -1,3 +1,4 @@
+// pages/update-document/page.tsx
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
@@ -11,9 +12,19 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useGetUserByIdQuery, useSubmitTaskerApplicationMutation, useUpdateUserMutation } from "@/features/auth/authApi";
+import {
+    useStartStripeOnboardingMutation,
+    useGetStripeConnectStatusQuery,
+    useLazyGetStripeDashboardQuery,
+    useRefreshStripeOnboardingMutation
+} from "@/features/stripe/stripeApi";
 import { checkLoginStatus } from "@/resusable/CheckUser";
 import { toast } from "react-toastify";
-import { Save, Upload, CheckCircle, AlertCircle, User, Shield, FileText, X, Calendar, Edit3, Globe, Clock, Banknote, Lock } from "lucide-react";
+import {
+    Save, Upload, CheckCircle, AlertCircle, User, Shield, FileText, X,
+    Calendar, Edit3, Globe, Clock, Banknote, Lock, AlertTriangle,
+    ExternalLink, CreditCard, RefreshCw, Building2
+} from "lucide-react";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import Navbar from "@/shared/Navbar";
 
@@ -40,52 +51,74 @@ const UpdateDocument = () => {
     const fieldsParam = searchParams.get('fields');
     const missingFields = fieldsParam ? fieldsParam.split(',') : [];
     const hasMissingFields = missingFields.length > 0;
+
+    const stripeReturn = searchParams.get('stripe_return');
+
     const [user, setUser] = useState<{ _id: string; role: string } | null>(null);
+
+    // Form data structure matching new schema
     const [formData, setFormData] = useState({
-        idType: "" as string,
-        passportUrl: "" as string,
-        governmentIdFront: "" as string,
-        governmentIdBack: "" as string,
-        issueDate: "" as string,
-        expiryDate: "" as string,
-        hasInsurance: false as boolean,
-        insuranceDocument: "" as string,
-        backgroundCheckConsent: false as boolean,
+        // Personal
         profilePicture: "" as string,
-        sin: "" as string,
         firstName: "" as string,
         lastName: "" as string,
         email: "" as string,
+
+        // Professional
         dob: "" as string,
         about: "" as string,
-        language: "" as string,
         yearsOfExperience: "" as string,
-        accountHolder: "" as string,
-        accountNumber: "" as string,
-        routingNumber: "" as string,
+
+        // ID Verification - matches nested schema
+        idVerificationType: "" as string,  // "passport" | "governmentID" | "driverLicense"
+        idDocumentFront: "" as string,
+        idDocumentBack: "" as string,
+        idIssueDate: "" as string,      // ADDED
+        idExpiryDate: "" as string,     // ADDED
+
+        // Insurance - matches nested schema
+        hasInsurance: false as boolean,
+        insuranceDocument: "" as string,
     });
 
     const [selectedFiles, setSelectedFiles] = useState<Record<string, File | null>>({
         profilePicture: null,
-        passportUrl: null,
-        governmentIdFront: null,
-        governmentIdBack: null,
+        idDocumentFront: null,
+        idDocumentBack: null,
         insuranceDocument: null,
     });
 
     const [isUploading, setIsUploading] = useState(false);
-    const [uploadField, setUploadField] = useState<keyof typeof formData | null>(null);
-    const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
+    const [uploadField, setUploadField] = useState<string | null>(null);
     const [activeSection, setActiveSection] = useState<string>('personal');
     const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
     const [sectionValidation, setSectionValidation] = useState<Record<string, boolean>>({});
-
+    const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
+    // Add state for date validation errors
+    // Add state for date validation errors
+    const [dateErrors, setDateErrors] = useState<{
+        issueDate?: string;
+        expiryDate?: string;
+    }>({});
     const localUrlsRef = useRef(new Map<string, string>());
 
-    const today = "2025-11-14";
-    const minYear = "1900-01-01";
-    const maxFutureYear = "2040-12-31";
+    const today = new Date().toISOString().split('T')[0];
+    const sectionOrder = ['personal', 'professional', 'id-verification', 'payment', 'insurance'];
 
+    // ==================== STRIPE CONNECT HOOKS ====================
+    const [startStripeOnboarding, { isLoading: isStartingOnboarding }] = useStartStripeOnboardingMutation();
+    const {
+        data: stripeStatus,
+        isLoading: isLoadingStripeStatus,
+        refetch: refetchStripeStatus
+    } = useGetStripeConnectStatusQuery(undefined, {
+        skip: !user?._id,
+        pollingInterval: stripeReturn ? 3000 : 0,
+    });
+    const [getStripeDashboard] = useLazyGetStripeDashboardQuery();
+    const [refreshOnboarding, { isLoading: isRefreshingOnboarding }] = useRefreshStripeOnboardingMutation();
+
+    // ==================== AUTH & USER DATA ====================
     useEffect(() => {
         const fetchUser = async () => {
             const { isLoggedIn, user } = await checkLoginStatus();
@@ -111,74 +144,330 @@ const UpdateDocument = () => {
     }] = useSubmitTaskerApplicationMutation();
 
     useEffect(() => {
-        if (userDetails && userDetails.user && user?._id) {
-            setFormData({
-                idType: userDetails.user.idType || "",
-                passportUrl: userDetails.user.passportUrl || "",
-                governmentIdFront: userDetails.user.governmentIdFront || "",
-                governmentIdBack: userDetails.user.governmentIdBack || "",
-                issueDate: userDetails.user.issueDate ? new Date(userDetails.user.issueDate).toISOString().split('T')[0] : "",
-                expiryDate: userDetails.user.expiryDate ? new Date(userDetails.user.expiryDate).toISOString().split('T')[0] : "",
-                hasInsurance: userDetails.user.hasInsurance || false,
-                insuranceDocument: userDetails.user.insuranceDocument || "",
-                backgroundCheckConsent: userDetails.user.backgroundCheckConsent || false,
-                profilePicture: userDetails.user.profilePicture || "",
-                sin: userDetails.user.sin || "",
-                firstName: userDetails.user.firstName || "",
-                lastName: userDetails.user.lastName || "",
-                email: userDetails.user.email || "",
-                dob: userDetails.user.dob ? new Date(userDetails.user.dob).toISOString().split('T')[0] : "",
-                about: userDetails.user.about || "",
-                // language: userDetails.user.language || "",
-                yearsOfExperience: userDetails.user.yearsOfExperience || "",
-                accountHolder: userDetails.user.accountHolder || "",
-                accountNumber: userDetails.user.accountNumber || "",
-                routingNumber: userDetails.user.routingNumber || "",
-            });
-            setShowInsuranceUpload(userDetails.user.hasInsurance || false);
+        if (stripeReturn === 'complete') {
+            toast.success('Stripe setup completed! Checking status...');
+            setActiveSection('payment');
+            router.replace('/complete-tasker-profile');
+        } else if (stripeReturn === 'refresh') {
+            toast.info('Please complete Stripe onboarding to receive payments.');
+            setActiveSection('payment');
+            router.replace('/complete-tasker-profile');
         }
-    }, [userDetails, user]);
+    }, [stripeReturn, router]);
 
+    const initialDataLoadedRef = useRef(false);
+
+    // Load data from new schema structure
+    useEffect(() => {
+        if (userDetails && userDetails.user && user?._id && !initialDataLoadedRef.current) {
+            initialDataLoadedRef.current = true;
+
+            const userData = userDetails.user;
+            console.log('Loading initial form data from backend:', userData);
+
+            setFormData({
+                // Personal
+                profilePicture: userData.profilePicture || "",
+                firstName: userData.firstName || "",
+                lastName: userData.lastName || "",
+                email: userData.email || "",
+
+                // Professional
+                dob: userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : "",
+                about: userData.about || "",
+                yearsOfExperience: userData.yearsOfExperience?.toString() || "",
+
+                // ID Verification - from nested structure
+                idVerificationType: userData.idVerification?.type || "",
+                idDocumentFront: userData.idVerification?.documentFront || "",
+                idDocumentBack: userData.idVerification?.documentBack || "",
+                idIssueDate: userData.idVerification?.issueDate
+                    ? new Date(userData.idVerification.issueDate).toISOString().split('T')[0]
+                    : "",
+                idExpiryDate: userData.idVerification?.expiryDate
+                    ? new Date(userData.idVerification.expiryDate).toISOString().split('T')[0]
+                    : "",
+
+                // Insurance - from nested structure
+                hasInsurance: userData.insurance?.hasInsurance || false,
+                insuranceDocument: userData.insurance?.documentUrl || "",
+            });
+
+            setShowInsuranceUpload(userData.insurance?.hasInsurance || false);
+        }
+    }, [userDetails, user?._id]);
+
+    const refreshDataFromBackend = async () => {
+        initialDataLoadedRef.current = false;
+        await refetch();
+    };
+
+    useEffect(() => {
+        setShowInsuranceUpload(formData.hasInsurance);
+    }, [formData.hasInsurance]);
+
+    // ==================== STRIPE CONNECT HELPERS ====================
+    const isStripeConnected =
+        stripeStatus?.status === 'active' &&
+        stripeStatus?.chargesEnabled === true &&
+        stripeStatus?.payoutsEnabled === true;
+
+    const isStripeIncomplete =
+        stripeStatus?.status === 'pending' &&
+        stripeStatus?.detailsSubmitted === false;
+
+    const isStripePayoutsPending =
+        stripeStatus?.detailsSubmitted === true &&
+        stripeStatus?.chargesEnabled === true &&
+        stripeStatus?.payoutsEnabled === false;
+
+    const stripeNeedsOnboarding =
+        !stripeStatus ||
+        stripeStatus?.status === 'not_connected' ||
+        stripeStatus?.connected === false;
+
+    const handleStartStripeOnboarding = async () => {
+        try {
+            const result = await startStripeOnboarding().unwrap();
+            if (result.url) {
+                window.location.href = result.url;
+            }
+        } catch (error: any) {
+            console.error('Stripe onboarding error:', error);
+            toast.error(error?.data?.error || 'Failed to start Stripe onboarding');
+        }
+    };
+
+    const handleRefreshOnboarding = async () => {
+        try {
+            const result = await refreshOnboarding().unwrap();
+            if (result.url) {
+                window.location.href = result.url;
+            }
+        } catch (error: any) {
+            console.error('Stripe refresh error:', error);
+            toast.error(error?.data?.error || 'Failed to refresh onboarding link');
+        }
+    };
+
+    const handleOpenStripeDashboard = async () => {
+        try {
+            const result = await getStripeDashboard().unwrap();
+            if (result.url) {
+                window.open(result.url, '_blank');
+            }
+        } catch (error: any) {
+            console.error('Stripe dashboard error:', error);
+            toast.error(error?.data?.error || 'Failed to open Stripe dashboard');
+        }
+    };
+
+
+    // Helper function to validate dates - ONLY validates complete dates
+
+    // Check if a date string is complete (YYYY-MM-DD format with 4-digit year)
+    const isCompleteDateString = (dateStr: string): boolean => {
+        if (!dateStr) return false;
+        const parts = dateStr.split('-');
+        return parts.length === 3 && parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2;
+    };
+
+    // Sanitize date value - restrict year to 4 digits
+    const sanitizeDateValue = (value: string): string => {
+        if (!value) return value;
+
+        const parts = value.split('-');
+        if (parts[0] && parts[0].length > 4) {
+            parts[0] = parts[0].slice(0, 4);
+            return parts.join('-');
+        }
+        return value;
+    };
+
+    // Validate dates function
+    const validateDates = (issueDate: string, expiryDate: string): { issueDate?: string; expiryDate?: string } => {
+        const errors: { issueDate?: string; expiryDate?: string } = {};
+        const todayDate = new Date();
+        todayDate.setHours(0, 0, 0, 0);
+
+        // Validate issue date
+        if (issueDate) {
+            const issue = new Date(issueDate);
+
+            if (isNaN(issue.getTime())) {
+                errors.issueDate = "Invalid date";
+            } else if (issue > todayDate) {
+                errors.issueDate = "Issue date cannot be in the future";
+            } else if (issue.getFullYear() < 1900) {
+                errors.issueDate = "Please enter a valid year";
+            }
+        }
+
+        // Validate expiry date
+        if (expiryDate) {
+            const expiry = new Date(expiryDate);
+
+            if (isNaN(expiry.getTime())) {
+                errors.expiryDate = "Invalid date";
+            } else if (expiry <= todayDate) {
+                errors.expiryDate = "ID has expired. Please use a valid document";
+            } else if (expiry.getFullYear() > 2099) {
+                errors.expiryDate = "Please enter a valid year";
+            }
+        }
+
+        // Check if expiry is after issue date
+        if (issueDate && expiryDate && !errors.issueDate && !errors.expiryDate) {
+            const issue = new Date(issueDate);
+            const expiry = new Date(expiryDate);
+            if (expiry <= issue) {
+                errors.expiryDate = "Expiry date must be after issue date";
+            }
+        }
+
+        return errors;
+    };
+
+    // Handle issue date change
+    const handleIssueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({ ...prev, idIssueDate: value }));
+
+        // Validate
+        const errors = validateDates(value, formData.idExpiryDate);
+        setDateErrors(errors);
+    };
+
+    // Handle expiry date change
+    const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setFormData(prev => ({ ...prev, idExpiryDate: value }));
+
+        // Validate
+        const errors = validateDates(formData.idIssueDate, value);
+        setDateErrors(errors);
+    };
+
+    // Handle blur - validate on blur too
+    const handleDateBlur = () => {
+        const errors = validateDates(formData.idIssueDate, formData.idExpiryDate);
+        setDateErrors(errors);
+    };
+
+    // Check if dates are valid for submission
+    const areDatesValid = (): boolean => {
+        if (!formData.idIssueDate || !formData.idExpiryDate) return false;
+        if (!isCompleteDateString(formData.idIssueDate) || !isCompleteDateString(formData.idExpiryDate)) return false;
+        const errors = validateDates(formData.idIssueDate, formData.idExpiryDate);
+        return Object.keys(errors).length === 0;
+    };
+ 
+
+
+    // ==================== VALIDATION ====================
+    const getMissingFields = (sectionId: string): string[] => {
+        const missing: string[] = [];
+
+        switch (sectionId) {
+            case 'personal':
+                if (!formData.profilePicture || formData.profilePicture.startsWith('blob:')) missing.push('Profile Picture');
+                break;
+            case 'professional':
+                if (!formData.dob) missing.push('Date of Birth');
+                if (!formData.yearsOfExperience) missing.push('Years of Experience');
+                if (!formData.about) missing.push('About Me');
+                break;
+            case 'id-verification':
+                if (!formData.idVerificationType) missing.push('ID Type');
+                if (formData.idVerificationType) {
+                    // Issue and Expiry dates are required
+                    if (!formData.idIssueDate) missing.push('Issue Date');
+                    if (!formData.idExpiryDate) missing.push('Expiry Date');
+
+                    // Front document is always required
+                    if (!formData.idDocumentFront || formData.idDocumentFront.startsWith('blob:')) {
+                        missing.push('ID Document (Front)');
+                    }
+                    // Back document only required for governmentID
+                    if (formData.idVerificationType === 'governmentID') {
+                        if (!formData.idDocumentBack || formData.idDocumentBack.startsWith('blob:')) {
+                            missing.push('ID Document (Back)');
+                        }
+                    }
+                }
+                break;
+            case 'payment':
+                if (!isStripeConnected) missing.push('Stripe Payment Setup');
+                break;
+            case 'insurance':
+                if (formData.hasInsurance && (!formData.insuranceDocument || formData.insuranceDocument.startsWith('blob:'))) {
+                    missing.push('Insurance Document');
+                }
+                break;
+        }
+
+        return missing;
+    };
+
+    const getNextSection = (currentSection: string): string | null => {
+        const currentIndex = sectionOrder.indexOf(currentSection);
+        if (currentIndex < sectionOrder.length - 1) {
+            return sectionOrder[currentIndex + 1];
+        }
+        return null;
+    };
+
+    const navigateToNextSection = () => {
+        const nextSection = getNextSection(activeSection);
+        if (nextSection) {
+            setActiveSection(nextSection);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            toast.info(`Moving to ${sections.find(s => s.id === nextSection)?.label} section`);
+        } else {
+            toast.success("🎉 All sections completed! You can now submit your application.");
+        }
+    };
+
+    // Validate sections
     useEffect(() => {
         const validateSections = () => {
             const validation: Record<string, boolean> = {};
             const completed = new Set<string>();
 
-            const personalValid = formData.sin && formData.profilePicture && !formData.profilePicture.startsWith('blob:');
+            const personalValid = formData.profilePicture && !formData.profilePicture.startsWith('blob:');
             validation.personal = !!personalValid;
             if (personalValid) completed.add('personal');
 
-            const professionalValid = formData.dob && formData.yearsOfExperience  && formData.about;
+            const professionalValid = formData.dob && formData.yearsOfExperience && formData.about;
             validation.professional = !!professionalValid;
             if (professionalValid) completed.add('professional');
 
             let idVerificationValid = false;
-            if (formData.idType === "passport") {
-                idVerificationValid = formData.passportUrl && !formData.passportUrl.startsWith('blob:') && formData.issueDate && formData.expiryDate;
-            } else if (formData.idType === "governmentID") {
-                idVerificationValid = formData.governmentIdFront && !formData.governmentIdFront.startsWith('blob:') && formData.governmentIdBack && !formData.governmentIdBack.startsWith('blob:') && formData.issueDate && formData.expiryDate;
+            if (formData.idVerificationType && formData.idIssueDate && formData.idExpiryDate) {
+                const hasFront = formData.idDocumentFront && !formData.idDocumentFront.startsWith('blob:');
+                if (formData.idVerificationType === 'passport' || formData.idVerificationType === 'driverLicense') {
+                    idVerificationValid = !!hasFront;
+                } else if (formData.idVerificationType === 'governmentID') {
+                    const hasBack = formData.idDocumentBack && !formData.idDocumentBack.startsWith('blob:');
+                    idVerificationValid = !!(hasFront && hasBack);
+                }
             }
-            validation['id-verification'] = !!idVerificationValid;
+            validation['id-verification'] = idVerificationValid;
             if (idVerificationValid) completed.add('id-verification');
 
-            const paymentValid = formData.accountHolder && formData.accountNumber && formData.routingNumber;
+            const paymentValid = isStripeConnected;
             validation.payment = !!paymentValid;
             if (paymentValid) completed.add('payment');
 
-            const insuranceValid = formData.hasInsurance ? formData.insuranceDocument && !formData.insuranceDocument.startsWith('blob:') : true;
-            validation.insurance = !!insuranceValid;
+            const insuranceValid = formData.hasInsurance ? !!(formData.insuranceDocument && !formData.insuranceDocument.startsWith('blob:')) : true;
+            validation.insurance = insuranceValid;
             if (insuranceValid) completed.add('insurance');
-
-            const backgroundValid = formData.backgroundCheckConsent;
-            validation.background = !!backgroundValid;
-            if (backgroundValid) completed.add('background');
 
             setSectionValidation(validation);
             setCompletedSections(completed);
         };
-
         validateSections();
-    }, [formData]);
+    }, [formData, isStripeConnected]);
 
     useEffect(() => {
         return () => {
@@ -187,7 +476,8 @@ const UpdateDocument = () => {
         };
     }, []);
 
-    const handleFileUpload = async (file: File, field: keyof typeof formData): Promise<string | null> => {
+    // ==================== FILE HANDLERS ====================
+    const handleFileUpload = async (file: File, field: string): Promise<string | null> => {
         if (!file) return null;
         if (!file.type.startsWith('image/')) {
             toast.error(`${field} must be an image file.`);
@@ -202,7 +492,7 @@ const UpdateDocument = () => {
             setUploadField(null);
             return url;
         } catch (error) {
-            // console.error("Upload failed:", error);
+            console.error('Upload error:', error);
             toast.error(`Failed to upload`);
             setIsUploading(false);
             setUploadField(null);
@@ -210,15 +500,17 @@ const UpdateDocument = () => {
         }
     };
 
-    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: keyof typeof formData) => {
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, field: string) => {
         const file = e.target.files?.[0];
         if (file) {
             const localUrl = URL.createObjectURL(file);
             localUrlsRef.current.set(field, localUrl);
             setSelectedFiles(prev => ({ ...prev, [field]: file }));
             setFormData(prev => ({ ...prev, [field]: localUrl }));
+
             const uploadedUrl = await handleFileUpload(file, field);
             if (uploadedUrl) {
+                console.log(`✅ File uploaded for ${field}:`, uploadedUrl);
                 setFormData(prev => ({ ...prev, [field]: uploadedUrl }));
                 const oldLocalUrl = localUrlsRef.current.get(field);
                 if (oldLocalUrl) {
@@ -231,18 +523,8 @@ const UpdateDocument = () => {
         }
     };
 
-    const clearSelectedFile = (field: keyof typeof formData) => {
-        const localUrl = localUrlsRef.current.get(field);
-        if (localUrl) {
-            URL.revokeObjectURL(localUrl);
-            localUrlsRef.current.delete(field);
-        }
-        setSelectedFiles(prev => ({ ...prev, [field]: null }));
-        setFormData(prev => ({ ...prev, [field]: '' }));
-    };
-
     const getPreviewUrl = (field: string): string => {
-        return formData[field as keyof typeof formData] || '';
+        return formData[field as keyof typeof formData] as string || '';
     };
 
     const isLocalPreview = (field: string): boolean => {
@@ -252,28 +534,27 @@ const UpdateDocument = () => {
 
     const needsUnoptimized = (src: string): boolean => !src.startsWith('/');
 
+    // ==================== FORM HANDLERS ====================
     const handleIdTypeChange = (value: string) => {
-        setFormData({ ...formData, idType: value });
-        if (value === "passport") {
-            setFormData(prev => ({ ...prev, governmentIdFront: "", governmentIdBack: "" }));
-        } else if (value === "governmentID") {
-            setFormData(prev => ({ ...prev, passportUrl: "" }));
-        }
-    };
-
-    const handleIssueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, issueDate: e.target.value }));
-    };
-
-    const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFormData(prev => ({ ...prev, expiryDate: e.target.value }));
+        setFormData(prev => ({
+            ...prev,
+            idVerificationType: value,
+            // Clear documents when type changes
+            idDocumentFront: "",
+            idDocumentBack: "",
+            // Keep dates - user might want to reuse them
+        }));
     };
 
     const handleHasInsuranceChange = (checked: boolean) => {
-        setFormData({ ...formData, hasInsurance: checked });
+        setFormData(prev => ({
+            ...prev,
+            hasInsurance: checked,
+            insuranceDocument: checked ? prev.insuranceDocument : ""
+        }));
         setShowInsuranceUpload(checked);
+
         if (!checked) {
-            setFormData({ ...formData, insuranceDocument: "" });
             const localUrl = localUrlsRef.current.get('insuranceDocument');
             if (localUrl) {
                 URL.revokeObjectURL(localUrl);
@@ -283,12 +564,7 @@ const UpdateDocument = () => {
         }
     };
 
-    const handleBackgroundCheckConsentChange = (checked: boolean) => {
-        setFormData({ ...formData, backgroundCheckConsent: checked });
-    };
-
     const canAccessSection = (sectionId: string) => {
-        const sectionOrder = ['personal', 'professional',  'id-verification', 'payment', 'insurance', 'background'];
         const currentIndex = sectionOrder.indexOf(sectionId);
         if (currentIndex === 0) return true;
         for (let i = 0; i < currentIndex; i++) {
@@ -307,109 +583,216 @@ const UpdateDocument = () => {
         }
     };
 
-    // Save handlers
-    const handleSaveProfessionalProfile = async () => {
-        if (!user?._id) return toast.error("User not logged in.");
-        const payload: any = { userId: user._id };
-        if (formData.dob) payload.dob = new Date(formData.dob);
-        if (formData.about) payload.about = formData.about;
-        // if (formData.language) payload.language = formData.language;
-        if (formData.yearsOfExperience) payload.yearsOfExperience = formData.yearsOfExperience;
-        if (Object.keys(payload).length === 1) return toast.info("No changes to save.");
-        try {
-            await updateUser(payload).unwrap();
-            await refetch();
-            toast.success("Profile saved!");
-        } catch (err: any) {
-            toast.error(`Failed: ${err.data?.error || err.message}`);
-        }
-    };
-
+    // ==================== SAVE HANDLERS ====================
     const handleSavePersonalInfo = async () => {
         if (!user?._id) return toast.error("User not logged in.");
         if (formData.profilePicture?.startsWith('blob:')) return toast.warn("Please wait for upload to complete.");
+
+        const missing = getMissingFields('personal');
+        if (missing.length > 0) {
+            return toast.error(`Please fill in: ${missing.join(', ')}`);
+        }
+
         const payload: any = { userId: user._id };
-        if (formData.sin) payload.sin = formData.sin;
-        if (formData.profilePicture && !formData.profilePicture.startsWith('blob:')) payload.profilePicture = formData.profilePicture;
-        if (Object.keys(payload).length === 1) return toast.info("No changes to save.");
+        if (formData.profilePicture && !formData.profilePicture.startsWith('blob:')) {
+            payload.profilePicture = formData.profilePicture;
+        }
+
+        console.log('💾 Saving personal info:', payload);
+
         try {
             await updateUser(payload).unwrap();
             await refetch();
             toast.success("Personal info saved!");
+            navigateToNextSection();
         } catch (err: any) {
+            console.error('Save error:', err);
+            toast.error(`Failed: ${err.data?.error || err.message}`);
+        }
+    };
+
+    const handleSaveProfessionalProfile = async () => {
+        if (!user?._id) return toast.error("User not logged in.");
+
+        const missing = getMissingFields('professional');
+        if (missing.length > 0) {
+            return toast.error(`Please fill in: ${missing.join(', ')}`);
+        }
+
+        const payload: any = { userId: user._id };
+        if (formData.dob) payload.dob = new Date(formData.dob);
+        if (formData.about) payload.about = formData.about;
+        if (formData.yearsOfExperience) payload.yearsOfExperience = parseInt(formData.yearsOfExperience, 10);
+
+        console.log('💾 Saving professional profile:', payload);
+
+        try {
+            await updateUser(payload).unwrap();
+            await refetch();
+            toast.success("Professional profile saved!");
+            navigateToNextSection();
+        } catch (err: any) {
+            console.error('Save error:', err);
             toast.error(`Failed: ${err.data?.error || err.message}`);
         }
     };
 
     const handleSaveIdVerification = async () => {
         if (!user?._id) return toast.error("User not logged in.");
-        if (!formData.idType) return toast.error("Please select ID type.");
-        const payload: any = { userId: user._id, idType: formData.idType };
-        if (formData.passportUrl && !formData.passportUrl.startsWith('blob:')) payload.passportUrl = formData.passportUrl;
-        if (formData.governmentIdFront && !formData.governmentIdFront.startsWith('blob:')) payload.governmentIdFront = formData.governmentIdFront;
-        if (formData.governmentIdBack && !formData.governmentIdBack.startsWith('blob:')) payload.governmentIdBack = formData.governmentIdBack;
-        if (formData.issueDate) payload.issueDate = new Date(formData.issueDate);
-        if (formData.expiryDate) payload.expiryDate = new Date(formData.expiryDate);
+        if (!formData.idVerificationType) return toast.error("Please select ID type.");
+
+        // Check for pending uploads
+        if (formData.idDocumentFront?.startsWith('blob:')) {
+            return toast.warn("Please wait for front document upload to complete.");
+        }
+        if (formData.idVerificationType === 'governmentID' && formData.idDocumentBack?.startsWith('blob:')) {
+            return toast.warn("Please wait for back document upload to complete.");
+        }
+
+        // Validate dates
+        if (!formData.idIssueDate) {
+            return toast.error("Please enter the issue date.");
+        }
+        if (!formData.idExpiryDate) {
+            return toast.error("Please enter the expiry date.");
+        }
+
+        // Run validation
+        const errors = validateDates(formData.idIssueDate, formData.idExpiryDate);
+        setDateErrors(errors);
+
+        if (errors.issueDate) {
+            return toast.error(errors.issueDate);
+        }
+        if (errors.expiryDate) {
+            return toast.error(errors.expiryDate);
+        }
+
+        const missing = getMissingFields('id-verification');
+        if (missing.length > 0) {
+            return toast.error(`Please fill in: ${missing.join(', ')}`);
+        }
+
+        // Build payload
+        const payload: any = {
+            userId: user._id,
+            idVerification: {
+                type: formData.idVerificationType,
+                documentFront: formData.idDocumentFront,
+                documentBack: formData.idVerificationType === 'governmentID' ? formData.idDocumentBack : null,
+                issueDate: new Date(formData.idIssueDate),
+                expiryDate: new Date(formData.idExpiryDate),
+                verified: false,
+            }
+        };
+
+        console.log('💾 Saving ID verification:', payload);
+
         try {
-            await updateUser(payload).unwrap();
+            const result = await updateUser(payload).unwrap();
+            console.log('✅ Update result:', result);
             await refetch();
             toast.success("ID verification saved!");
+            navigateToNextSection();
         } catch (err: any) {
-            toast.error(`Failed: ${err.data?.error || err.message}`);
+            console.error('❌ Save error:', err);
+            toast.error(`Failed: ${err.data?.error || err.data?.message || err.message || 'Unknown error'}`);
         }
     };
-
-    const handleSavePaymentSettings = async () => {
-        if (!user?._id) return toast.error("User not logged in.");
-        const payload: any = { userId: user._id };
-        if (formData.accountHolder) payload.accountHolder = formData.accountHolder;
-        if (formData.accountNumber) payload.accountNumber = formData.accountNumber;
-        if (formData.routingNumber) payload.routingNumber = formData.routingNumber;
-        if (Object.keys(payload).length === 1) return toast.info("No changes to save.");
-        try {
-            await updateUser(payload).unwrap();
-            await refetch();
-            toast.success("Payment settings saved!");
-        } catch (err: any) {
-            toast.error(`Failed: ${err.data?.error || err.message}`);
+    const handleContinueFromPayment = () => {
+        if (!isStripeConnected) {
+            return toast.error("Please complete Stripe payment setup to continue.");
         }
+        toast.success("Payment setup verified!");
+        navigateToNextSection();
     };
 
+    // Insurance save handler - uses nested schema
     const handleSaveInsurance = async () => {
         if (!user?._id) return toast.error("User not logged in.");
         if (formData.insuranceDocument?.startsWith('blob:')) return toast.warn("Please wait for upload to complete.");
-        const payload: any = { userId: user._id, hasInsurance: formData.hasInsurance };
-        if (formData.insuranceDocument && !formData.insuranceDocument.startsWith('blob:')) payload.insuranceDocument = formData.insuranceDocument;
+
+        const missing = getMissingFields('insurance');
+        if (missing.length > 0) {
+            return toast.error(`Please fill in: ${missing.join(', ')}`);
+        }
+
+        // Build payload with NESTED structure matching new schema
+        const payload: any = {
+            userId: user._id,
+            insurance: {
+                hasInsurance: formData.hasInsurance,
+                documentUrl: formData.hasInsurance ? formData.insuranceDocument : null,
+                verified: false, // Admin will verify
+            }
+        };
+
+        console.log('💾 Saving insurance:', payload);
+
         try {
             await updateUser(payload).unwrap();
             await refetch();
             toast.success("Insurance saved!");
+            toast.success("🎉 All sections completed! You can now submit your application.");
         } catch (err: any) {
+            console.error('Save error:', err);
             toast.error(`Failed: ${err.data?.error || err.message}`);
         }
     };
 
-    const handleSaveBackgroundCheck = async () => {
-        if (!user?._id) return toast.error("User not logged in.");
-        try {
-            await updateUser({ userId: user._id, backgroundCheckConsent: formData.backgroundCheckConsent }).unwrap();
-            await refetch();
-            toast.success("Consent saved!");
-        } catch (err: any) {
-            toast.error(`Failed: ${err.data?.error || err.message}`);
-        }
-    };
-
+    // ==================== UI HELPERS ====================
     const sections = [
         { id: 'personal', label: 'Personal', icon: User },
         { id: 'professional', label: 'Professional', icon: Edit3 },
         { id: 'id-verification', label: 'ID Verification', icon: FileText },
-        { id: 'payment', label: 'Payment', icon: Banknote },
+        { id: 'payment', label: 'Payment', icon: CreditCard },
         { id: 'insurance', label: 'Insurance', icon: Shield },
-        { id: 'background', label: 'Background', icon: AlertCircle },
     ];
 
-    // Loading
+    const MissingFieldsAlert = ({ sectionId }: { sectionId: string }) => {
+        const missing = getMissingFields(sectionId);
+        if (missing.length === 0) return null;
+
+        return (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-medium text-amber-800">Missing Required Fields</p>
+                        <p className="text-sm text-amber-700 mt-1">
+                            Please complete: <span className="font-medium">{missing.join(', ')}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const isProfileVerified = userDetails?.user?.taskerStatus === "approved";
+    const lockedSectionsWhenVerified = ['personal', 'professional', 'id-verification'];
+    const isSectionLocked = (sectionId: string): boolean => {
+        return isProfileVerified && lockedSectionsWhenVerified.includes(sectionId);
+    };
+
+    const LockedSectionAlert = ({ sectionId }: { sectionId: string }) => {
+        if (!isSectionLocked(sectionId)) return null;
+
+        return (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                    <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                        <p className="text-sm font-medium text-blue-800">Section Locked</p>
+                        <p className="text-sm text-blue-700 mt-1">
+                            This section cannot be edited after profile verification.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // ==================== LOADING STATE ====================
     if (isUserLoading) {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
@@ -437,8 +820,10 @@ const UpdateDocument = () => {
 
     const allSectionsCompleted = completedSections.size === sections.length;
     const canSubmitApplication = allSectionsCompleted &&
-        (userDetails?.user?.taskerStatus === "not_applied" || userDetails?.user?.taskerStatus === "rejected");
+        (userDetails?.user?.taskerStatus === "not_applied" || userDetails?.user?.taskerStatus === "rejected") &&
+        !applicationSubmitted;
 
+    // ==================== RENDER ====================
     return (
         <div className="min-h-screen bg-[#E5FFDB]/10">
             <Navbar />
@@ -478,13 +863,14 @@ const UpdateDocument = () => {
                             const isActive = activeSection === section.id;
                             const isCompleted = completedSections.has(section.id);
                             const canAccess = canAccessSection(section.id);
+                            const hasMissing = getMissingFields(section.id).length > 0;
 
                             return (
                                 <button
                                     key={section.id}
                                     onClick={() => handleSectionChange(section.id)}
                                     disabled={!canAccess}
-                                    className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${isActive
+                                    className={`relative flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${isActive
                                         ? "bg-[#063A41] text-white"
                                         : isCompleted
                                             ? "bg-[#E5FFDB] text-[#109C3D]"
@@ -501,6 +887,9 @@ const UpdateDocument = () => {
                                         <Icon className="w-4 h-4" />
                                     )}
                                     {section.label}
+                                    {canAccess && hasMissing && !isCompleted && (
+                                        <span className="absolute -top-1 -right-1 w-3 h-3 bg-amber-500 rounded-full"></span>
+                                    )}
                                 </button>
                             );
                         })}
@@ -508,84 +897,20 @@ const UpdateDocument = () => {
                 </div>
             </div>
 
-            {/* Missing Fields Alert */}
-            {hasMissingFields && (
-                <div className="max-w-5xl mx-auto px-4 mt-6">
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                        <p className="text-sm text-amber-800">
-                            <strong>Required fields:</strong> {missingFields.join(', ')}
-                        </p>
-                    </div>
-                </div>
-            )}
-
             {/* Content */}
             <div className="max-w-5xl mx-auto px-4 py-6">
-                {/* Professional Profile */}
-                {activeSection === 'professional' && (
-                    <div className="space-y-4">
-                        <div className="bg-white rounded-lg border p-5">
-                            <h3 className="font-medium text-[#063A41] mb-4">Professional Details</h3>
-                            <div className="grid md:grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">Date of Birth</label>
-                                    <input
-                                        type="date"
-                                        value={formData.dob}
-                                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                                        max={today}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">Years of Experience</label>
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        placeholder="e.g., 5"
-                                        value={formData.yearsOfExperience}
-                                        onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
-                                </div>
-                                {/* <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">Primary Language</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., English"
-                                        value={formData.language}
-                                        onChange={(e) => setFormData({ ...formData, language: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
-                                </div> */}
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">About Me</label>
-                                    <textarea
-                                        rows={4}
-                                        placeholder="Tell us about yourself..."
-                                        value={formData.about}
-                                        onChange={(e) => setFormData({ ...formData, about: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent resize-none"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleSaveProfessionalProfile}
-                            disabled={isUpdating}
-                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <Save className="w-4 h-4" />
-                            {isUpdating ? "Saving..." : "Save & Continue"}
-                        </button>
-                    </div>
-                )}
 
-                {/* Personal Info */}
+                {/* ==================== PERSONAL SECTION ==================== */}
                 {activeSection === 'personal' && (
                     <div className="space-y-4">
-                        <div className="bg-white rounded-lg border p-5">
-                            <h3 className="font-medium text-[#063A41] mb-4">Personal Information</h3>
+                        <LockedSectionAlert sectionId="personal" />
+                        <MissingFieldsAlert sectionId="personal" />
+
+                        <div className={`bg-white rounded-lg border p-5 ${isSectionLocked('personal') ? 'opacity-75' : ''}`}>
+                            <h3 className="font-medium text-[#063A41] mb-4 flex items-center gap-2">
+                                Personal Information
+                                {isSectionLocked('personal') && <Lock className="w-4 h-4 text-blue-500" />}
+                            </h3>
 
                             {/* Profile Picture */}
                             <div className="flex items-center gap-6 mb-6 pb-6 border-b">
@@ -605,19 +930,24 @@ const UpdateDocument = () => {
                                     )}
                                 </div>
                                 <div>
-                                    <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8] transition-colors">
-                                        <Upload className="w-4 h-4" />
-                                        Upload Photo
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            onChange={(e) => handleFileChange(e, "profilePicture")}
-                                            className="hidden"
-                                            disabled={isUploading}
-                                        />
-                                    </label>
+                                    {!isSectionLocked('personal') && (
+                                        <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8] transition-colors">
+                                            <Upload className="w-4 h-4" />
+                                            Upload Photo
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(e) => handleFileChange(e, "profilePicture")}
+                                                className="hidden"
+                                                disabled={isUploading}
+                                            />
+                                        </label>
+                                    )}
                                     {getPreviewUrl("profilePicture") && !isLocalPreview("profilePicture") && (
                                         <span className="ml-2 text-xs text-[#109C3D]">✓ Uploaded</span>
+                                    )}
+                                    {isLocalPreview("profilePicture") && (
+                                        <span className="ml-2 text-xs text-amber-600">Uploading...</span>
                                     )}
                                 </div>
                             </div>
@@ -652,270 +982,574 @@ const UpdateDocument = () => {
                                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-500"
                                     />
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">SIN (Social Insurance Number)</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., 123456789"
-                                        value={formData.sin}
-                                        onChange={(e) => setFormData({ ...formData, sin: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
-                                </div>
                             </div>
                         </div>
+
                         <button
                             onClick={handleSavePersonalInfo}
-                            disabled={isUpdating}
-                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                            disabled={isUpdating || isUploading || isSectionLocked('personal')}
+                            className={`w-full py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${isSectionLocked('personal') ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'}`}
                         >
-                            <Save className="w-4 h-4" />
-                            {isUpdating ? "Saving..." : "Save & Continue"}
+                            {isSectionLocked('personal') ? (
+                                <>
+                                    <Lock className="w-4 h-4" />
+                                    Section Locked
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    {isUpdating ? "Saving..." : "Save & Continue →"}
+                                </>
+                            )}
                         </button>
                     </div>
                 )}
 
-                {/* ID Verification */}
+                {/* ==================== PROFESSIONAL SECTION ==================== */}
+                {activeSection === 'professional' && (
+                    <div className="space-y-4">
+                        <LockedSectionAlert sectionId="professional" />
+                        <MissingFieldsAlert sectionId="professional" />
+
+                        <div className={`bg-white rounded-lg border p-5 ${isSectionLocked('professional') ? 'opacity-75' : ''}`}>
+                            <h3 className="font-medium text-[#063A41] mb-4 flex items-center gap-2">
+                                Professional Details
+                                {isSectionLocked('professional') && <Lock className="w-4 h-4 text-blue-500" />}
+                            </h3>
+                            <div className="grid md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-[#063A41] mb-1">
+                                        Date of Birth
+                                        {!formData.dob && <span className="text-amber-600 ml-1">* Required</span>}
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={formData.dob}
+                                        onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                                        max={today}
+                                        disabled={isSectionLocked('professional')}
+                                        className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('professional') ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : !formData.dob ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-[#063A41] mb-1">
+                                        Years of Experience
+                                        {!formData.yearsOfExperience && <span className="text-amber-600 ml-1">* Required</span>}
+                                    </label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        placeholder="e.g., 5"
+                                        value={formData.yearsOfExperience}
+                                        onChange={(e) => setFormData({ ...formData, yearsOfExperience: e.target.value })}
+                                        disabled={isSectionLocked('professional')}
+                                        className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('professional') ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : !formData.yearsOfExperience ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}
+                                    />
+                                </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-[#063A41] mb-1">
+                                        About Me
+                                        {!formData.about && <span className="text-amber-600 ml-1">* Required</span>}
+                                    </label>
+                                    <textarea
+                                        rows={4}
+                                        placeholder="Tell us about yourself..."
+                                        value={formData.about}
+                                        onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+                                        disabled={isSectionLocked('professional')}
+                                        className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent resize-none ${isSectionLocked('professional') ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : !formData.about ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleSaveProfessionalProfile}
+                            disabled={isUpdating || isSectionLocked('professional')}
+                            className={`w-full py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${isSectionLocked('professional') ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'}`}
+                        >
+                            {isSectionLocked('professional') ? (
+                                <>
+                                    <Lock className="w-4 h-4" />
+                                    Section Locked
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    {isUpdating ? "Saving..." : "Save & Continue →"}
+                                </>
+                            )}
+                        </button>
+                    </div>
+                )}
+
+                {/* ==================== ID VERIFICATION SECTION (WITH DATES) ==================== */}
+                {/* ==================== ID VERIFICATION SECTION (WITH DATES) ==================== */}
                 {activeSection === 'id-verification' && (
                     <div className="space-y-4">
-                        <div className="bg-white rounded-lg border p-5">
-                            <h3 className="font-medium text-[#063A41] mb-4">ID Verification</h3>
+                        <LockedSectionAlert sectionId="id-verification" />
+                        <MissingFieldsAlert sectionId="id-verification" />
+
+                        <div className={`bg-white rounded-lg border p-5 ${isSectionLocked('id-verification') ? 'opacity-75' : ''}`}>
+                            <h3 className="font-medium text-[#063A41] mb-4 flex items-center gap-2">
+                                ID Verification
+                                {isSectionLocked('id-verification') && <Lock className="w-4 h-4 text-blue-500" />}
+                            </h3>
 
                             <div className="space-y-4">
+                                {/* ID Type Selection */}
                                 <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">ID Type</label>
+                                    <label className="block text-sm font-medium text-[#063A41] mb-1">
+                                        ID Type
+                                        {!formData.idVerificationType && <span className="text-amber-600 ml-1">* Required</span>}
+                                    </label>
                                     <select
-                                        value={formData.idType}
+                                        value={formData.idVerificationType}
                                         onChange={(e) => handleIdTypeChange(e.target.value)}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
+                                        disabled={isSectionLocked('id-verification')}
+                                        className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('id-verification') ? 'bg-gray-50 text-gray-500 cursor-not-allowed' : !formData.idVerificationType ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}
                                     >
                                         <option value="">Select ID type</option>
                                         <option value="passport">Passport</option>
                                         <option value="governmentID">Government ID (Front & Back)</option>
+                                        <option value="driverLicense">Driver's License</option>
                                     </select>
                                 </div>
 
-                                {formData.idType && (
+                                {/* Issue Date and Expiry Date */}
+                                {/* Issue Date and Expiry Date - Show when type selected */}
+                                {formData.idVerificationType && (
                                     <div className="grid md:grid-cols-2 gap-4">
+                                        {/* Issue Date */}
                                         <div>
-                                            <label className="block text-sm font-medium text-[#063A41] mb-1">Issue Date</label>
+                                            <label className="block text-sm font-medium text-[#063A41] mb-1">
+                                                <Calendar className="w-4 h-4 inline mr-1" />
+                                                Issue Date
+                                                {!formData.idIssueDate && <span className="text-amber-600 ml-1">* Required</span>}
+                                            </label>
                                             <input
                                                 type="date"
-                                                value={formData.issueDate}
+                                                value={formData.idIssueDate}
                                                 onChange={handleIssueDateChange}
+                                                onBlur={handleDateBlur}
+                                                min="1900-01-01"
                                                 max={today}
-                                                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
+                                                disabled={isSectionLocked('id-verification')}
+                                                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('id-verification')
+                                                        ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
+                                                        : dateErrors.issueDate
+                                                            ? 'border-red-400 bg-red-50/30'
+                                                            : formData.idIssueDate && !dateErrors.issueDate
+                                                                ? 'border-green-400 bg-green-50/30'
+                                                                : !formData.idIssueDate
+                                                                    ? 'border-amber-300 bg-amber-50/30'
+                                                                    : 'border-gray-200'
+                                                    }`}
                                             />
+                                            {dateErrors.issueDate ? (
+                                                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    {dateErrors.issueDate}
+                                                </p>
+                                            ) : formData.idIssueDate && !dateErrors.issueDate ? (
+                                                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    Valid issue date
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs text-gray-500 mt-1">When was your ID issued?</p>
+                                            )}
                                         </div>
+
+                                        {/* Expiry Date */}
                                         <div>
-                                            <label className="block text-sm font-medium text-[#063A41] mb-1">Expiry Date</label>
+                                            <label className="block text-sm font-medium text-[#063A41] mb-1">
+                                                <Calendar className="w-4 h-4 inline mr-1" />
+                                                Expiry Date
+                                                {!formData.idExpiryDate && <span className="text-amber-600 ml-1">* Required</span>}
+                                            </label>
                                             <input
                                                 type="date"
-                                                value={formData.expiryDate}
+                                                value={formData.idExpiryDate}
                                                 onChange={handleExpiryDateChange}
-                                                min={today}
-                                                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
+                                                onBlur={handleDateBlur}
+                                                min={formData.idIssueDate ? formData.idIssueDate : today}
+                                                max="2099-12-31"
+                                                disabled={isSectionLocked('id-verification')}
+                                                className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('id-verification')
+                                                        ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
+                                                        : dateErrors.expiryDate
+                                                            ? 'border-red-400 bg-red-50/30'
+                                                            : formData.idExpiryDate && !dateErrors.expiryDate
+                                                                ? 'border-green-400 bg-green-50/30'
+                                                                : !formData.idExpiryDate
+                                                                    ? 'border-amber-300 bg-amber-50/30'
+                                                                    : 'border-gray-200'
+                                                    }`}
                                             />
+                                            {dateErrors.expiryDate ? (
+                                                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                                                    <AlertCircle className="w-3 h-3" />
+                                                    {dateErrors.expiryDate}
+                                                </p>
+                                            ) : formData.idExpiryDate && !dateErrors.expiryDate ? (
+                                                <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                                                    <CheckCircle className="w-3 h-3" />
+                                                    Valid expiry date
+                                                </p>
+                                            ) : (
+                                                <p className="text-xs text-gray-500 mt-1">Must be a valid, non-expired document</p>
+                                            )}
                                         </div>
                                     </div>
                                 )}
 
-                                {formData.idType === "passport" && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-[#063A41] mb-2">Passport</label>
-                                        <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
-                                            {getPreviewUrl("passportUrl") ? (
-                                                <div className="space-y-3">
-                                                    <Image
-                                                        src={getPreviewUrl("passportUrl")}
-                                                        alt="Passport"
-                                                        width={120}
-                                                        height={80}
-                                                        className="mx-auto rounded-lg object-cover"
-                                                        unoptimized
-                                                    />
-                                                    {!isLocalPreview("passportUrl") && (
-                                                        <span className="text-xs text-[#109C3D]">✓ Uploaded</span>
+                                {/* Document uploads based on ID type */}
+                                {formData.idVerificationType && (
+                                    <div className={`grid ${formData.idVerificationType === 'governmentID' ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4`}>
+                                        {/* Front Document - Always shown when type selected */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-[#063A41] mb-2">
+                                                {formData.idVerificationType === 'passport' ? 'Passport Photo Page' :
+                                                    formData.idVerificationType === 'driverLicense' ? "Driver's License (Front)" :
+                                                        'ID Front'}
+                                                {(!formData.idDocumentFront || formData.idDocumentFront.startsWith('blob:')) && <span className="text-amber-600 ml-1">* Required</span>}
+                                            </label>
+                                            <div className={`border-2 border-dashed rounded-lg p-6 text-center ${!formData.idDocumentFront ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
+                                                {getPreviewUrl("idDocumentFront") ? (
+                                                    <div className="space-y-3">
+                                                        <Image
+                                                            src={getPreviewUrl("idDocumentFront")}
+                                                            alt="ID Front"
+                                                            width={120}
+                                                            height={80}
+                                                            className="mx-auto rounded-lg object-cover"
+                                                            unoptimized
+                                                        />
+                                                        {isUploading && uploadField === "idDocumentFront" ? (
+                                                            <span className="text-xs text-amber-600">Uploading...</span>
+                                                        ) : !isLocalPreview("idDocumentFront") ? (
+                                                            <span className="text-xs text-[#109C3D]">✓ Uploaded</span>
+                                                        ) : (
+                                                            <span className="text-xs text-amber-600">Processing...</span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-gray-400">
+                                                        <FileText className="w-8 h-8 mx-auto mb-2" />
+                                                        <p className="text-sm">Upload document image</p>
+                                                    </div>
+                                                )}
+                                                {!isSectionLocked('id-verification') && (
+                                                    <label className="mt-3 cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8] transition-colors">
+                                                        <Upload className="w-4 h-4" />
+                                                        {getPreviewUrl("idDocumentFront") ? "Change" : "Upload"}
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={(e) => handleFileChange(e, "idDocumentFront")}
+                                                            className="hidden"
+                                                            disabled={isUploading}
+                                                        />
+                                                    </label>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Back Document - Only for governmentID */}
+                                        {formData.idVerificationType === 'governmentID' && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-[#063A41] mb-2">
+                                                    ID Back
+                                                    {(!formData.idDocumentBack || formData.idDocumentBack.startsWith('blob:')) && <span className="text-amber-600 ml-1">* Required</span>}
+                                                </label>
+                                                <div className={`border-2 border-dashed rounded-lg p-6 text-center ${!formData.idDocumentBack ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
+                                                    {getPreviewUrl("idDocumentBack") ? (
+                                                        <div className="space-y-3">
+                                                            <Image
+                                                                src={getPreviewUrl("idDocumentBack")}
+                                                                alt="ID Back"
+                                                                width={120}
+                                                                height={80}
+                                                                className="mx-auto rounded-lg object-cover"
+                                                                unoptimized
+                                                            />
+                                                            {isUploading && uploadField === "idDocumentBack" ? (
+                                                                <span className="text-xs text-amber-600">Uploading...</span>
+                                                            ) : !isLocalPreview("idDocumentBack") ? (
+                                                                <span className="text-xs text-[#109C3D]">✓ Uploaded</span>
+                                                            ) : (
+                                                                <span className="text-xs text-amber-600">Processing...</span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-gray-400">
+                                                            <FileText className="w-8 h-8 mx-auto mb-2" />
+                                                            <p className="text-sm">Upload back of ID</p>
+                                                        </div>
+                                                    )}
+                                                    {!isSectionLocked('id-verification') && (
+                                                        <label className="mt-3 cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8] transition-colors">
+                                                            <Upload className="w-4 h-4" />
+                                                            {getPreviewUrl("idDocumentBack") ? "Change" : "Upload"}
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                onChange={(e) => handleFileChange(e, "idDocumentBack")}
+                                                                className="hidden"
+                                                                disabled={isUploading}
+                                                            />
+                                                        </label>
                                                     )}
                                                 </div>
-                                            ) : (
-                                                <div className="text-gray-400">
-                                                    <FileText className="w-8 h-8 mx-auto mb-2" />
-                                                    <p className="text-sm">Upload passport image</p>
-                                                </div>
-                                            )}
-                                            <label className="mt-3 cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8] transition-colors">
-                                                <Upload className="w-4 h-4" />
-                                                {getPreviewUrl("passportUrl") ? "Change" : "Upload"}
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={(e) => handleFileChange(e, "passportUrl")}
-                                                    className="hidden"
-                                                    disabled={isUploading}
-                                                />
-                                            </label>
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
-                                {formData.idType === "governmentID" && (
-                                    <div className="grid md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-[#063A41] mb-2">ID Front</label>
-                                            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
-                                                {getPreviewUrl("governmentIdFront") ? (
-                                                    <Image
-                                                        src={getPreviewUrl("governmentIdFront")}
-                                                        alt="ID Front"
-                                                        width={100}
-                                                        height={60}
-                                                        className="mx-auto rounded-lg object-cover"
-                                                        unoptimized
-                                                    />
-                                                ) : (
-                                                    <FileText className="w-8 h-8 mx-auto text-gray-300" />
-                                                )}
-                                                <label className="mt-2 cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-[#E5FFDB] text-[#063A41] text-sm rounded-lg">
-                                                    <Upload className="w-3 h-3" />
-                                                    Upload
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => handleFileChange(e, "governmentIdFront")}
-                                                        className="hidden"
-                                                        disabled={isUploading}
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-[#063A41] mb-2">ID Back</label>
-                                            <div className="border-2 border-dashed border-gray-200 rounded-lg p-4 text-center">
-                                                {getPreviewUrl("governmentIdBack") ? (
-                                                    <Image
-                                                        src={getPreviewUrl("governmentIdBack")}
-                                                        alt="ID Back"
-                                                        width={100}
-                                                        height={60}
-                                                        className="mx-auto rounded-lg object-cover"
-                                                        unoptimized
-                                                    />
-                                                ) : (
-                                                    <FileText className="w-8 h-8 mx-auto text-gray-300" />
-                                                )}
-                                                <label className="mt-2 cursor-pointer inline-flex items-center gap-1 px-3 py-1.5 bg-[#E5FFDB] text-[#063A41] text-sm rounded-lg">
-                                                    <Upload className="w-3 h-3" />
-                                                    Upload
-                                                    <input
-                                                        type="file"
-                                                        accept="image/*"
-                                                        onChange={(e) => handleFileChange(e, "governmentIdBack")}
-                                                        className="hidden"
-                                                        disabled={isUploading}
-                                                    />
-                                                </label>
-                                            </div>
-                                        </div>
+                                {/* Info message */}
+                                {formData.idVerificationType && (
+                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-4">
+                                        <p className="text-xs text-blue-700">
+                                            <strong>Note:</strong> Ensure your ID is clearly visible and not expired.
+                                            Your document will be verified by our team within 24-48 hours.
+                                        </p>
                                     </div>
                                 )}
                             </div>
                         </div>
+
                         <button
                             onClick={handleSaveIdVerification}
-                            disabled={isUpdating}
-                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                            disabled={
+                                isUpdating ||
+                                isUploading ||
+                                isSectionLocked('id-verification') ||
+                                !!dateErrors.issueDate ||
+                                !!dateErrors.expiryDate
+                            }
+                            className={`w-full py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${isSectionLocked('id-verification') || dateErrors.issueDate || dateErrors.expiryDate
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'
+                                }`}
                         >
-                            <Save className="w-4 h-4" />
-                            {isUpdating ? "Saving..." : "Save & Continue"}
+                            {isSectionLocked('id-verification') ? (
+                                <>
+                                    <Lock className="w-4 h-4" />
+                                    Section Locked
+                                </>
+                            ) : dateErrors.issueDate || dateErrors.expiryDate ? (
+                                <>
+                                    <AlertCircle className="w-4 h-4" />
+                                    Fix Date Errors to Continue
+                                </>
+                            ) : isUploading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Uploading...
+                                </>
+                            ) : (
+                                <>
+                                    <Save className="w-4 h-4" />
+                                    {isUpdating ? "Saving..." : "Save & Continue →"}
+                                </>
+                            )}
                         </button>
                     </div>
                 )}
 
-                {/* Payment Settings */}
+                {/* ==================== PAYMENT SECTION ==================== */}
                 {activeSection === 'payment' && (
                     <div className="space-y-4">
+                        <MissingFieldsAlert sectionId="payment" />
+
                         <div className="bg-white rounded-lg border p-5">
-                            <h3 className="font-medium text-[#063A41] mb-4">Payment Settings</h3>
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">Account Holder Name</label>
-                                    <input
-                                        type="text"
-                                        placeholder="Full name as on bank account"
-                                        value={formData.accountHolder}
-                                        onChange={(e) => setFormData({ ...formData, accountHolder: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">Account Number</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., 123456789"
-                                        value={formData.accountNumber}
-                                        onChange={(e) => setFormData({ ...formData, accountNumber: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-[#063A41] mb-1">Routing Number</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., 021000021"
-                                        value={formData.routingNumber}
-                                        onChange={(e) => setFormData({ ...formData, routingNumber: e.target.value })}
-                                        className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent"
-                                    />
+                            <h3 className="font-medium text-[#063A41] mb-4 flex items-center gap-2">
+                                <CreditCard className="w-5 h-5" />
+                                Payment Setup
+                            </h3>
+
+                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <div className="flex items-start gap-3">
+                                    <Building2 className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-sm font-medium text-blue-800">Secure Payments with Stripe</p>
+                                        <p className="text-sm text-blue-700 mt-1">
+                                            We use Stripe to securely process payments. You'll be redirected to Stripe to set up your bank account.
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
+
+                            {isLoadingStripeStatus ? (
+                                <div className="text-center py-8">
+                                    <div className="w-10 h-10 border-3 border-[#E5FFDB] border-t-[#109C3D] rounded-full animate-spin mx-auto mb-3"></div>
+                                    <p className="text-gray-500 text-sm">Checking payment status...</p>
+                                </div>
+                            ) : isStripeConnected ? (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-[#E5FFDB] rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CheckCircle className="w-8 h-8 text-[#109C3D]" />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-[#063A41] mb-2">Payment Account Active!</h4>
+                                    <p className="text-gray-600 mb-6">Your payment account is fully set up.</p>
+                                    <button
+                                        onClick={handleOpenStripeDashboard}
+                                        className="inline-flex items-center gap-2 px-5 py-2 border border-[#635BFF] text-[#635BFF] rounded-lg hover:bg-[#635BFF]/5"
+                                    >
+                                        View Stripe Dashboard
+                                        <ExternalLink className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            ) : stripeNeedsOnboarding ? (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <CreditCard className="w-8 h-8 text-gray-400" />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-[#063A41] mb-2">Set Up Your Payment Account</h4>
+                                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                                        Connect your bank account to receive payments when you complete tasks.
+                                    </p>
+                                    <button
+                                        onClick={handleStartStripeOnboarding}
+                                        disabled={isStartingOnboarding}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#635BFF] text-white font-medium rounded-lg hover:bg-[#5851ea] disabled:opacity-50"
+                                    >
+                                        {isStartingOnboarding ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Setting up...
+                                            </>
+                                        ) : (
+                                            <>
+                                                Set Up with Stripe
+                                                <ExternalLink className="w-4 h-4" />
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            ) : isStripeIncomplete ? (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <AlertCircle className="w-8 h-8 text-amber-600" />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-[#063A41] mb-2">Complete Your Payment Setup</h4>
+                                    <p className="text-gray-600 mb-6">You started but didn't finish setting up.</p>
+                                    <button
+                                        onClick={handleRefreshOnboarding}
+                                        disabled={isRefreshingOnboarding}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#635BFF] text-white font-medium rounded-lg hover:bg-[#5851ea] disabled:opacity-50"
+                                    >
+                                        {isRefreshingOnboarding ? (
+                                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        ) : (
+                                            <ExternalLink className="w-4 h-4" />
+                                        )}
+                                        Continue Setup
+                                    </button>
+                                </div>
+                            ) : isStripePayoutsPending ? (
+                                <div className="text-center py-6">
+                                    <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <RefreshCw className="w-8 h-8 text-amber-600" />
+                                    </div>
+                                    <h4 className="text-lg font-semibold text-[#063A41] mb-2">Verification In Progress</h4>
+                                    <p className="text-gray-600 mb-4">Stripe is verifying your information.</p>
+                                    <div className="flex gap-3 justify-center">
+                                        <button
+                                            onClick={handleRefreshOnboarding}
+                                            disabled={isRefreshingOnboarding}
+                                            className="inline-flex items-center gap-2 px-5 py-2 bg-[#635BFF] text-white rounded-lg hover:bg-[#5851ea] disabled:opacity-50"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                            Complete on Stripe
+                                        </button>
+                                        <button
+                                            onClick={() => refetchStripeStatus()}
+                                            className="inline-flex items-center gap-2 px-5 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                                        >
+                                            <RefreshCw className="w-4 h-4" />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="text-center py-6">
+                                    <button
+                                        onClick={handleStartStripeOnboarding}
+                                        disabled={isStartingOnboarding}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#635BFF] text-white font-medium rounded-lg hover:bg-[#5851ea] disabled:opacity-50"
+                                    >
+                                        Set Up Payment Account
+                                    </button>
+                                </div>
+                            )}
                         </div>
+
                         <button
-                            onClick={handleSavePaymentSettings}
-                            disabled={isUpdating}
-                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                            onClick={handleContinueFromPayment}
+                            disabled={!isStripeConnected}
+                            className={`w-full py-3 font-medium rounded-lg flex items-center justify-center gap-2 ${isStripeConnected
+                                ? 'bg-[#109C3D] text-white hover:bg-[#0d8534]'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                }`}
                         >
-                            <Save className="w-4 h-4" />
-                            {isUpdating ? "Saving..." : "Save & Continue"}
+                            {isStripeConnected ? (
+                                <>
+                                    <CheckCircle className="w-4 h-4" />
+                                    Continue →
+                                </>
+                            ) : (
+                                <>
+                                    <Lock className="w-4 h-4" />
+                                    Complete Payment Setup to Continue
+                                </>
+                            )}
                         </button>
                     </div>
                 )}
 
-                {/* Insurance */}
+                {/* ==================== INSURANCE SECTION ==================== */}
                 {activeSection === 'insurance' && (
                     <div className="space-y-4">
+                        <MissingFieldsAlert sectionId="insurance" />
+
                         <div className="bg-white rounded-lg border p-5">
                             <h3 className="font-medium text-[#063A41] mb-4">Insurance</h3>
 
-                            <label className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
-                                <span className="text-sm font-medium text-[#063A41]">I have professional insurance</span>
-                                <div className="relative">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.hasInsurance}
-                                        onChange={(e) => handleHasInsuranceChange(e.target.checked)}
-                                        className="sr-only peer"
+                            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <span className="text-sm font-medium text-[#063A41]">
+                                    I have professional insurance
+                                </span>
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={formData.hasInsurance}
+                                    onClick={() => handleHasInsuranceChange(!formData.hasInsurance)}
+                                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${formData.hasInsurance ? 'bg-[#109C3D]' : 'bg-gray-200'}`}
+                                >
+                                    <span
+                                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition ${formData.hasInsurance ? 'translate-x-5' : 'translate-x-0'}`}
                                     />
-                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#109C3D]"></div>
-                                </div>
-                            </label>
+                                </button>
+                            </div>
 
                             {showInsuranceUpload && (
                                 <div className="mt-4">
-                                    <label className="block text-sm font-medium text-[#063A41] mb-2">Insurance Document</label>
-                                    <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                                    <label className="block text-sm font-medium text-[#063A41] mb-2">
+                                        Insurance Document
+                                        {formData.hasInsurance && (!formData.insuranceDocument || formData.insuranceDocument.startsWith('blob:')) && <span className="text-amber-600 ml-1">* Required</span>}
+                                    </label>
+                                    <div className={`border-2 border-dashed rounded-lg p-6 text-center ${formData.hasInsurance && !formData.insuranceDocument ? 'border-amber-300 bg-amber-50/30' : 'border-gray-200'}`}>
                                         {getPreviewUrl("insuranceDocument") ? (
                                             <div className="space-y-3">
-                                                <Image
-                                                    src={getPreviewUrl("insuranceDocument")}
-                                                    alt="Insurance"
-                                                    width={120}
-                                                    height={80}
-                                                    className="mx-auto rounded-lg object-cover"
-                                                    unoptimized
-                                                />
-                                                {!isLocalPreview("insuranceDocument") && (
+                                                <Image src={getPreviewUrl("insuranceDocument")} alt="Insurance" width={120} height={80} className="mx-auto rounded-lg object-cover" unoptimized />
+                                                {isUploading && uploadField === "insuranceDocument" ? (
+                                                    <span className="text-xs text-amber-600">Uploading...</span>
+                                                ) : !isLocalPreview("insuranceDocument") ? (
                                                     <span className="text-xs text-[#109C3D]">✓ Uploaded</span>
+                                                ) : (
+                                                    <span className="text-xs text-amber-600">Processing...</span>
                                                 )}
                                             </div>
                                         ) : (
@@ -924,108 +1558,108 @@ const UpdateDocument = () => {
                                                 <p className="text-sm">Upload insurance document</p>
                                             </div>
                                         )}
-                                        <label className="mt-3 cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8] transition-colors">
+                                        <label className="mt-3 cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-[#E5FFDB] text-[#063A41] rounded-lg hover:bg-[#d4f5c8]">
                                             <Upload className="w-4 h-4" />
                                             {getPreviewUrl("insuranceDocument") ? "Change" : "Upload"}
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={(e) => handleFileChange(e, "insuranceDocument")}
-                                                className="hidden"
-                                                disabled={isUploading}
-                                            />
+                                            <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, "insuranceDocument")} className="hidden" disabled={isUploading} />
                                         </label>
                                     </div>
                                 </div>
                             )}
-                        </div>
-                        <button
-                            onClick={handleSaveInsurance}
-                            disabled={isUpdating}
-                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <Save className="w-4 h-4" />
-                            {isUpdating ? "Saving..." : "Save & Continue"}
-                        </button>
-                    </div>
-                )}
 
-                {/* Background Check */}
-                {activeSection === 'background' && (
-                    <div className="space-y-4">
-                        <div className="bg-white rounded-lg border p-5">
-                            <h3 className="font-medium text-[#063A41] mb-4">Background Check Consent</h3>
-
-                            <label className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={formData.backgroundCheckConsent}
-                                    onChange={(e) => handleBackgroundCheckConsentChange(e.target.checked)}
-                                    className="mt-1 w-5 h-5 text-[#109C3D] border-gray-300 rounded focus:ring-[#109C3D]"
-                                />
-                                <span className="text-sm text-[#063A41]">
-                                    I consent to background checks as part of the verification process. This helps ensure trust and safety on our platform.
-                                </span>
-                            </label>
-
-                            {formData.backgroundCheckConsent && (
-                                <div className="mt-4 flex items-center gap-2 text-[#109C3D]">
-                                    <CheckCircle className="w-5 h-5" />
-                                    <span className="text-sm font-medium">Consent granted</span>
-                                </div>
+                            {!showInsuranceUpload && (
+                                <p className="text-sm text-gray-500 mt-3">
+                                    If you don't have insurance, you can proceed to submit your application.
+                                </p>
                             )}
                         </div>
+
                         <button
-                            onClick={handleSaveBackgroundCheck}
-                            disabled={isUpdating}
-                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                            onClick={handleSaveInsurance}
+                            disabled={isUpdating || isUploading}
+                            className="w-full py-3 bg-[#109C3D] text-white font-medium rounded-lg hover:bg-[#0d8534] disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                             <Save className="w-4 h-4" />
-                            {isUpdating ? "Saving..." : "Save"}
+                            {isUpdating ? "Saving..." : isUploading ? "Uploading..." : "Complete & Save"}
                         </button>
                     </div>
                 )}
 
-                {/* Submit Application Section */}
+                {/* ==================== SUBMIT APPLICATION ==================== */}
                 <div className="mt-8">
-                    {!allSectionsCompleted && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6 text-center">
-                            <h3 className="text-lg font-semibold text-amber-800 mb-2">Complete All Sections</h3>
-                            <p className="text-amber-700">
-                                {sections.length - completedSections.size} section(s) remaining before you can submit.
-                            </p>
+                    {!allSectionsCompleted && !applicationSubmitted && userDetails?.user?.taskerStatus !== "under_review" && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                            <div className="flex items-start gap-3">
+                                <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                                <div>
+                                    <h3 className="text-lg font-semibold text-amber-800 mb-2">Complete All Sections</h3>
+                                    <p className="text-amber-700 mb-3">
+                                        {sections.length - completedSections.size} section(s) remaining.
+                                    </p>
+                                    <div className="space-y-2">
+                                        {sections.filter(s => !completedSections.has(s.id)).map(section => {
+                                            const missing = getMissingFields(section.id);
+                                            return (
+                                                <div key={section.id} className="text-sm">
+                                                    <span className="font-medium text-amber-800">{section.label}:</span>
+                                                    <span className="text-amber-700 ml-2">
+                                                        {missing.length > 0 ? missing.join(', ') : 'Complete this section'}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
 
                     {canSubmitApplication && (
                         <div className="bg-[#E5FFDB] border border-[#109C3D] rounded-lg p-6 text-center">
-                            <h3 className="text-xl font-bold text-[#063A41] mb-2">Ready to Submit!</h3>
-                            <p className="text-gray-600 mb-6">Your profile is complete. Submit for admin review.</p>
+                            <div className="flex items-center justify-center gap-2 mb-2">
+                                <CheckCircle className="w-6 h-6 text-[#109C3D]" />
+                                <h3 className="text-xl font-bold text-[#063A41]">
+                                    {userDetails?.user?.taskerStatus === "rejected" ? "Ready to Resubmit!" : "Ready to Submit!"}
+                                </h3>
+                            </div>
+                            <p className="text-gray-600 mb-6">
+                                {userDetails?.user?.taskerStatus === "rejected"
+                                    ? "You've updated your profile. Submit again for admin review."
+                                    : "Your profile is complete. Submit for admin review."}
+                            </p>
                             <button
                                 onClick={async () => {
                                     try {
-                                        await submitTaskerApplication().unwrap();
-                                        toast.success("Application submitted!");
+                                        const result = await submitTaskerApplication().unwrap();
+                                        toast.success(result.message || "Application submitted successfully!");
+                                        await refetch();
                                         router.push('/');
                                     } catch (err: any) {
                                         toast.error(err?.data?.message || "Failed to submit.");
                                     }
                                 }}
-                                disabled={isSubmittingApplication}
-                                className="px-8 py-3 bg-[#063A41] text-white font-bold rounded-lg hover:bg-[#0a4a52] transition-colors"
+                                disabled={isSubmittingApplication || applicationSubmitted}
+                                className="px-8 py-3 bg-[#063A41] text-white font-bold rounded-lg hover:bg-[#0a4a52] disabled:opacity-50"
                             >
-                                {isSubmittingApplication ? "Submitting..." : "Submit Application"}
+                                {isSubmittingApplication ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Submitting...
+                                    </span>
+                                ) : userDetails?.user?.taskerStatus === "rejected"
+                                    ? "Resubmit Application"
+                                    : "Submit Application"}
                             </button>
                         </div>
                     )}
 
-                    {userDetails?.user?.taskerStatus === "under_review" && (
+                    {(userDetails?.user?.taskerStatus === "under_review" || applicationSubmitted) && (
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                             <div className="flex items-center justify-center gap-3 mb-2">
                                 <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                                <h3 className="text-lg font-semibold text-blue-800">Under Review</h3>
+                                <h3 className="text-lg font-semibold text-blue-800">Application Under Review</h3>
                             </div>
-                            <p className="text-blue-700">Our team is reviewing your application (24-48 hours).</p>
+                            <p className="text-blue-700">Our team is reviewing your application. This typically takes 24-48 hours.</p>
                         </div>
                     )}
 
@@ -1033,19 +1667,15 @@ const UpdateDocument = () => {
                         <div className="bg-[#E5FFDB] border border-[#109C3D] rounded-lg p-6 text-center">
                             <div className="flex items-center justify-center gap-2 text-[#109C3D] mb-2">
                                 <CheckCircle className="w-6 h-6" />
-                                <h3 className="text-lg font-bold">Approved!</h3>
+                                <h3 className="text-lg font-bold">Application Approved!</h3>
                             </div>
-                            <p className="text-[#063A41]">You can now switch to Tasker mode from the navbar.</p>
-                        </div>
-                    )}
-
-                    {userDetails?.user?.taskerStatus === "rejected" && !canSubmitApplication && (
-                        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                            <h3 className="text-lg font-semibold text-red-800 mb-2">Application Rejected</h3>
-                            <p className="text-red-700 mb-2">
-                                Reason: {userDetails.user.taskerRejectionReason || "Not provided"}
-                            </p>
-                            <p className="text-gray-600 text-sm">Complete all sections to resubmit.</p>
+                            <p className="text-[#063A41] mb-4">Congratulations! You're now approved as a tasker.</p>
+                            <button
+                                onClick={() => router.push('/dashboard/tasker')}
+                                className="px-6 py-2 bg-[#109C3D] text-white rounded-lg hover:bg-[#0d8534]"
+                            >
+                                Go to Tasker Dashboard
+                            </button>
                         </div>
                     )}
                 </div>

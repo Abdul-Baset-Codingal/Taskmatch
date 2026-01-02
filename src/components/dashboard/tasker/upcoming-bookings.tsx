@@ -338,7 +338,7 @@ export function UpcomingBookings() {
     useEffect(() => {
         const checkAuth = async () => {
             try {
-                const res = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", { credentials: "include" });
+                const res = await fetch("/api/auth/verify-token", { credentials: "include" });
                 if (res.ok) {
                     const data = await res.json();
                     if (data.user?.currentRole === "tasker") {
@@ -359,7 +359,7 @@ export function UpcomingBookings() {
         const fetchBookings = async () => {
             try {
                 setLoading(true);
-                const res = await fetch(`https://taskmatch-backend.vercel.app/api/taskerBookings/tasker/${taskerId}`, {
+                const res = await fetch(`/api/taskerBookings/tasker/${taskerId}`, {
                     credentials: "include",
                 });
                 if (res.ok) {

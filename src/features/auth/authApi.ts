@@ -34,7 +34,7 @@ interface GetTaskersParams {
 export const authApi = createApi({
     reducerPath: "authApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `https://taskmatch-backend.vercel.app/api/auth`,
+        baseUrl: `http://localhost:5000/api/auth`,
         credentials: "include", // ✅ This is correct
         prepareHeaders: (headers) => {
             // Ensure proper headers for CORS

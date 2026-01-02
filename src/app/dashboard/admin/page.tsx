@@ -24,6 +24,8 @@ import {
   FaChartArea,
   FaClock,
   FaUser,
+  FaUserClock,
+  FaMoneyBill, // New icon for under review
 } from "react-icons/fa";
 import {
   LineChart,
@@ -41,25 +43,25 @@ import {
   Bar,
 } from "recharts";
 
-import Link from "next/link"; // Assuming you're using Next.js Link
+import Link from "next/link";
 import UserManagementTable from "@/components/dashboard/admin/UserManagementTable";
 import TaskManagement from "@/components/dashboard/admin/TaskManagementSection";
 import ServiceManagement from "@/components/dashboard/admin/ServiceManagement";
+import TaskerApplications from "@/components/dashboard/admin/TaskerApplications";
 
 // Existing APIs
 import { useGetAllUsersQuery } from "@/features/auth/authApi";
 import { useGetAllTasksQuery } from "@/features/api/taskApi";
 import { useGetServicesQuery } from "@/features/api/servicesApi";
-import TaskerApplications from "@/components/dashboard/admin/TaskerApplications";
+import PaymentManagement from "@/components/dashboard/admin/PaymentManagement";
 
 const AdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("overview"); // Default to overview
+  const [activeTab, setActiveTab] = useState("overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [revenuePeriod, setRevenuePeriod] = useState<'full' | 'last6'>('full');
-  const [taskerApplications, setTaskerApplications] = useState([]); // Add this state
 
   // Fetch data for dynamic stats
-  const { data: usersResponse, isLoading: loadingUsers } = useGetAllUsersQuery({ page: 1, limit: 1000 }); // Large limit for growth calculation
+  const { data: usersResponse, isLoading: loadingUsers, refetch: refetchUsers } = useGetAllUsersQuery({ page: 1, limit: 1000 });
   const { data: tasksData, isLoading: loadingTasks } = useGetAllTasksQuery({ page: 1, limit: 1000 });
   const { data: services } = useGetServicesQuery({});
 
@@ -69,16 +71,16 @@ const AdminDashboard: React.FC = () => {
   const totalTasks = tasksData?.pagination?.totalTasks || 0;
   const totalServices = services?.length || 0;
 
-  useEffect(() => {
+  // Filter users with taskerStatus === "under_review"
+  const underReviewTaskers = useMemo(() => {
     if (users && Array.isArray(users)) {
-      const underReviewUsers = users.filter((user: any) =>
-        user.taskerStatus === "approved"
-      );
-      setTaskerApplications(underReviewUsers);
-    } else {
-      setTaskerApplications([]);
+      return users.filter((user: any) => user.taskerStatus === "under_review");
     }
+    return [];
   }, [users]);
+
+  // Count for sidebar badge
+  const underReviewCount = underReviewTaskers.length;
 
   // Recent users: Sort by createdAt descending, take first 10 for table
   const recentUsers = useMemo(() => {
@@ -107,8 +109,6 @@ const AdminDashboard: React.FC = () => {
         createdAt: new Date(task.createdAt).toLocaleDateString(),
       }));
   }, [tasks]);
-
-  console.log(tasks)
 
   // Dynamic user growth: Group users by month from createdAt
   const userGrowthData = useMemo(() => {
@@ -171,13 +171,13 @@ const AdminDashboard: React.FC = () => {
     }));
   }, [tasks]);
 
-  // Sample revenue and costs data (replace with API when available; assuming monthly data for 2025)
+  // Sample revenue and costs data
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const revenueData = useMemo(() =>
     months.map((month, index) => ({
       name: month,
       revenue: Math.round(18000 + index * 1200 + (Math.random() - 0.5) * 2000),
-      costs: Math.round(12000 + index * 800 + (Math.random() - 0.5) * 1500), // Sample costs
+      costs: Math.round(12000 + index * 800 + (Math.random() - 0.5) * 1500),
     })),
     []
   );
@@ -208,9 +208,8 @@ const AdminDashboard: React.FC = () => {
     [filteredRevenueData]
   );
 
-  // Top services by task count (sample; assume services have task associations)
+  // Top services by task count
   const topServicesData = useMemo(() => {
-    // Mock data; in real, aggregate tasks by serviceId
     const mockServices = services?.slice(0, 5).map((service: any, index: number) => ({
       name: service.name || `Service ${index + 1}`,
       tasks: Math.round(50 + index * 20 + (Math.random() - 0.5) * 30),
@@ -222,7 +221,7 @@ const AdminDashboard: React.FC = () => {
   // Growth calculations
   const userGrowth = userGrowthData.length > 1 ? Math.round((userGrowthData[userGrowthData.length - 1].users / (userGrowthData[userGrowthData.length - 2]?.users || 1)) * 100 - 100) || 0 : 0;
   const taskGrowth = taskGrowthData.length > 1 ? Math.round((taskGrowthData[taskGrowthData.length - 1].tasks / (taskGrowthData[taskGrowthData.length - 2]?.tasks || 1)) * 100 - 100) || 0 : 0;
-  const serviceGrowth = 5; // Placeholder
+  const serviceGrowth = 5;
   const revenueGrowth = useMemo(() => {
     if (revenueData.length < 2) return 0;
     const last = revenueData[revenueData.length - 1].revenue;
@@ -240,6 +239,19 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Handle approval/rejection callbacks
+  const handleApproveTasker = async (userId: string) => {
+    // This will be handled by the TaskerApplications component
+    // Refetch users after action
+    await refetchUsers();
+  };
+
+  const handleRejectTasker = async (userId: string) => {
+    // This will be handled by the TaskerApplications component
+    // Refetch users after action
+    await refetchUsers();
+  };
+
   if (loadingUsers || loadingTasks) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-color3 via-white to-color3/50 flex items-center justify-center">
@@ -250,15 +262,13 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
   }
-  
-  console.log(recentUsers)
 
   const renderContent = () => {
     switch (activeTab) {
       case "overview":
         return (
           <div className="space-y-8">
-            {/* Stats Cards - Improved Grid Layout */}
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow">
                 <div className="flex items-center justify-between">
@@ -339,7 +349,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Key Charts Section - Reduced to Important Ones */}
+            {/* Key Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* User Growth Line Chart */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
@@ -436,7 +446,7 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Top Services Bar Chart - Important for Services Overview */}
+            {/* Top Services Bar Chart */}
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text1 mb-4 flex items-center gap-2">
                 <FaChartBar /> Top Services by Tasks
@@ -452,7 +462,7 @@ const AdminDashboard: React.FC = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* Important Tables Section - Enhanced with Better Layout */}
+            {/* Tables Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Recent Users Table */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-6">
@@ -511,7 +521,7 @@ const AdminDashboard: React.FC = () => {
                         <tr key={task.id || index} className="hover:bg-gray-50">
                           <td className="px-4 py-2 text-sm font-medium text-gray-900">{task.title}</td>
                           <td className="px-4 py-2">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full  text-white`}>
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full text-white`}>
                               {task.status}
                             </span>
                           </td>
@@ -528,17 +538,31 @@ const AdminDashboard: React.FC = () => {
                 {recentTasks.length === 0 && <p className="text-gray-500 text-center py-4">No recent tasks</p>}
               </div>
             </div>
-            <TaskerApplications
-              applications={taskerApplications}
-          
-            />          </div>
+          </div>
         );
+
       case "users":
         return <UserManagementTable onEditUser={(user) => console.log("Edit user:", user)} />;
+
       case "tasks":
         return <TaskManagement />;
+
       case "services":
         return <ServiceManagement />;
+
+      case "under-review":
+        return (
+          <div className="p-6">
+            <TaskerApplications
+              applications={underReviewTaskers}
+              onApprove={handleApproveTasker}
+              onReject={handleRejectTasker}
+            />
+          </div>
+        );
+      case "payments":
+        return <PaymentManagement />;
+
       default:
         return <div className="text-center py-12"><p className="text-gray-500">No content available</p></div>;
     }
@@ -636,6 +660,46 @@ const AdminDashboard: React.FC = () => {
                   Services
                 </button>
               </li>
+
+              {/* NEW: Under Review Taskers */}
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab("under-review");
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === "under-review"
+                    ? "bg-white/10 text-white border-r-4 border-color2 shadow-md"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <FaUserClock className="w-5 h-5" />
+                    Under Review
+                  </div>
+                  {/* Badge showing count */}
+                  {underReviewCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[24px] h-6 px-2 text-xs font-bold bg-yellow-500 text-white rounded-full animate-pulse">
+                      {underReviewCount}
+                    </span>
+                  )}
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => {
+                    setActiveTab("payments");
+                    setIsSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${activeTab === "services"
+                    ? "bg-white/10 text-white border-r-4 border-color2 shadow-md"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                >
+                  <FaMoneyBill className="w-5 h-5" />
+                  Payment Management
+                </button>
+              </li>
             </ul>
           </nav>
 
@@ -660,10 +724,30 @@ const AdminDashboard: React.FC = () => {
       <main className="md:ml-72 p-4 sm:p-6 lg:p-8 min-h-screen">
         <div className="mb-8">
           <h2 className="text-3xl sm:text-4xl font-bold text1 capitalize">
-            {activeTab === "overview" ? "Dashboard Overview" : activeTab === "users" ? "User Management" : activeTab === "tasks" ? "Task Management" : "Service Management"}
+            {activeTab === "overview"
+              ? "Dashboard Overview"
+              : activeTab === "users"
+                ? "User Management"
+                : activeTab === "tasks"
+                  ? "Task Management"
+                  : activeTab === "services"
+                    ? "Service Management"
+                    : activeTab === "under-review"
+                      ? "Tasker Applications Under Review"
+                      : "Dashboard"}
           </h2>
           <p className="text-gray-600 mt-2 text-base sm:text-lg">
-            {activeTab === "overview" ? "Welcome back! Here's what's happening on your platform." : activeTab === "users" ? "Manage and monitor user accounts" : activeTab === "tasks" ? "Oversee all tasks and assignments" : "Create and edit services"}
+            {activeTab === "overview"
+              ? "Welcome back! Here's what's happening on your platform."
+              : activeTab === "users"
+                ? "Manage and monitor user accounts"
+                : activeTab === "tasks"
+                  ? "Oversee all tasks and assignments"
+                  : activeTab === "services"
+                    ? "Create and edit services"
+                    : activeTab === "under-review"
+                      ? `Review and approve/reject ${underReviewCount} pending tasker applications`
+                      : ""}
           </p>
         </div>
 

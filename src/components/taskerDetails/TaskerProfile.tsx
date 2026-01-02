@@ -8,8 +8,6 @@ import {
     FaCertificate,
     FaGraduationCap,
     FaShieldAlt,
-    FaEnvelope,
-    FaPhone,
     FaMapMarkerAlt,
     FaClock,
     FaCheckCircle,
@@ -23,6 +21,16 @@ import {
 } from "react-icons/fa";
 import BookServiceModal from '../routes/urgent-task/BookServiceModal';
 import RequestQuoteModal from '../routes/urgent-task/RequestQuoteModal';
+import { useGetUserByIdQuery } from "@/features/auth/authApi";
+
+interface Review {
+    message: ReactNode;
+    rating: number;
+    comment: string;
+    reviewer: string;
+    createdAt: string;
+    _id: string;
+}
 
 interface Tasker {
     about: string;
@@ -50,15 +58,149 @@ interface Tasker {
     services: { title: string; description: string; hourlyRate: number; estimatedDuration: string }[];
     distance?: number;
     rating?: number;
-    reviews?: {
-        message: ReactNode;
-        rating: number;
-        comment: string;
-        reviewer: string;
-        createdAt: string;
-        _id: string;
-    }[];
+    reviews?: Review[];
 }
+
+// Reviewer Card Component - Fetches and displays reviewer info
+const ReviewerCard = ({ review }: { review: Review }) => {
+    const { data: reviewerData, isLoading } = useGetUserByIdQuery(review.reviewer, {
+        skip: !review.reviewer
+    });
+
+    const reviewer = reviewerData?.user;
+
+    const getInitials = (): string => {
+        if (reviewer?.firstName && reviewer?.lastName) {
+            return `${reviewer.firstName.charAt(0)}${reviewer.lastName.charAt(0)}`.toUpperCase();
+        }
+        if (reviewer?.firstName) {
+            return reviewer.firstName.charAt(0).toUpperCase();
+        }
+        return 'A';
+    };
+
+    const getFullName = (): string => {
+        if (reviewer?.firstName && reviewer?.lastName) {
+            return `${reviewer.firstName} ${reviewer.lastName}`;
+        }
+        if (reviewer?.firstName) {
+            return reviewer.firstName;
+        }
+        return 'Anonymous User';
+    };
+
+    const formatDate = (dateString: string): string => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
+    // Loading State
+    if (isLoading) {
+        return (
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 animate-pulse">
+                <div className="flex items-start gap-3">
+                    <div className="w-11 h-11 bg-gray-200 rounded-full flex-shrink-0" />
+                    <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="h-4 bg-gray-200 rounded w-28" />
+                            <div className="h-3 bg-gray-200 rounded w-16" />
+                        </div>
+                        <div className="flex gap-1 mb-3">
+                            {[...Array(5)].map((_, i) => (
+                                <div key={i} className="w-4 h-4 bg-gray-200 rounded" />
+                            ))}
+                        </div>
+                        <div className="space-y-2">
+                            <div className="h-3 bg-gray-200 rounded w-full" />
+                            <div className="h-3 bg-gray-200 rounded w-3/4" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="p-4 sm:p-5 bg-gray-50 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors">
+            <div className="flex items-start gap-3 sm:gap-4">
+                {/* Reviewer Avatar */}
+                <div className="relative flex-shrink-0">
+                    <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                        {reviewer?.profilePicture ? (
+                            <Image
+                                src={reviewer.profilePicture}
+                                alt={getFullName()}
+                                width={48}
+                                height={48}
+                                className="w-full h-full object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-[#063A41] to-[#0a5a63] flex items-center justify-center">
+                                <span className="text-white text-sm sm:text-base font-bold">
+                                    {getInitials()}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                    {/* Verified badge if needed */}
+                    {reviewer?.isVerified && (
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-blue-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <FaCheckCircle className="text-white text-[6px]" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Review Content */}
+                <div className="flex-1 min-w-0">
+                    {/* Header: Name & Date */}
+                    <div className="flex items-start justify-between gap-2 mb-1.5">
+                        <div>
+                            <h4 className="font-semibold text-[#063A41] text-sm sm:text-base">
+                                {getFullName()}
+                            </h4>
+                            {reviewer?.city && (
+                                <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                                    <FaMapMarkerAlt className="text-[8px]" />
+                                    {reviewer.city}
+                                </p>
+                            )}
+                        </div>
+                        <span className="text-xs text-gray-400 flex-shrink-0">
+                            {formatDate(review.createdAt)}
+                        </span>
+                    </div>
+
+                    {/* Star Rating */}
+                    <div className="flex items-center gap-1 mb-2.5">
+                        {Array.from({ length: 5 }).map((_, starIndex) => (
+                            <FaStar
+                                key={starIndex}
+                                className={`text-sm ${starIndex < review.rating
+                                    ? "text-yellow-400"
+                                    : "text-gray-200"
+                                    }`}
+                            />
+                        ))}
+                        <span className="text-xs text-gray-500 ml-1.5">
+                            {review.rating}.0
+                        </span>
+                    </div>
+
+                    {/* Review Message */}
+                    <div className="relative">
+                        <FaQuoteLeft className="absolute -top-1 -left-1 text-gray-200 text-xs" />
+                        <p className="text-gray-600 text-sm leading-relaxed pl-3">
+                            {review.message || review.comment || "Great service!"}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const TaskerProfile = ({ tasker }: { tasker: Tasker }) => {
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
@@ -370,7 +512,7 @@ const TaskerProfile = ({ tasker }: { tasker: Tasker }) => {
                             </div>
                         )}
 
-                        {/* Reviews Section */}
+                        {/* Reviews Section - Updated with ReviewerCard */}
                         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
                             <div className="flex items-center justify-between mb-6">
                                 <h2 className="text-xl font-bold text-[#063A41] flex items-center gap-2">
@@ -387,44 +529,7 @@ const TaskerProfile = ({ tasker }: { tasker: Tasker }) => {
                             {tasker.reviews && tasker.reviews.length > 0 ? (
                                 <div className="space-y-4">
                                     {tasker.reviews.map((review, i) => (
-                                        <div
-                                            key={review._id || i}
-                                            className="p-4 bg-gray-50 rounded-xl border border-gray-100"
-                                        >
-                                            <div className="flex items-start gap-3">
-                                                <div className="w-10 h-10 bg-[#063A41] rounded-full flex items-center justify-center flex-shrink-0">
-                                                    <FaUser className="text-white text-sm" />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center justify-between gap-2 mb-1">
-                                                        <span className="font-semibold text-[#063A41]">
-                                                            {review.reviewer || "Anonymous"}
-                                                        </span>
-                                                        <span className="text-xs text-gray-400">
-                                                            {new Date(review.createdAt).toLocaleDateString('en-US', {
-                                                                month: 'short',
-                                                                day: 'numeric',
-                                                                year: 'numeric'
-                                                            })}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 mb-2">
-                                                        {Array.from({ length: 5 }).map((_, starIndex) => (
-                                                            <FaStar
-                                                                key={starIndex}
-                                                                className={`text-sm ${starIndex < review.rating
-                                                                        ? "text-yellow-400"
-                                                                        : "text-gray-200"
-                                                                    }`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <p className="text-gray-600 text-sm leading-relaxed">
-                                                        {review.message || review.comment}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <ReviewerCard key={review._id || i} review={review} />
                                     ))}
                                 </div>
                             ) : (
@@ -445,7 +550,11 @@ const TaskerProfile = ({ tasker }: { tasker: Tasker }) => {
                                 <div className="text-center mb-6">
                                     <p className="text-sm text-gray-500 mb-1">Starting from</p>
                                     <p className="text-4xl font-bold text-[#109C3D]">
-                                        ${Math.min(...tasker.services.map(s => s.hourlyRate)) || tasker.rate || 0}
+                                        ${(() => {
+                                            const rates = tasker.services.map(s => s.hourlyRate).filter(r => typeof r === 'number' && !isNaN(r));
+                                            const min = rates.length > 0 ? Math.min(...rates) : undefined;
+                                            return min ?? tasker.rate ?? 'N/A';
+                                        })()}
                                         <span className="text-base font-normal text-gray-400">/hr</span>
                                     </p>
                                 </div>
@@ -468,42 +577,6 @@ const TaskerProfile = ({ tasker }: { tasker: Tasker }) => {
                                 <p className="text-xs text-center text-gray-400 mt-4">
                                     You won&apos;t be charged until the service is complete
                                 </p>
-                            </div>
-
-                            {/* Contact Info */}
-                            <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-                                <h3 className="font-semibold text-[#063A41] mb-4">Contact Information</h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-[#E5FFDB] rounded-lg flex items-center justify-center">
-                                            <FaEnvelope className="text-[#109C3D] text-sm" />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs text-gray-400">Email</p>
-                                            <p className="text-sm font-medium text-[#063A41] truncate">{tasker.email}</p>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                        <div className="w-8 h-8 bg-[#E5FFDB] rounded-lg flex items-center justify-center">
-                                            <FaPhone className="text-[#109C3D] text-sm" />
-                                        </div>
-                                        <div className="min-w-0 flex-1">
-                                            <p className="text-xs text-gray-400">Phone</p>
-                                            <p className="text-sm font-medium text-[#063A41]">{tasker.phone}</p>
-                                        </div>
-                                    </div>
-                                    {(tasker.city || tasker.province) && (
-                                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                                            <div className="w-8 h-8 bg-[#E5FFDB] rounded-lg flex items-center justify-center">
-                                                <FaMapMarkerAlt className="text-[#109C3D] text-sm" />
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-xs text-gray-400">Location</p>
-                                                <p className="text-sm font-medium text-[#063A41]">{tasker.city}, {tasker.province}</p>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
 
                             {/* Availability */}

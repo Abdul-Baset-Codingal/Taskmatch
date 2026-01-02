@@ -74,7 +74,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
         const fetchNotifications = async () => {
             try {
                 setLoadingNotifications(true);
-                const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/notifications", {
+                const response = await fetch("/api/auth/notifications", {
                     method: "GET",
                     credentials: "include",
                     headers: {
@@ -106,7 +106,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
     // Handle logout
     const handleLogout = async () => {
         try {
-            const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
+            const response = await fetch("/api/auth/logout", {
                 method: "POST",
                 credentials: "include",
             });
@@ -127,7 +127,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
     // Mark notification as read
     const markAsRead = async (id: string) => {
         try {
-            const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/notifications/${id}/read`, {
+            const response = await fetch(`/api/auth/notifications/${id}/read`, {
                 method: "PATCH",
                 credentials: "include",
                 headers: {

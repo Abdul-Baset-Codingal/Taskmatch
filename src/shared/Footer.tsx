@@ -3,6 +3,7 @@ import Link from "next/link";
 import { FaFacebookF, FaInstagram, FaTwitter, FaLinkedinIn } from "react-icons/fa";
 import background from "../../public/Images/ad.jpg";
 // import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
+import logo from "../../public/Images/ChatGPT_Image_Dec_10__2025__04_46_12_PM-removebg-preview.png"
 
 export default function Footer() {
     return (
@@ -36,9 +37,7 @@ export default function Footer() {
                     <div className="flex items-center gap-2"> <Link href="/"> <h1 className="text-2xl xs:text-3xl sm:text-4xl text-white lg:text-3xl font-bold color1 bg-clip-text "> Taskallo </h1> </Link>
                     </div>
                     <p className="text-gray-200 leading-relaxed text-sm mt-3">
-                        TaskAllo is Canada’s trusted platform for home services — connecting
-                        clients with professional Taskers for everything from plumbing to
-                        beauty & wellness.
+                        Taskallo is built to support local communities by connecting Canadians with skilled, reliable service providers. From everyday help to specialized services, we make finding the right help easy and dependable.
                     </p>
                 </div>
 
@@ -60,12 +59,12 @@ export default function Footer() {
                         Our Services
                     </h3>
                     <ul className="space-y-2 text-gray-200">
-                        <li>Handyman & Home Repairs</li>
-                        <li>Pet Services</li>
-                        <li>Cleaning Services</li>
-                        <li>Plumbing, Electric & HVAC</li>
-                        <li>Automotive Services</li>
-                        <li>All Other Specialized Services</li>
+                        <li><Link href={'https://www.taskallo.com/services/688bb7262056a9b591a72862'} >Handyman & Home Repairs</Link></li>
+                        <li><Link href={'https://www.taskallo.com/services/688bbdea2056a9b591a7288b'}>Pet Services</Link></li>
+                        <li> <Link href={'https://www.taskallo.com/services/688bbe762056a9b591a72892'}>Cleaning Services </Link> </li>
+                        <li><Link href={'https://www.taskallo.com/services/688bbf7d2056a9b591a728b1'}> Plumbing, Electric & HVAC </Link></li>
+                        <li><Link href={'https://www.taskallo.com/services/688bcb3a2056a9b591a728ba'}> Automotive Services </Link></li>
+                        <li><Link href={'https://www.taskallo.com/services/688bce0c2056a9b591a728cc'}> All Other Specialized Services </Link></li>
                     </ul>
                 </div>
 
@@ -81,18 +80,13 @@ export default function Footer() {
 
                     {/* Social Icons */}
                     <div className="flex gap-4 mt-4">
-                        <a href="#" className="p-2 bg-[#109C3D] rounded-full hover:bg-[#E5FFDB] hover:text-[#063A41] transition-all">
+                        <a href="https://www.facebook.com/profile.php?id=61585575984069" className="p-2 bg-[#109C3D] rounded-full hover:bg-[#E5FFDB] hover:text-[#063A41] transition-all">
                             <FaFacebookF />
                         </a>
-                        <a href="#" className="p-2 bg-[#109C3D] rounded-full hover:bg-[#E5FFDB] hover:text-[#063A41] transition-all">
+                        <a href="https://www.instagram.com/taskallo/" className="p-2 bg-[#109C3D] rounded-full hover:bg-[#E5FFDB] hover:text-[#063A41] transition-all">
                             <FaInstagram />
                         </a>
-                        <a href="#" className="p-2 bg-[#109C3D] rounded-full hover:bg-[#E5FFDB] hover:text-[#063A41] transition-all">
-                            <FaTwitter />
-                        </a>
-                        <a href="#" className="p-2 bg-[#109C3D] rounded-full hover:bg-[#E5FFDB] hover:text-[#063A41] transition-all">
-                            <FaLinkedinIn />
-                        </a>
+                     
                     </div>
                 </div>
             </div>

@@ -5,7 +5,7 @@ import Cookies from 'js-cookie';
 export const bookingApi = createApi({
     reducerPath: 'bookingApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `https://taskmatch-backend.vercel.app/api`,
+        baseUrl: `http://localhost:5000/api`,
         prepareHeaders: (headers) => {
             const token = Cookies.get('token');
             if (token) {

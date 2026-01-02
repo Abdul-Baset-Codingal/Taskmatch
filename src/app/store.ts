@@ -6,6 +6,7 @@ import { taskApi } from "../features/api/taskApi";
 import { servicesApi } from '../features/api/servicesApi';
 import { bookingApi } from '../features/api/bookingApi';
 import { taskerApi } from "@/features/api/taskerApi";
+import { stripeApi } from '@/features/stripe/stripeApi';
 
 import taskFormReducer from "../features/taskForm/taskFormSlice";
 
@@ -17,6 +18,8 @@ export const store = configureStore({
     [servicesApi.reducerPath]: servicesApi.reducer,
     [bookingApi.reducerPath]: bookingApi.reducer,
     [taskerApi.reducerPath]: taskerApi.reducer,
+    [stripeApi.reducerPath]: stripeApi.reducer,
+
     // Normal reducers
     auth: authReducer,
     form: formReducer,
@@ -31,11 +34,11 @@ export const store = configureStore({
       .concat(authApi.middleware)
       .concat(taskApi.middleware)
       .concat(servicesApi.middleware)
-
+  
       
       .concat(bookingApi.middleware)
-      .concat(taskerApi.middleware),
-
+      .concat(taskerApi.middleware)
+      .concat(stripeApi.middleware)
 });
 
 // Typed hooks (optional, but useful)

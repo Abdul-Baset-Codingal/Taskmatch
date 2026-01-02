@@ -106,7 +106,7 @@ const ClientLoginModal: React.FC<ClientLoginModalProps> = ({
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch("/api/auth/verify-token", {
+      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
         method: "GET",
         credentials: "include", // Still try cookies first
         headers,

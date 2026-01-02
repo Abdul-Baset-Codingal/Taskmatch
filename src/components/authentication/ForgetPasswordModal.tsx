@@ -1,11 +1,12 @@
+// @ts-nocheck
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// components/ForgotPasswordModal.tsx
 "use client";
-import React, { useEffect, useRef, useState } from "react";
-import { FaTimes, FaEnvelope, FaArrowLeft, FaLock } from "react-icons/fa";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import { FaTimes, FaEnvelope, FaArrowLeft, FaLock, FaCheck, FaSpinner, FaExclamationTriangle } from "react-icons/fa";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 import { toast } from "react-toastify";
+import Link from "next/link";
 import {
     useForgotPasswordMutation,
     useVerifyResetOtpMutation,
@@ -20,6 +21,26 @@ interface ForgotPasswordModalProps {
 }
 
 type Step = "email" | "otp" | "reset" | "success";
+
+// Email validation status type
+type EmailStatus = 'idle' | 'checking' | 'exists' | 'not-found' | 'invalid';
+
+// Debounce hook
+const useDebounce = (value: string, delay: number) => {
+    const [debouncedValue, setDebouncedValue] = useState(value);
+
+    useEffect(() => {
+        const handler = setTimeout(() => {
+            setDebouncedValue(value);
+        }, delay);
+
+        return () => {
+            clearTimeout(handler);
+        };
+    }, [value, delay]);
+
+    return debouncedValue;
+};
 
 const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     isOpen,
@@ -37,6 +58,14 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     const [resetToken, setResetToken] = useState("");
     const [resendTimer, setResendTimer] = useState(0);
 
+    // Password error state for same password validation
+    const [passwordError, setPasswordError] = useState<string>("");
+
+    // Email validation states
+    const [emailStatus, setEmailStatus] = useState<EmailStatus>('idle');
+    const [emailMessage, setEmailMessage] = useState('');
+    const [emailFocused, setEmailFocused] = useState(false);
+
     const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
 
     // RTK Query mutations
@@ -52,6 +81,70 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         hasLowercase: false,
         hasNumber: false,
     });
+
+
+    // Debounce email input (500ms delay)
+    const debouncedEmail = useDebounce(email, 500);
+
+    // Email format validation
+    const isValidEmailFormat = (emailValue: string) => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(emailValue);
+    };
+
+    // Check email existence (for forgot password, email should EXIST)
+    const checkEmailExists = useCallback(async (emailValue: string) => {
+        if (!emailValue || !isValidEmailFormat(emailValue)) {
+            if (emailValue && !isValidEmailFormat(emailValue)) {
+                setEmailStatus('invalid');
+                setEmailMessage('Please enter a valid email address');
+            } else {
+                setEmailStatus('idle');
+                setEmailMessage('');
+            }
+            return;
+        }
+
+        setEmailStatus('checking');
+        setEmailMessage('Checking email...');
+
+        try {
+            const response = await fetch(
+                `http://localhost:5000/api/auth/check-email?email=${encodeURIComponent(emailValue)}`,
+                {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' },
+                }
+            );
+
+            const data = await response.json();
+
+            if (data.exists) {
+                setEmailStatus('exists');
+                setEmailMessage('Email found! You can reset your password.');
+            } else if (data.valid === false) {
+                setEmailStatus('invalid');
+                setEmailMessage('Please enter a valid email address');
+            } else {
+                setEmailStatus('not-found');
+                setEmailMessage('No account found with this email');
+            }
+        } catch (error) {
+            console.error('Error checking email:', error);
+            setEmailStatus('idle');
+            setEmailMessage('');
+        }
+    }, []);
+
+    // Effect to check email when debounced value changes
+    useEffect(() => {
+        if (step === 'email') {
+            checkEmailExists(debouncedEmail);
+        }
+    }, [debouncedEmail, checkEmailExists, step]);
+
+    // Check if email is valid for submission (email must exist)
+    const isEmailValidForReset = emailStatus === 'exists';
 
     useEffect(() => {
         if (isOpen) {
@@ -105,12 +198,32 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         setConfirmPassword("");
         setResetToken("");
         setResendTimer(0);
+        setEmailStatus('idle');
+        setEmailMessage('');
+        setPasswordError(""); // Reset password error
+    };
+
+    // Handle email change
+    const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setEmailStatus('idle');
+        setEmailMessage('');
+        setEmail(value);
+    };
+
+    // Handle new password change - clear error when user types
+    const handleNewPasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setNewPassword(value);
+        // Clear the password error when user starts typing
+        if (passwordError) {
+            setPasswordError("");
+        }
     };
 
     // Handle OTP input
     const handleOtpChange = (index: number, value: string) => {
         if (value.length > 1) {
-            // Handle paste
             const pastedValue = value.slice(0, 6).split("");
             const newOtp = [...otp];
             pastedValue.forEach((char, i) => {
@@ -142,6 +255,20 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     // Step 1: Send email
     const handleSendEmail = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!isEmailValidForReset) {
+            if (emailStatus === 'not-found') {
+                toast.error("No account found with this email. Please check and try again.");
+            } else if (emailStatus === 'invalid') {
+                toast.warning("Please enter a valid email address.");
+            } else if (emailStatus === 'checking') {
+                toast.info("Please wait while we verify your email.");
+            } else {
+                toast.warning("Please enter your email address.");
+            }
+            return;
+        }
+
         try {
             await forgotPassword({ email }).unwrap();
             toast.success("Reset code sent to your email!");
@@ -177,6 +304,9 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
     const handleResetPassword = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        // Clear any previous password error
+        setPasswordError("");
+
         if (newPassword !== confirmPassword) {
             toast.error("Passwords do not match");
             return;
@@ -202,27 +332,24 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         } catch (error: any) {
             const errorMessage = error?.data?.message || "Failed to reset password";
 
-            // Show specific toast based on error type
+            // Check if the error is about same/current password
             if (errorMessage.toLowerCase().includes("same") ||
-                errorMessage.toLowerCase().includes("current password")) {
-                // Same password error - show warning toast
-                toast.warning("⚠️ " + errorMessage, {
-                    autoClose: 5000,
-                });
-                // Clear password fields so user can enter new one
+                errorMessage.toLowerCase().includes("current password") ||
+                errorMessage.toLowerCase().includes("previous password") ||
+                errorMessage.toLowerCase().includes("already") ||
+                errorMessage.toLowerCase().includes("different")) {
+                // Show inline error instead of toast
+                setPasswordError("This is already your current password. Please choose a different password.");
+                // Clear password fields
                 setNewPassword("");
                 setConfirmPassword("");
             } else if (errorMessage.toLowerCase().includes("expired")) {
-                // Expired token/OTP error
                 toast.error("⏰ " + errorMessage);
-                // Go back to email step
                 setStep("email");
                 resetForm();
             } else if (errorMessage.toLowerCase().includes("invalid")) {
-                // Invalid code error
                 toast.error("❌ " + errorMessage);
             } else {
-                // Generic error
                 toast.error(errorMessage);
             }
         }
@@ -250,6 +377,63 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         return "bg-green-500";
     };
 
+    // Get email input styles based on status
+    const getEmailBorderColor = () => {
+        if (!emailFocused && email.length === 0) {
+            return '#e5e7eb';
+        }
+        if (emailFocused && emailStatus === 'idle') {
+            return '#109C3D';
+        }
+        switch (emailStatus) {
+            case 'checking':
+                return '#3b82f6';
+            case 'exists':
+                return '#109C3D';
+            case 'not-found':
+            case 'invalid':
+                return '#ef4444';
+            default:
+                return emailFocused ? '#109C3D' : '#e5e7eb';
+        }
+    };
+
+    const getEmailIcon = () => {
+        switch (emailStatus) {
+            case 'checking':
+                return <FaSpinner className="text-sm text-blue-500 animate-spin" />;
+            case 'exists':
+                return <FaCheck className="text-sm" style={{ color: '#109C3D' }} />;
+            case 'not-found':
+            case 'invalid':
+                return <FaTimes className="text-sm text-red-500" />;
+            default:
+                return null;
+        }
+    };
+
+    const getEmailMessageColor = () => {
+        switch (emailStatus) {
+            case 'checking':
+                return '#3b82f6';
+            case 'exists':
+                return '#109C3D';
+            case 'not-found':
+            case 'invalid':
+                return '#ef4444';
+            default:
+                return '#6b7280';
+        }
+    };
+
+    // Get password input border color based on error state
+    const getPasswordBorderColor = () => {
+        if (passwordError) {
+            return '#ef4444'; // Red when there's an error
+        }
+        return '#e5e7eb'; // Default gray
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -263,7 +447,43 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
         .btn-gradient:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(16, 156, 61, 0.3); }
         .btn-gradient:disabled { opacity: 0.7; cursor: not-allowed; }
         .input-focus:focus { border-color: #109C3D; box-shadow: 0 4px 12px rgba(16, 156, 61, 0.15); }
+        .input-error { border-color: #ef4444 !important; }
+        .input-error:focus { border-color: #ef4444 !important; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15) !important; }
         .otp-input { width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; }
+        .email-wrapper {
+          transition: all 0.3s ease;
+        }
+        .email-wrapper:focus-within {
+          box-shadow: 0 4px 12px rgba(16, 156, 61, 0.15);
+        }
+        .email-input:focus {
+          outline: none;
+        }
+        .email-status-message {
+          animation: fadeIn 0.2s ease-out;
+        }
+        .password-error-box {
+          animation: shake 0.5s ease-in-out, fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+          20%, 40%, 60%, 80% { transform: translateX(4px); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+        .validation-icon {
+          transition: all 0.2s ease;
+        }
       `}</style>
 
             <div
@@ -306,32 +526,85 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                 </div>
 
                 <div className="px-6 sm:px-8 py-8 -mt-6 bg-white rounded-t-3xl">
-                    {/* Step 1: Email */}
+                    {/* Step 1: Email with Real-time Validation */}
                     {step === "email" && (
                         <form onSubmit={handleSendEmail} className="space-y-5">
                             <div>
                                 <label className="block text-sm font-medium mb-2" style={{ color: "#063A41" }}>
                                     Email Address
                                 </label>
-                                <div className="relative">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <div
+                                    className="email-wrapper flex items-center border-2 rounded-xl overflow-hidden bg-white"
+                                    style={{ borderColor: getEmailBorderColor() }}
+                                >
+                                    <div className="pl-3 flex items-center pointer-events-none">
                                         <FaEnvelope className="text-sm" style={{ color: "#109C3D" }} />
                                     </div>
                                     <input
                                         type="email"
                                         value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl text-sm input-focus outline-none"
+                                        onChange={handleEmailChange}
+                                        onFocus={() => setEmailFocused(true)}
+                                        onBlur={() => setEmailFocused(false)}
+                                        className="email-input flex-1 px-3 py-3 text-sm bg-transparent border-none"
                                         placeholder="Enter your email"
                                         required
                                     />
+                                    {email.length > 0 && (
+                                        <div className="pr-3 flex items-center validation-icon">
+                                            {getEmailIcon()}
+                                        </div>
+                                    )}
                                 </div>
+
+                                {emailMessage && email.length > 0 && (
+                                    <div className="mt-1.5 email-status-message">
+                                        <p
+                                            className="text-xs flex items-center gap-1"
+                                            style={{ color: getEmailMessageColor() }}
+                                        >
+                                            {emailStatus === 'not-found' && (
+                                                <>
+                                                    <FaTimes className="text-xs" />
+                                                    {emailMessage}
+                                                    <span className="ml-1">
+                                                        <Link
+                                                            href="/client-sign-up"
+                                                            className="underline font-medium hover:no-underline"
+                                                            onClick={handleClose}
+                                                        >
+                                                            Create account?
+                                                        </Link>
+                                                    </span>
+                                                </>
+                                            )}
+                                            {emailStatus === 'exists' && (
+                                                <>
+                                                    <FaCheck className="text-xs" />
+                                                    {emailMessage}
+                                                </>
+                                            )}
+                                            {emailStatus === 'checking' && (
+                                                <>
+                                                    <FaSpinner className="text-xs animate-spin" />
+                                                    {emailMessage}
+                                                </>
+                                            )}
+                                            {emailStatus === 'invalid' && (
+                                                <>
+                                                    <FaTimes className="text-xs" />
+                                                    {emailMessage}
+                                                </>
+                                            )}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
 
                             <button
                                 type="submit"
                                 className="w-full text-white font-semibold py-3.5 rounded-xl text-sm btn-gradient"
-                                disabled={isSendingEmail}
+                                disabled={isSendingEmail || !isEmailValidForReset || emailStatus === 'checking'}
                             >
                                 {isSendingEmail ? (
                                     <span className="flex items-center justify-center gap-2">
@@ -340,6 +613,14 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                         </svg>
                                         Sending...
+                                    </span>
+                                ) : emailStatus === 'checking' ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        Verifying Email...
                                     </span>
                                 ) : (
                                     "Send Reset Code"
@@ -356,6 +637,13 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                     Enter the 6-digit code sent to <br />
                                     <span className="font-semibold">{email}</span>
                                 </label>
+                                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2">
+                                    <FaExclamationTriangle className="text-amber-500 text-sm mt-0.5 flex-shrink-0" />
+                                    <p className="text-xs text-amber-700">
+                                        <span className="font-semibold">Can't find the email?</span> Please check your spam or junk folder.
+                                    </p>
+                                </div>
+
                                 <div className="flex justify-center gap-2">
                                     {otp.map((digit, index) => (
                                         <input
@@ -412,19 +700,46 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                     {/* Step 3: Reset Password */}
                     {step === "reset" && (
                         <form onSubmit={handleResetPassword} className="space-y-5">
+                            {/* Same Password Error Alert Box */}
+                            {passwordError && (
+                                <div className="password-error-box bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-start gap-3">
+                                    <div className="flex-shrink-0 w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                                        <FaExclamationTriangle className="text-red-500 text-sm" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-red-800">
+                                            Same Password Detected
+                                        </p>
+                                        <p className="text-xs text-red-600 mt-0.5">
+                                            {passwordError}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setPasswordError("")}
+                                        className="flex-shrink-0 text-red-400 hover:text-red-600 transition"
+                                    >
+                                        <FaTimes className="text-xs" />
+                                    </button>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium mb-2" style={{ color: "#063A41" }}>
                                     New Password
                                 </label>
                                 <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <FaLock className="text-sm" style={{ color: "#109C3D" }} />
+                                        <FaLock className="text-sm" style={{ color: passwordError ? "#ef4444" : "#109C3D" }} />
                                     </div>
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         value={newPassword}
-                                        onChange={(e) => setNewPassword(e.target.value)}
-                                        className="w-full pl-10 pr-12 py-3 border-2 border-gray-200 rounded-xl text-sm input-focus outline-none"
+                                        onChange={handleNewPasswordChange}
+                                        className={`w-full pl-10 pr-12 py-3 border-2 rounded-xl text-sm outline-none transition-all duration-200 ${passwordError
+                                            ? 'input-error border-red-400 focus:border-red-400'
+                                            : 'border-gray-200 input-focus'
+                                            }`}
                                         placeholder="Enter new password"
                                         required
                                     />
@@ -438,7 +753,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
                                 </div>
 
                                 {/* Password Strength */}
-                                {newPassword && (
+                                {newPassword && !passwordError && (
                                     <div className="mt-2">
                                         <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
                                             <div

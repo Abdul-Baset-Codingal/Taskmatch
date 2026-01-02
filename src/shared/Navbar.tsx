@@ -7,11 +7,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import React, { useEffect, useState, useRef } from "react";
-import { FiMenu, FiX, FiChevronDown, FiBell } from "react-icons/fi";
-import { FaPlusCircle, FaUser, FaBriefcase, FaClipboardList, FaTasks, FaUserShield } from "react-icons/fa";
+import { FiMenu, FiX, FiChevronDown, FiBell, FiClock, FiAlertCircle } from "react-icons/fi";
+import { FaPlusCircle, FaUser, FaBriefcase, FaClipboardList, FaTasks, FaUserShield, FaRedo } from "react-icons/fa";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import logo from "../../public/Images/taskalloLogo-removebg-preview.png"
+import logo from "../../public/Images/ChatGPT_Image_Dec_10__2025__04_46_12_PM-removebg-preview.png"
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,9 +26,12 @@ const Navbar = () => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [taskerProfileCheck, setTaskerProfileCheck] = useState(false);
+
+  // CHANGED: From taskerProfileCheck to taskerStatus
+  const [taskerStatus, setTaskerStatus] = useState<string>("not_applied");
+
   const [wasLoggedIn, setWasLoggedIn] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState(0); // Add notification count state
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
@@ -54,7 +57,7 @@ const Navbar = () => {
     if (!isLoggedIn) return;
 
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/notifications", {
+      const response = await fetch("http://localhost:5000/api/auth/notifications", {
         method: "GET",
         credentials: "include",
       });
@@ -62,11 +65,9 @@ const Navbar = () => {
       if (response.ok) {
         const data = await response.json();
         setUnreadNotifications(data.unreadCount || 0);
-      } else {
-       // console.error("Failed to fetch notifications");
       }
     } catch (error) {
-    //  console.error("Error fetching notifications:", error);
+      // Silent fail
     }
   };
 
@@ -74,73 +75,30 @@ const Navbar = () => {
   useEffect(() => {
     if (isLoggedIn) {
       fetchNotificationCount();
-
-      // Poll for new notifications every 30 seconds
       const interval = setInterval(fetchNotificationCount, 30000);
-
       return () => clearInterval(interval);
     } else {
       setUnreadNotifications(0);
     }
   }, [isLoggedIn, userRole]);
 
-  // const handleLogout = async () => {
-  //   try {
-  //     const response = await fetch("/api/auth/logout", {
-  //       method: "POST",
-  //       credentials: "include",
-  //     });
-  //     if (response.ok) {
-  //       setWasLoggedIn(true);
-  //       setIsLoggedIn(false);
-  //       setUserRole(null);
-  //       setUserRoles([]);
-  //       setUserId(null);
-  //       setFirstName(null);
-  //       setLastName(null);
-  //       setEmail(null);
-  //       setProfilePicture(null);
-  //       setTaskerProfileCheck(false);
-  //       setShowDropdown(false);
-  //       setErrorMessage(null);
-  //       setIsOpen(false);
-  //       setUnreadNotifications(0); // Reset notification count
-  //       router.push("/");
-  //       toast.success("Logged out successfully!");
-  //     } else {
-  //    //   console.error("Logout failed with status:", response.status);
-  //       toast.error("Logout failed. Please try again.");
-  //     }
-  //   } catch (error) {
-  //   //  console.error("Logout failed", error);
-  //     toast.error("An error occurred during logout.");
-  //   }
-  // };
-
-
   const handleLogout = async () => {
     console.log("=== FRONTEND LOGOUT DEBUG ===");
 
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/logout", {
+      const response = await fetch("http://localhost:5000/api/auth/logout", {
         method: "POST",
-        credentials: "include",  // ← This is REQUIRED
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
       });
 
       console.log("Response status:", response.status);
-      console.log("Response headers:", [...response.headers.entries()]);
-
       const data = await response.json();
       console.log("Response data:", data);
 
-      // Check if cookies still exist after logout
-      console.log("Document cookies after logout:", document.cookie);
-
       if (response.ok) {
-        // Force clear on frontend
         clearAuthState();
         router.push("/");
         toast.success("Logged out successfully!");
@@ -150,7 +108,6 @@ const Navbar = () => {
       }
     } catch (error) {
       console.error("Logout error:", error);
-      // Still clear local state
       clearAuthState();
       toast.error("Logout error, cleared local state");
     }
@@ -165,14 +122,12 @@ const Navbar = () => {
     setLastName(null);
     setEmail(null);
     setProfilePicture(null);
-    setTaskerProfileCheck(false);
+    setTaskerStatus("not_applied"); // CHANGED
     setShowDropdown(false);
     setErrorMessage(null);
     setIsOpen(false);
     setUnreadNotifications(0);
   };
-
-
 
   const switchRole = async (newRole: "tasker" | "client") => {
     if (!userId) {
@@ -181,7 +136,7 @@ const Navbar = () => {
     }
 
     try {
-      const response = await fetch(`https://taskmatch-backend.vercel.app/api/auth/users/${userId}`, {
+      const response = await fetch(`http://localhost:5000/api/auth/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ role: newRole }),
@@ -193,11 +148,9 @@ const Navbar = () => {
         toast.success(`Switched to ${newRole} mode successfully!`);
         setShowDropdown(false);
         setErrorMessage(null);
-        // Refresh notification count after role switch
         fetchNotificationCount();
       } else {
         const errorData = await response.json().catch(() => ({}));
-      //  console.error("Switch role failed:", errorData);
 
         if (errorData.missingFields && newRole === "tasker") {
           const fieldsQuery = errorData.missingFields.join(",");
@@ -208,15 +161,28 @@ const Navbar = () => {
         }
       }
     } catch (error) {
-   //   console.error("Switch role failed", error);
       toast.error("An error occurred while switching roles.");
     }
   };
 
+  // UPDATED: Switch to Tasker with taskerStatus check
   const switchToTasker = () => {
-    if (!taskerProfileCheck) {
-      toast.info("Complete your Tasker profile first to unlock this mode.");
-      router.push("/complete-tasker-profile");
+    // Check tasker status instead of taskerProfileCheck
+    if (taskerStatus !== "approved") {
+      switch (taskerStatus) {
+        case "under_review":
+          toast.info("Your tasker application is currently under review. Please wait for approval.");
+          break;
+        case "rejected":
+          toast.error("Your tasker application was rejected. Please update your documents and reapply.");
+          router.push("/complete-tasker-profile");
+          break;
+        case "not_applied":
+        default:
+          toast.info("Complete your Tasker profile first to unlock this mode.");
+          router.push("/complete-tasker-profile");
+          break;
+      }
       setShowDropdown(false);
       return;
     }
@@ -243,7 +209,7 @@ const Navbar = () => {
 
   const checkLoginStatus = async () => {
     try {
-      const response = await fetch("https://taskmatch-backend.vercel.app/api/auth/verify-token", {
+      const response = await fetch("http://localhost:5000/api/auth/verify-token", {
         method: "GET",
         credentials: "include",
       });
@@ -254,16 +220,17 @@ const Navbar = () => {
         setWasLoggedIn(false);
         const currentRole = data.user.currentRole || data.user.role;
         setUserRole(currentRole);
-        console.log(data.user)
-
-      //  console.log(data.user)
+        console.log("User data:", data.user);
 
         const rawRoles = data.user.roles || [data.user.currentRole || "client"];
         const validRoles = rawRoles.filter((role: string) =>
           role && typeof role === 'string' && (role === 'client' || role === 'tasker' || role === 'admin')
         );
         setUserRoles(validRoles.length > 0 ? validRoles : ['client']);
-        setTaskerProfileCheck(data.user.taskerProfileCheck || false);
+
+        // CHANGED: Use taskerStatus instead of taskerProfileCheck
+        setTaskerStatus(data.user.taskerStatus || "not_applied");
+
         setUserId(data.user._id);
         setFirstName(data.user.firstName);
         setLastName(data.user.lastName);
@@ -276,34 +243,32 @@ const Navbar = () => {
         setUserRole(null);
         setUserRoles([]);
         setUserId(null);
-        setTaskerProfileCheck(false);
+        setTaskerStatus("not_applied"); // CHANGED
         setFirstName(null);
         setLastName(null);
         setEmail(null);
         setProfilePicture(null);
         setErrorMessage(null);
-        setUnreadNotifications(0); // Reset notification count
+        setUnreadNotifications(0);
 
         if (response.status === 401 && prevLoggedIn) {
-       //   console.warn("Verify-token failed with status: 401 - Session expired, clearing auth state.");
           toast.warn("Session expired. Please log in again.");
           router.push("/authentication");
         }
       }
     } catch (error) {
-    //  console.error("Verify token failed", error);
       const prevLoggedIn = isLoggedIn;
       setIsLoggedIn(false);
       setUserRole(null);
       setUserRoles([]);
       setUserId(null);
-      setTaskerProfileCheck(false);
+      setTaskerStatus("not_applied"); // CHANGED
       setFirstName(null);
       setLastName(null);
       setEmail(null);
       setProfilePicture(null);
       setErrorMessage(null);
-      setUnreadNotifications(0); // Reset notification count
+      setUnreadNotifications(0);
       if (prevLoggedIn) {
         toast.error("Authentication check failed. Please refresh or log in.");
       }
@@ -369,14 +334,14 @@ const Navbar = () => {
           workspaceIcon = FaUserShield;
           break;
         default:
-          return baseLinks; // Fallback if role is unknown
+          return baseLinks;
       }
-      
+
       baseLinks.push({
         href: workspaceHref,
         label: "My Workspace",
         icon: workspaceIcon,
-        showBadge: true // Mark this link to show the notification badge
+        showBadge: true
       });
     }
 
@@ -384,6 +349,73 @@ const Navbar = () => {
   };
 
   const navLinks = getNavLinks();
+
+  // UPDATED: Helper function to get tasker button config based on status
+  const getTaskerButtonConfig = () => {
+    switch (taskerStatus) {
+      case "approved":
+        return null; // Don't show button - they're already a tasker
+      case "under_review":
+        return {
+          label: "Application Under Review",
+          icon: FiClock,
+          href: null,
+          disabled: true,
+          className: "bg-amber-500 cursor-not-allowed",
+          onClick: () => toast.info("Your application is being reviewed. We'll notify you once it's processed.")
+        };
+      case "rejected":
+        return {
+          label: "Reapply as Tasker",
+          icon: FaRedo,
+          href: "/complete-tasker-profile",
+          disabled: false,
+          className: "color2",
+          onClick: null
+        };
+      case "not_applied":
+      default:
+        return {
+          label: "Become a Tasker",
+          icon: FaPlusCircle,
+          href: "/complete-tasker-profile",
+          disabled: false,
+          className: "color2",
+          onClick: null
+        };
+    }
+  };
+
+  const taskerButtonConfig = getTaskerButtonConfig();
+
+  // UPDATED: Helper to get status badge for dropdown
+  const getTaskerStatusBadge = () => {
+    switch (taskerStatus) {
+      case "approved":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+            <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+            Approved Tasker
+          </span>
+        );
+      case "under_review":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+            <FiClock className="w-3 h-3" />
+            Under Review
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+            <FiAlertCircle className="w-3 h-3" />
+            Rejected
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <>
@@ -398,7 +430,7 @@ const Navbar = () => {
           >
             <div className="flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16 lg:h-20">
               {/* Logo */}
-              {/* <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <Link href="/">
                   <Image
                     src={logo}
@@ -407,21 +439,32 @@ const Navbar = () => {
                     priority
                   />
                 </Link>
-              </div> */}
-              <div className="flex items-center gap-2"> <Link href="/"> <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent"> Taskallo </h1> </Link> 
-              {/* <span className="w-2 h-2 rounded-full color2 inline-block top-[12px] xs:top-[14px] sm:top-[16px] lg:top-[18px] relative right-[8px] xs:right-[10px] lg:right-[11px] z-10"></span> */}
-               </div>
+              </div>
 
               {/* Desktop Navigation */}
               <div className="hidden lg:flex items-center gap-8">
-                {/* Become a Tasker Button */}
-                {!userRoles.includes("tasker") && isLoggedIn && (
-                  <Link href="/complete-tasker-profile">
-                    <button className="flex items-center gap-2 px-5 py-2.5 color2 text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300">
-                      <FaPlusCircle className="text-lg" />
-                      <span className="text-sm">Become a Tasker</span>
+                {/* Become a Tasker Button - UPDATED with status-based display */}
+                {isLoggedIn && taskerButtonConfig && (
+                  taskerButtonConfig.href ? (
+                    <Link href={taskerButtonConfig.href}>
+                      <button
+                        className={`flex items-center gap-2 px-5 py-2.5 ${taskerButtonConfig.className} text-white font-semibold rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300`}
+                        disabled={taskerButtonConfig.disabled}
+                      >
+                        <taskerButtonConfig.icon className="text-lg" />
+                        <span className="text-sm">{taskerButtonConfig.label}</span>
+                      </button>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={taskerButtonConfig.onClick}
+                      className={`flex items-center gap-2 px-5 py-2.5 ${taskerButtonConfig.className} text-white font-semibold rounded-full transition-all duration-300`}
+                      disabled={taskerButtonConfig.disabled}
+                    >
+                      <taskerButtonConfig.icon className="text-lg" />
+                      <span className="text-sm">{taskerButtonConfig.label}</span>
                     </button>
-                  </Link>
+                  )
                 )}
 
                 {/* Navigation Links */}
@@ -433,7 +476,6 @@ const Navbar = () => {
                         <button className="relative flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 rounded-lg hover:bg-gray-100 transition-all duration-200 group">
                           <Icon className="w-4 h-4 text-gray-700 group-hover:text-gray-900 flex-shrink-0" />
                           <span className="font-medium">{link.label}</span>
-                          {/* Notification Badge */}
                           {link.showBadge && unreadNotifications > 0 && (
                             <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center animate-pulse">
                               {unreadNotifications > 99 ? '99+' : unreadNotifications}
@@ -453,24 +495,18 @@ const Navbar = () => {
                       onClick={() => setShowDropdown(!showDropdown)}
                       className="relative flex items-center gap-3 px-4 py-2 rounded-full hover:bg-gray-100 transition-all duration-200 group"
                     >
-                      {/* Notification dot on profile */}
-                      {/* {unreadNotifications > 0 && (
-                        <>
-                          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full animate-ping"></span>
-                          <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full"></span>
-                        </>
-                      )} */}
                       <ProfileAvatar size={36} />
                       <div className="flex-1 min-w-0">
                         <p className="font-semibold text-gray-900 truncate text-sm">
                           {firstName} {lastName}
                         </p>
-                      </div>                    </button>
+                      </div>
+                    </button>
 
                     {/* Dropdown Menu */}
                     {showDropdown && (
                       <div className="absolute right-0 mt-3 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden animate-fadeIn">
-                        {/* User Info with Notification */}
+                        {/* User Info with Tasker Status Badge */}
                         <div className="px-6 py-4 color3 border-b border-gray-100">
                           <div className="flex items-center gap-3">
                             <ProfileAvatar size={48} />
@@ -479,7 +515,10 @@ const Navbar = () => {
                                 {firstName} {lastName}
                               </p>
                               <p className="text-sm text-gray-600 truncate">{email}</p>
-                              {/* Notification count in dropdown */}
+                              {/* Tasker Status Badge */}
+                              <div className="mt-1">
+                                {getTaskerStatusBadge()}
+                              </div>
                               {unreadNotifications > 0 && (
                                 <p className="text-xs text-red-600 mt-1">
                                   <FiBell className="inline w-3 h-3 mr-1" />
@@ -490,7 +529,7 @@ const Navbar = () => {
                           </div>
                         </div>
 
-                        {/* Role Switcher */}
+                        {/* Role Switcher - UPDATED with status check */}
                         <div className="px-6 py-4 border-b border-gray-100">
                           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
                             Switch Role
@@ -498,12 +537,21 @@ const Navbar = () => {
                           <div className="flex gap-2">
                             <button
                               onClick={switchToTasker}
+                              disabled={taskerStatus !== "approved"}
                               className={`flex-1 py-2.5 px-4 rounded-xl text-sm font-medium transition-all duration-200 ${userRole === "tasker"
-                                ? "color1 text-white shadow-md"
-                                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                  ? "color1 text-white shadow-md"
+                                  : taskerStatus === "approved"
+                                    ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
                                 }`}
+                              title={taskerStatus !== "approved" ? `Tasker status: ${taskerStatus}` : "Switch to Tasker"}
                             >
-                              Tasker
+                              <div className="flex items-center justify-center gap-1">
+                                Tasker
+                                {taskerStatus === "under_review" && (
+                                  <FiClock className="w-3 h-3 text-amber-500" />
+                                )}
+                              </div>
                             </button>
                             <button
                               onClick={switchToClient}
@@ -515,12 +563,28 @@ const Navbar = () => {
                               Booker
                             </button>
                           </div>
+                          {/* Status message under role switcher */}
+                          {taskerStatus === "under_review" && (
+                            <p className="text-xs text-amber-600 mt-2 text-center">
+                              Your tasker application is being reviewed
+                            </p>
+                          )}
+                          {taskerStatus === "rejected" && (
+                            <p className="text-xs text-red-600 mt-2 text-center">
+                              Application rejected. <Link href="/update-document" className="underline" onClick={() => setShowDropdown(false)}>Reapply here</Link>
+                            </p>
+                          )}
+                          {taskerStatus === "not_applied" && (
+                            <p className="text-xs text-gray-500 mt-2 text-center">
+                              <Link href="/update-document" className="text-blue-600 underline" onClick={() => setShowDropdown(false)}>Apply to become a Tasker</Link>
+                            </p>
+                          )}
                         </div>
 
                         {/* Menu Items */}
                         <div className="py-2">
                           <Link
-                            href="/complete-tasker-profile"
+                            href={taskerStatus === "approved" ? "/complete-tasker-profile" : "/complete-booker-profile"}
                             onClick={() => setShowDropdown(false)}
                             className="flex items-center gap-3 px-6 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors duration-150"
                           >
@@ -553,7 +617,6 @@ const Navbar = () => {
                 className="lg:hidden relative p-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
                 aria-label="Toggle menu"
               >
-                {/* Mobile notification badge */}
                 {unreadNotifications > 0 && !isOpen && (
                   <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center justify-center">
                     {unreadNotifications > 9 ? '9+' : unreadNotifications}
@@ -575,7 +638,7 @@ const Navbar = () => {
               <div className="px-4 pb-6 pt-2 border-t border-gray-100 max-h-[70vh] overflow-y-auto"
                 style={{ WebkitOverflowScrolling: 'touch' }}
               >
-                {/* User Info Mobile with Notification Count */}
+                {/* User Info Mobile with Tasker Status */}
                 {isLoggedIn && (
                   <div className="flex items-center gap-3 p-4 mb-4 color3 rounded-xl">
                     <ProfileAvatar size={48} />
@@ -584,8 +647,9 @@ const Navbar = () => {
                         {firstName} {lastName}
                       </p>
                       <p className="text-sm text-gray-600 truncate">{email}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
                         <p className="text-xs text-gray-500 capitalize">{userRole} Mode</p>
+                        {getTaskerStatusBadge()}
                         {unreadNotifications > 0 && (
                           <>
                             <span className="text-gray-300">•</span>
@@ -599,7 +663,7 @@ const Navbar = () => {
                   </div>
                 )}
 
-                {/* Role Switcher Mobile */}
+                {/* Role Switcher Mobile - UPDATED with status check */}
                 {isLoggedIn && (
                   <div className="mb-4 p-4 bg-gray-50 rounded-xl">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
@@ -609,14 +673,22 @@ const Navbar = () => {
                       <button
                         onClick={() => {
                           switchToTasker();
-                          setIsOpen(false);
+                          if (taskerStatus === "approved") {
+                            setIsOpen(false);
+                          }
                         }}
+                        disabled={taskerStatus !== "approved"}
                         className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${userRole === "tasker"
-                          ? "color1 text-white"
-                          : "bg-white text-gray-700 border border-gray-200"
+                            ? "color1 text-white"
+                            : taskerStatus === "approved"
+                              ? "bg-white text-gray-700 border border-gray-200"
+                              : "bg-gray-200 text-gray-400 cursor-not-allowed"
                           }`}
                       >
-                        Tasker
+                        <div className="flex items-center justify-center gap-1">
+                          Tasker
+                          {taskerStatus === "under_review" && <FiClock className="w-3 h-3 text-amber-500" />}
+                        </div>
                       </button>
                       <button
                         onClick={() => {
@@ -631,17 +703,49 @@ const Navbar = () => {
                         Booker
                       </button>
                     </div>
+                    {/* Status message for mobile */}
+                    {taskerStatus === "under_review" && (
+                      <p className="text-xs text-amber-600 mt-2 text-center">
+                        Application under review
+                      </p>
+                    )}
+                    {taskerStatus === "rejected" && (
+                      <p className="text-xs text-red-600 mt-2 text-center">
+                        <Link href="/update-document" className="underline" onClick={() => setIsOpen(false)}>
+                          Reapply as Tasker
+                        </Link>
+                      </p>
+                    )}
                   </div>
                 )}
 
-                {/* Become Tasker Mobile */}
-                {!userRoles.includes("tasker") && isLoggedIn && (
-                  <Link href="/tasker-signup" onClick={() => setIsOpen(false)}>
-                    <button className="w-full flex items-center justify-center gap-2 px-5 py-3 mb-4 color2 text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300">
-                      <FaPlusCircle className="text-lg" />
-                      <span>Become a Tasker</span>
+                {/* Become Tasker Mobile - UPDATED with status-based display */}
+                {isLoggedIn && taskerButtonConfig && (
+                  taskerButtonConfig.href ? (
+                    <Link href={taskerButtonConfig.href} onClick={() => setIsOpen(false)}>
+                      <button
+                        className={`w-full flex items-center justify-center gap-2 px-5 py-3 mb-4 ${taskerButtonConfig.className} text-white font-semibold rounded-xl hover:shadow-lg transition-all duration-300`}
+                        disabled={taskerButtonConfig.disabled}
+                      >
+                        <taskerButtonConfig.icon className="text-lg" />
+                        <span>{taskerButtonConfig.label}</span>
+                      </button>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (taskerButtonConfig.onClick) {
+                          taskerButtonConfig.onClick();
+                        }
+                        setIsOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-center gap-2 px-5 py-3 mb-4 ${taskerButtonConfig.className} text-white font-semibold rounded-xl transition-all duration-300`}
+                      disabled={taskerButtonConfig.disabled}
+                    >
+                      <taskerButtonConfig.icon className="text-lg" />
+                      <span>{taskerButtonConfig.label}</span>
                     </button>
-                  </Link>
+                  )
                 )}
 
                 {/* Navigation Links Mobile */}
@@ -653,7 +757,6 @@ const Navbar = () => {
                         <button className="relative w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150">
                           <Icon className="w-4 h-4 text-gray-400" />
                           <span className="font-medium flex-1">{link.label}</span>
-                          {/* Mobile notification badge */}
                           {link.showBadge && unreadNotifications > 0 && (
                             <span className="min-w-[24px] px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
                               {unreadNotifications > 99 ? '99+' : unreadNotifications}
@@ -668,7 +771,10 @@ const Navbar = () => {
                 {/* Auth Buttons Mobile */}
                 {isLoggedIn ? (
                   <div className="space-y-2 pt-4 border-t border-gray-200">
-                    <Link href="/complete-tasker-profile" onClick={() => setIsOpen(false)}>
+                    <Link
+                      href="/complete-tasker-profile"
+                      onClick={() => setIsOpen(false)}
+                    >
                       <button className="w-full flex items-center gap-3 px-4 py-3 text-left text-gray-700 hover:bg-gray-100 rounded-lg transition-colors duration-150">
                         <FaUser className="w-4 h-4 text-gray-400" />
                         <span className="font-medium">My Profile</span>

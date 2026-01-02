@@ -75,6 +75,8 @@ const UserDetailsPage = () => {
     const [toggleTaskerProfileCheck] = useToggleTaskerProfileCheckMutation();
     const [approveRejectTasker, { isLoading: isProcessing }] = useApproveRejectTaskerMutation();
 
+    console.log(user)
+
     const [updateUser] = useUpdateUserMutation();
     const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
         personal: true,
@@ -219,6 +221,8 @@ const UserDetailsPage = () => {
     }
 
     const currentData = isEditMode ? editedData || actualUser : actualUser;
+
+    console.log(currentData)
 
     const renderProfileAvatar = () => {
         const hasProfilePic = currentData?.profilePicture && currentData.profilePicture !== '/placeholder-profile.png';
@@ -530,10 +534,11 @@ const UserDetailsPage = () => {
                         </section>
 
                         {/* Documents */}
+                        {/* Documents */}
                         <section className="bg-white rounded-2xl p-0 shadow-lg border border-gray-100 overflow-hidden">
                             <button
                                 onClick={() => toggleSection('documents')}
-                                className="w-full flex justify-between items-center p-6 color1 text-white font-bold  transition duration-300"
+                                className="w-full flex justify-between items-center p-6 color1 text-white font-bold transition duration-300"
                             >
                                 <span className="flex items-center gap-3 text-lg">
                                     <FaFileAlt className="text-xl" /> Documents
@@ -542,8 +547,17 @@ const UserDetailsPage = () => {
                             </button>
                             {openSections.documents && (
                                 <div className="p-6 space-y-6">
+                                    {/* ID Type */}
+                                    <div className="space-y-3">
+                                        <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">ID Type</label>
+                                        <p className="text-xl text-gray-900 font-medium capitalize">{currentData?.idType || 'N/A'}</p>
+                                    </div>
+
+                                    {/* ID Document Image */}
                                     <div className="space-y-4">
-                                        <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">ID Document ({currentData?.idType || 'N/A'})</label>
+                                        <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">
+                                            ID Document {currentData?.idType === 'passport' ? '(Passport)' : '(Government ID - Front)'}
+                                        </label>
                                         {isEditMode ? (
                                             <div className="flex flex-col sm:flex-row gap-4 items-start">
                                                 <input
@@ -573,7 +587,7 @@ const UserDetailsPage = () => {
                                                         className="w-full max-w-md h-auto rounded-xl border-2 border-gray-200 shadow-md object-cover"
                                                     />
                                                 ) : (
-                                                    <div className="w-full max-w-md h-64 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                                                    <div className="w-full max-w-md h-64 bg-gray-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
                                                         <FaFileAlt className="text-6xl text-gray-400" />
                                                         <p className="text-gray-500 mt-2">No document uploaded</p>
                                                     </div>
@@ -581,6 +595,8 @@ const UserDetailsPage = () => {
                                             </>
                                         )}
                                     </div>
+
+                                    {/* Government ID Back (only for governmentID type) */}
                                     {currentData?.idType === 'governmentID' && (
                                         <div className="space-y-4">
                                             <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">ID Back</label>
@@ -613,7 +629,7 @@ const UserDetailsPage = () => {
                                                             className="w-full max-w-md h-auto rounded-xl border-2 border-gray-200 shadow-md object-cover"
                                                         />
                                                     ) : (
-                                                        <div className="w-full max-w-md h-64 bg-gray-100 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                                                        <div className="w-full max-w-md h-64 bg-gray-100 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-gray-300">
                                                             <FaFileAlt className="text-6xl text-gray-400" />
                                                             <p className="text-gray-500 mt-2">No document uploaded</p>
                                                         </div>
@@ -622,6 +638,90 @@ const UserDetailsPage = () => {
                                             )}
                                         </div>
                                     )}
+
+                                    {/* Issue Date and Expiry Date - NEW SECTION */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-3">
+                                            <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">
+                                                <FaCalendarAlt className="inline mr-2 text-blue-500" />
+                                                Issue Date
+                                            </label>
+                                            {isEditMode ? (
+                                                <input
+                                                    type="date"
+                                                    value={editedData?.issueDate ? new Date(editedData.issueDate).toISOString().split('T')[0] : ''}
+                                                    onChange={(e) => handleInputChange('issueDate', e.target.value)}
+                                                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition duration-300"
+                                                />
+                                            ) : (
+                                                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                                    <p className="text-xl text-gray-900 font-medium">
+                                                        {currentData?.issueDate
+                                                            ? new Date(currentData.issueDate).toLocaleDateString('en-US', {
+                                                                year: 'numeric',
+                                                                month: 'long',
+                                                                day: 'numeric'
+                                                            })
+                                                            : 'N/A'
+                                                        }
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">
+                                                <FaCalendarAlt className="inline mr-2 text-red-500" />
+                                                Expiry Date
+                                            </label>
+                                            {isEditMode ? (
+                                                <input
+                                                    type="date"
+                                                    value={editedData?.expiryDate ? new Date(editedData.expiryDate).toISOString().split('T')[0] : ''}
+                                                    onChange={(e) => handleInputChange('expiryDate', e.target.value)}
+                                                    className="w-full p-4 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition duration-300"
+                                                />
+                                            ) : (
+                                                <div className={`p-4 rounded-xl border ${currentData?.expiryDate && new Date(currentData.expiryDate) < new Date()
+                                                        ? 'bg-red-50 border-red-200'
+                                                        : currentData?.expiryDate && new Date(currentData.expiryDate) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000)
+                                                            ? 'bg-yellow-50 border-yellow-200'
+                                                            : 'bg-green-50 border-green-200'
+                                                    }`}>
+                                                    <p className="text-xl text-gray-900 font-medium flex items-center gap-2">
+                                                        {currentData?.expiryDate
+                                                            ? new Date(currentData.expiryDate).toLocaleDateString('en-US', {
+                                                                year: 'numeric',
+                                                                month: 'long',
+                                                                day: 'numeric'
+                                                            })
+                                                            : 'N/A'
+                                                        }
+                                                        {/* Expiry Status Badge */}
+                                                        {currentData?.expiryDate && (
+                                                            <>
+                                                                {new Date(currentData.expiryDate) < new Date() ? (
+                                                                    <span className="ml-2 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
+                                                                        EXPIRED
+                                                                    </span>
+                                                                ) : new Date(currentData.expiryDate) < new Date(Date.now() + 90 * 24 * 60 * 60 * 1000) ? (
+                                                                    <span className="ml-2 px-3 py-1 bg-yellow-500 text-white text-xs font-bold rounded-full">
+                                                                        EXPIRING SOON
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="ml-2 px-3 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                                                                        VALID
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Insurance and Background Check */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         <div className="space-y-3">
                                             <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">Has Insurance</label>
@@ -658,6 +758,20 @@ const UserDetailsPage = () => {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Insurance Document (if has insurance) */}
+                                    {currentData?.hasInsurance && currentData?.insuranceDocument && (
+                                        <div className="space-y-4">
+                                            <label className="block font-semibold text-gray-700 text-sm uppercase tracking-wide">Insurance Document</label>
+                                            <Image
+                                                src={currentData.insuranceDocument}
+                                                alt="Insurance Document"
+                                                width={400}
+                                                height={300}
+                                                className="w-full max-w-md h-auto rounded-xl border-2 border-gray-200 shadow-md object-cover"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </section>

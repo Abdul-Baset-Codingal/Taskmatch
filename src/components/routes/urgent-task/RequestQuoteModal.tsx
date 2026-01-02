@@ -8,7 +8,6 @@ import {
     FaQuoteLeft,
     FaMapMarkerAlt,
     FaDollarSign,
-    FaClock,
     FaExclamationTriangle,
     FaPaperPlane,
     FaFileAlt,
@@ -18,10 +17,15 @@ import {
     FaInfoCircle,
     FaCheckCircle,
     FaShieldAlt,
+    FaChevronDown,
+    FaBuilding,
+    FaRoad,
+    FaClock,
 } from "react-icons/fa";
 import { useCreateRequestQuoteMutation } from "@/features/api/taskerApi";
 import Cookies from 'js-cookie';
 import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 interface Tasker {
     _id: string;
@@ -52,20 +56,43 @@ interface RequestQuoteModalProps {
     onClose: () => void;
 }
 
+// Canadian Provinces
+const canadianProvinces = [
+    { value: "", label: "Select Province" },
+    { value: "AB", label: "Alberta" },
+    { value: "BC", label: "British Columbia" },
+    { value: "MB", label: "Manitoba" },
+    { value: "NB", label: "New Brunswick" },
+    { value: "NL", label: "Newfoundland and Labrador" },
+    { value: "NS", label: "Nova Scotia" },
+    { value: "NT", label: "Northwest Territories" },
+    { value: "NU", label: "Nunavut" },
+    { value: "ON", label: "Ontario" },
+    { value: "PE", label: "Prince Edward Island" },
+    { value: "QC", label: "Quebec" },
+    { value: "SK", label: "Saskatchewan" },
+    { value: "YT", label: "Yukon" },
+];
+
 const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, onClose }) => {
     const [formData, setFormData] = useState({
         taskTitle: "",
         taskDescription: "",
-        location: "",
+        streetAddress: "",
+        city: "",
+        province: "",
         budget: "",
-        dateTime: "",
+        preferredDate: "",
+        preferredTime: "",
         urgency: "Flexible - Whenever works",
         taskType: "In-Person",
     });
+
     const [createRequestQuote, { isLoading, error }] = useCreateRequestQuoteMutation();
 
     console.log('All Cookies:', Cookies.get());
     console.log('isLoggedIn:', Cookies.get('isLoggedIn'));
+    const router = useRouter();
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -74,25 +101,102 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
         setFormData((prev) => ({
             ...prev,
             [name]: value,
-            ...(name === "taskType" ? { location: value === "Remote" ? "Remote" : "" } : {}),
+            ...(name === "taskType" && value === "Remote"
+                ? { streetAddress: "", city: "", province: "" }
+                : {}),
         }));
+    };
+
+    // Handle date change with blur to close picker
+    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        // Force blur to close the date picker
+        e.target.blur();
+    };
+
+    // Handle time change with blur to close picker
+    const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
+        // Force blur to close the time picker
+        e.target.blur();
+    };
+
+    // Get full location string for submission
+    const getFullLocation = () => {
+        if (formData.taskType === "Remote") {
+            return "Remote";
+        }
+        const provinceName = canadianProvinces.find(p => p.value === formData.province)?.label || formData.province;
+        const parts = [
+            formData.streetAddress,
+            formData.city,
+            provinceName
+        ].filter(Boolean);
+        return parts.join(", ");
+    };
+
+    // Get combined date-time for submission
+    const getCombinedDateTime = () => {
+        if (formData.preferredDate && formData.preferredTime) {
+            return `${formData.preferredDate}T${formData.preferredTime}`;
+        } else if (formData.preferredDate) {
+            return formData.preferredDate;
+        }
+        return undefined;
+    };
+
+    // Format date for display
+    const formatDateDisplay = (dateStr: string) => {
+        if (!dateStr) return "";
+        const date = new Date(dateStr + 'T00:00:00');
+        return date.toLocaleDateString('en-CA', {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        });
+    };
+
+    // Format time for display
+    const formatTimeDisplay = (timeStr: string) => {
+        if (!timeStr) return "";
+        const [hours, minutes] = timeStr.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const displayHour = hour % 12 || 12;
+        return `${displayHour}:${minutes} ${ampm}`;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!formData.taskTitle || !formData.taskDescription || (!formData.location && formData.taskType !== "Remote")) {
-            toast.error("Please fill in all required fields (Task Title, Description, Location)");
+        if (!formData.taskTitle || !formData.taskDescription) {
+            toast.error("Please fill in Task Title and Description");
             return;
+        }
+
+        if (formData.taskType === "In-Person") {
+            if (!formData.streetAddress || !formData.city || !formData.province) {
+                toast.error("Please fill in all address fields (Street Address, City, Province)");
+                return;
+            }
         }
 
         const quoteData = {
             taskerId: tasker._id,
             taskTitle: formData.taskTitle,
             taskDescription: formData.taskDescription,
-            location: formData.taskType === "Remote" ? "Remote" : formData.location,
+            location: getFullLocation(),
             budget: formData.budget || undefined,
-            preferredDateTime: formData.dateTime || undefined,
+            preferredDateTime: getCombinedDateTime(),
             urgency: formData.urgency || undefined,
             taskType: formData.taskType,
         };
@@ -110,6 +214,28 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
         }
     };
 
+    const handleViewTaskerProfile = () => {
+        router.push(`/taskers/${tasker._id}`);
+    };
+    // Get minimum date (today)
+    const getMinDate = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    };
+
+    // Clear date
+    const clearDate = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setFormData(prev => ({ ...prev, preferredDate: "" }));
+    };
+
+    // Clear time
+    const clearTime = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setFormData(prev => ({ ...prev, preferredTime: "" }));
+    };
 
     if (!isOpen) return null;
 
@@ -149,7 +275,12 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
                     {/* Tasker Info Card */}
                     <div className="mb-6 p-4 rounded-xl bg-[#E5FFDB]/50 border border-[#109C3D]/20">
                         <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#109C3D]/30 flex-shrink-0">
+                            {/* Clickable Profile Picture */}
+                            <div
+                                onClick={handleViewTaskerProfile}
+                                className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#109C3D]/30 flex-shrink-0 cursor-pointer hover:border-[#109C3D] hover:scale-105 transition-all duration-200"
+                                title={`View ${tasker.fullName}'s profile`}
+                            >
                                 {tasker.profilePicture ? (
                                     <Image
                                         src={tasker.profilePicture}
@@ -165,11 +296,20 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
                                     </div>
                                 )}
                             </div>
+
                             <div className="flex-1 min-w-0">
                                 <p className="text-xs text-gray-500 uppercase tracking-wide">Selected Tasker</p>
-                                <p className="text-base font-semibold text-[#063A41] truncate">{tasker.fullName}</p>
+                                {/* Clickable Name */}
+                                <p
+                                    onClick={handleViewTaskerProfile}
+                                    className="text-base font-semibold text-[#063A41] truncate cursor-pointer hover:text-[#109C3D] hover:underline transition-colors duration-200"
+                                    title={`View ${tasker.fullName}'s profile`}
+                                >
+                                    {tasker.fullName}
+                                </p>
                                 <p className="text-sm text-[#109C3D]">{tasker.service}</p>
                             </div>
+
                             <div className="flex items-center gap-1 text-xs text-[#109C3D] bg-[#E5FFDB] px-2 py-1 rounded-full">
                                 <FaCheckCircle className="text-[10px]" />
                                 <span>Verified</span>
@@ -190,10 +330,16 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, taskType: "In-Person", location: "" }))}
+                                    onClick={() => setFormData(prev => ({
+                                        ...prev,
+                                        taskType: "In-Person",
+                                        streetAddress: "",
+                                        city: "",
+                                        province: ""
+                                    }))}
                                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.taskType === "In-Person"
-                                            ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
-                                            : 'border-gray-200 text-gray-500 hover:border-[#109C3D]/30'
+                                        ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
+                                        : 'border-gray-200 text-gray-500 hover:border-[#109C3D]/30'
                                         }`}
                                 >
                                     <FaWalking className={formData.taskType === "In-Person" ? 'text-[#109C3D]' : ''} />
@@ -204,10 +350,16 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setFormData(prev => ({ ...prev, taskType: "Remote", location: "Remote" }))}
+                                    onClick={() => setFormData(prev => ({
+                                        ...prev,
+                                        taskType: "Remote",
+                                        streetAddress: "",
+                                        city: "",
+                                        province: ""
+                                    }))}
                                     className={`flex items-center justify-center gap-2 p-3 rounded-xl border-2 transition-all ${formData.taskType === "Remote"
-                                            ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
-                                            : 'border-gray-200 text-gray-500 hover:border-[#109C3D]/30'
+                                        ? 'border-[#109C3D] bg-[#E5FFDB] text-[#063A41]'
+                                        : 'border-gray-200 text-gray-500 hover:border-[#109C3D]/30'
                                         }`}
                                 >
                                     <FaLaptop className={formData.taskType === "Remote" ? 'text-[#109C3D]' : ''} />
@@ -260,112 +412,183 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
                             </p>
                         </div>
 
-                        {/* Location - Only shown for In-Person */}
+                        {/* Location Section - Only shown for In-Person */}
                         {formData.taskType !== "Remote" && (
-                            <div>
-                                <label className="block text-sm font-medium text-[#063A41] mb-2">
+                            <div className="space-y-4">
+                                <label className="block text-sm font-medium text-[#063A41]">
                                     Location <span className="text-red-500">*</span>
                                 </label>
+
+                                {/* Street Address */}
                                 <div className="relative">
                                     <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                                        <FaMapMarkerAlt className="text-gray-400" />
+                                        <FaRoad className="text-gray-400" />
                                     </div>
                                     <input
                                         type="text"
-                                        name="location"
-                                        value={formData.location}
+                                        name="streetAddress"
+                                        value={formData.streetAddress}
                                         onChange={handleInputChange}
                                         className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] placeholder-gray-400"
-                                        placeholder="Enter your address or location"
+                                        placeholder="Street Address (e.g., 123 Main Street)"
                                         required
                                     />
+                                </div>
+
+                                {/* City and Province Row */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {/* City */}
+                                    <div className="relative">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                                            <FaBuilding className="text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            name="city"
+                                            value={formData.city}
+                                            onChange={handleInputChange}
+                                            className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] placeholder-gray-400"
+                                            placeholder="City"
+                                            required
+                                        />
+                                    </div>
+
+                                    {/* Province Dropdown */}
+                                    <div className="relative">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                                            <FaMapMarkerAlt className="text-gray-400" />
+                                        </div>
+                                        <select
+                                            name="province"
+                                            value={formData.province}
+                                            onChange={handleInputChange}
+                                            className="w-full pl-11 pr-10 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] appearance-none bg-white cursor-pointer"
+                                            required
+                                        >
+                                            {canadianProvinces.map((province) => (
+                                                <option key={province.value} value={province.value}>
+                                                    {province.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                            <FaChevronDown className="text-gray-400 text-sm" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Location Preview */}
+                                {(formData.streetAddress || formData.city || formData.province) && (
+                                    <div className="p-3 bg-[#E5FFDB]/50 rounded-lg border border-[#109C3D]/20">
+                                        <p className="text-xs text-gray-500 mb-1">Full Address Preview:</p>
+                                        <p className="text-sm text-[#063A41] font-medium">
+                                            {getFullLocation() || "Start typing to see preview..."}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Remote Location Indicator */}
+                        {formData.taskType === "Remote" && (
+                            <div className="p-4 bg-blue-50 rounded-xl border border-blue-200 flex items-center gap-3">
+                                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <FaLaptop className="text-blue-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-blue-700">Remote Task</p>
+                                    <p className="text-xs text-blue-600">This task will be completed remotely - no physical location needed</p>
                                 </div>
                             </div>
                         )}
 
-                        {/* Two Column Layout */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {/* Budget */}
-                            <div>
-                                <label className="block text-sm font-medium text-[#063A41] mb-2">
-                                    Your Budget
-                                    <span className="text-gray-400 font-normal ml-1">(Optional)</span>
-                                </label>
-                                <div className="relative">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                                        <FaDollarSign className="text-gray-400" />
-                                    </div>
-                                    <input
-                                        type="text"
-                                        name="budget"
-                                        value={formData.budget}
-                                        onChange={handleInputChange}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] placeholder-gray-400"
-                                        placeholder="e.g., $100-200"
-                                    />
+                        {/* Budget */}
+                        <div>
+                            <label className="block text-sm font-medium text-[#063A41] mb-2">
+                                Your Budget <span className="text-gray-400 font-normal">(Optional)</span>
+                            </label>
+                            <div className="relative">
+                                <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                                    <FaDollarSign className="text-gray-400" />
                                 </div>
-                            </div>
-
-                            {/* Date & Time */}
-                            <div>
-                                <label className="block text-sm font-medium text-[#063A41] mb-2">
-                                    Preferred Date
-                                    <span className="text-gray-400 font-normal ml-1">(Optional)</span>
-                                </label>
-                                <div className="relative">
-                                    <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                                        <FaCalendarAlt className="text-gray-400" />
-                                    </div>
-                                    <input
-                                        type="datetime-local"
-                                        name="dateTime"
-                                        value={formData.dateTime}
-                                        onChange={handleInputChange}
-                                        className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41]"
-                                    />
-                                </div>
+                                <input
+                                    type="text"
+                                    name="budget"
+                                    value={formData.budget}
+                                    onChange={handleInputChange}
+                                    className="w-full pl-11 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] placeholder-gray-400"
+                                    placeholder="e.g., $100-200 or Leave blank for quote"
+                                />
                             </div>
                         </div>
 
-                        {/* Urgency Level */}
+                        {/* Date & Time Section */}
                         <div>
-                            <label className="block text-sm font-medium text-[#063A41] mb-3">
-                                Urgency Level
+                            <label className="block text-sm font-medium text-[#063A41] mb-2">
+                                Preferred Date & Time <span className="text-gray-400 font-normal">(Optional)</span>
                             </label>
-                            <div className="grid grid-cols-1 gap-2">
-                                {[
-                                    { value: "Flexible - Whenever works", icon: FaClock, label: "Flexible", sublabel: "Whenever works" },
-                                    { value: "Within a week", icon: FaCalendarAlt, label: "Within a Week", sublabel: "Moderate priority" },
-                                    { value: "As soon as possible", icon: FaExclamationTriangle, label: "ASAP", sublabel: "High priority" },
-                                ].map((option) => (
-                                    <button
-                                        key={option.value}
-                                        type="button"
-                                        onClick={() => setFormData(prev => ({ ...prev, urgency: option.value }))}
-                                        className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${formData.urgency === option.value
-                                                ? 'border-[#109C3D] bg-[#E5FFDB]'
-                                                : 'border-gray-200 hover:border-[#109C3D]/30'
-                                            }`}
-                                    >
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${formData.urgency === option.value
-                                                ? 'bg-[#109C3D] text-white'
-                                                : 'bg-gray-100 text-gray-400'
-                                            }`}>
-                                            <option.icon className="text-sm" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <p className={`font-medium ${formData.urgency === option.value ? 'text-[#063A41]' : 'text-gray-700'
-                                                }`}>
-                                                {option.label}
-                                            </p>
-                                            <p className="text-xs text-gray-500">{option.sublabel}</p>
-                                        </div>
-                                        {formData.urgency === option.value && (
-                                            <FaCheckCircle className="text-[#109C3D]" />
-                                        )}
-                                    </button>
-                                ))}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {/* Date Input */}
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                                        <FaCalendarAlt className="text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="date"
+                                        name="preferredDate"
+                                        value={formData.preferredDate}
+                                        onChange={handleDateChange}
+                                        onBlur={(e) => e.target.blur()}
+                                        min={getMinDate()}
+                                        className="w-full pl-11 pr-10 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                    />
+                                    {formData.preferredDate && (
+                                        <button
+                                            type="button"
+                                            onClick={clearDate}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all z-20"
+                                        >
+                                            <FaTimes className="text-xs" />
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Time Input */}
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none">
+                                        <FaClock className="text-gray-400" />
+                                    </div>
+                                    <input
+                                        type="time"
+                                        name="preferredTime"
+                                        value={formData.preferredTime}
+                                        onChange={handleTimeChange}
+                                        onBlur={(e) => e.target.blur()}
+                                        className="w-full pl-11 pr-10 py-3 rounded-xl border-2 border-gray-200 focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 transition-all text-[#063A41] cursor-pointer [&::-webkit-calendar-picker-indicator]:cursor-pointer"
+                                    />
+                                    {formData.preferredTime && (
+                                        <button
+                                            type="button"
+                                            onClick={clearTime}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all z-20"
+                                        >
+                                            <FaTimes className="text-xs" />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
+
+                            {/* Date/Time Preview */}
+                            {(formData.preferredDate || formData.preferredTime) && (
+                                <div className="mt-2 p-3 bg-[#E5FFDB]/50 rounded-lg border border-[#109C3D]/20 flex items-center gap-2">
+                                    <FaCheckCircle className="text-[#109C3D] text-sm flex-shrink-0" />
+                                    <p className="text-sm text-[#063A41]">
+                                        {formData.preferredDate && formatDateDisplay(formData.preferredDate)}
+                                        {formData.preferredDate && formData.preferredTime && " at "}
+                                        {formData.preferredTime && formatTimeDisplay(formData.preferredTime)}
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Error Display */}

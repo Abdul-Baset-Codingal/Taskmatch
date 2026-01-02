@@ -9,6 +9,7 @@ import {
     X,
     CreditCard,
     HelpCircle,
+    Wallet,
 
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ import { PaymentTransactions } from "./PaymentTransactions"
 import MyServices from "./MyServices"
 import UpdateDocument from "./UpdateDocument"
 import Image from "next/image"
+import StripeConnect from "./stripeConnect"
 
 // Separate PaymentTransactions component
 
@@ -55,7 +57,8 @@ const sidebarItems = [
     { title: "My Services", icon: CheckSquare, component: <MyServices /> },
     // { title: "My Profile", icon: FileText, component: <UpdateDocument /> },
     { title: "Payments", icon: CreditCard, component: <PaymentTransactions /> },
-    
+    // { title: "Payout Settings", icon: Wallet, component: <StripeConnect /> },  // 👈 Add this
+
 ]
 
 const supportItem = {
@@ -93,6 +96,8 @@ export function DashboardLayout({ isOpen, toggleSidebar }: DashboardLayoutProps)
                             <div className="flex items-center gap-2"> <Link href="/"> <h1 className="text-2xl xs:text-3xl sm:text-3xl lg:text-3xl font-bold color1 bg-clip-text text-transparent"> Taskallo </h1> </Link> </div>
                         </div>
                     </Link>
+
+              
                     <Button variant="ghost" size="icon" onClick={toggleSidebar} className="lg:hidden">
                         <X className="w-5 h-5" />
                     </Button>
@@ -128,15 +133,15 @@ export function DashboardLayout({ isOpen, toggleSidebar }: DashboardLayoutProps)
 
                 {/* Support */}
                 <div className="p-4 border-t border-gray-200">
-                  <Link href={'/contact-us'}>
+                    <Link href={'/contact-us'}>
                         <button
                             className="w-full flex items-center justify-start gap-3 h-11 rounded-xl border border-gray-300 px-4 transition-all hover:border-[#109C3D] hover:text-[#109C3D]"
-                            // onClick={() => window.open('mailto:support@taskallo.com', '_blank')}
+                        // onClick={() => window.open('mailto:support@taskallo.com', '_blank')}
                         >
                             <HelpCircle className="w-5 h-5" />
                             <span>Support & Help</span>
                         </button>
-                  </Link>
+                    </Link>
                 </div>
 
             </aside>
