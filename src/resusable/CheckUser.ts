@@ -3,7 +3,7 @@
 export const checkLoginStatus = async () => {
     try {
         const response = await fetch(
-            `http://localhost:5000/api/auth/verify-token`,
+            `/api/auth/verify-token`,
             {
                 method: "GET",
                 credentials: "include",

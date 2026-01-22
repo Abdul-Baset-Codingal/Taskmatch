@@ -505,7 +505,7 @@ const RequestQuoteModal: React.FC<RequestQuoteModalProps> = ({ tasker, isOpen, o
                         {/* Budget */}
                         <div>
                             <label className="block text-sm font-medium text-[#063A41] mb-2">
-                                Your Budget <span className="text-gray-400 font-normal">(Optional)</span>
+                                Your Budget
                             </label>
                             <div className="relative">
                                 <div className="absolute left-4 top-1/2 -translate-y-1/2">

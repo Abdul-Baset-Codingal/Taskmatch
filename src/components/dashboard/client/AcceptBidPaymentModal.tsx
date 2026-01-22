@@ -1,7 +1,5 @@
 
-// /* eslint-disable @typescript-eslint/no-unused-vars */
-// /* eslint-disable @typescript-eslint/ban-ts-comment */
-// // @ts-nocheck
+
 // 'use client';
 
 // import React, { useState, useEffect } from 'react';
@@ -28,20 +26,31 @@
 //     customerInfo?: CustomerInfo;
 // }
 
-// // Fee calculation constants
-// const PLATFORM_FEE_PERCENT = 0.15;  // 15%
-// const TAX_PERCENT = 0.13;           // 13% HST
+// // Fee calculation constants (DOUBLE-SIDED)
+// const PLATFORM_FEE_PERCENT = 0.15; // 15%
+// const TAX_PERCENT = 0.13; // 13% HST
 
 // const calculateFees = (bidAmount: number) => {
-//     const platformFee = Math.round(bidAmount * PLATFORM_FEE_PERCENT * 100) / 100;
-//     const taxOnFee = Math.round(platformFee * TAX_PERCENT * 100) / 100;
-//     const totalAmount = Math.round((bidAmount + platformFee + taxOnFee) * 100) / 100;
+//     // Client-side fee (15% added on top)
+//     const clientPlatformFee = Math.round(bidAmount * PLATFORM_FEE_PERCENT * 100) / 100;
+//     const taxOnClientFee = Math.round(clientPlatformFee * TAX_PERCENT * 100) / 100;
+//     const totalClientPays = Math.round((bidAmount + clientPlatformFee + taxOnClientFee) * 100) / 100;
+
+//     // Tasker-side fee (15% deducted)
+//     const taskerPlatformFee = Math.round(bidAmount * PLATFORM_FEE_PERCENT * 100) / 100;
+//     const taskerReceives = Math.round((bidAmount - taskerPlatformFee) * 100) / 100;
+
+//     // Platform total
+//     const platformTotal = Math.round((clientPlatformFee + taxOnClientFee + taskerPlatformFee) * 100) / 100;
 
 //     return {
 //         bidAmount,
-//         platformFee,
-//         taxOnFee,
-//         totalAmount
+//         clientPlatformFee,
+//         taxOnClientFee,
+//         totalClientPays,
+//         taskerPlatformFee,
+//         taskerReceives,
+//         platformTotal
 //     };
 // };
 
@@ -115,7 +124,7 @@
 //                     {/* Header */}
 //                     <div className="flex justify-between items-center mb-4">
 //                         <h2 className="text-2xl font-bold text-[#063A41]">
-//                             {paymentCompleted ? 'Processing...' : 'Secure Payment'}
+//                             {paymentCompleted ? 'Processing...' : 'Accept Bid & Pay'}
 //                         </h2>
 //                         {!paymentCompleted && (
 //                             <button
@@ -140,38 +149,47 @@
 //                         </div>
 //                     </div>
 
-//                     {/* ⭐ FEE BREAKDOWN */}
+//                     {/* ⭐ DOUBLE-SIDED FEE BREAKDOWN */}
 //                     <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-100">
 //                         <h4 className="font-semibold text-gray-700 mb-3 text-sm">Payment Summary</h4>
 
 //                         <div className="space-y-2">
+//                             {/* Bid Amount */}
 //                             <div className="flex justify-between text-sm">
 //                                 <span className="text-gray-600">Bid Amount:</span>
 //                                 <span className="font-medium text-gray-900">${fees.bidAmount.toFixed(2)}</span>
 //                             </div>
 
-//                             <div className="flex justify-between text-sm">
-//                                 <span className="text-gray-600">Platform Fee (15%):</span>
-//                                 <span className="font-medium text-gray-900">${fees.platformFee.toFixed(2)}</span>
+//                             {/* Your Fees Section */}
+//                             <div className="pt-2 border-t border-gray-200">
+//                                 <p className="text-xs text-gray-500 mb-1">Your Fees:</p>
+
+//                                 <div className="flex justify-between text-sm">
+//                                     <span className="text-gray-600 pl-2">Platform Fee (15%):</span>
+//                                     <span className="font-medium text-gray-900">+ ${fees.clientPlatformFee.toFixed(2)}</span>
+//                                 </div>
+
+//                                 <div className="flex justify-between text-sm">
+//                                     <span className="text-gray-600 pl-2">HST (13% on fee):</span>
+//                                     <span className="font-medium text-gray-900">+ ${fees.taxOnClientFee.toFixed(2)}</span>
+//                                 </div>
 //                             </div>
 
-//                             <div className="flex justify-between text-sm">
-//                                 <span className="text-gray-600">Tax (13% HST):</span>
-//                                 <span className="font-medium text-gray-900">${fees.taxOnFee.toFixed(2)}</span>
-//                             </div>
-
-//                             <div className="border-t border-gray-200 pt-2 mt-2">
+//                             {/* Total Client Pays */}
+//                             <div className="border-t border-gray-300 pt-3 mt-3">
 //                                 <div className="flex justify-between items-center">
-//                                     <span className="font-semibold text-gray-900">Total to Pay:</span>
-//                                     <span className="text-xl font-bold text-[#109C3D]">
-//                                         ${fees.totalAmount.toFixed(2)}
+//                                     <span className="font-bold text-gray-900">You Pay:</span>
+//                                     <span className="text-2xl font-bold text-[#E53935]">
+//                                         ${fees.totalClientPays.toFixed(2)}
 //                                     </span>
 //                                 </div>
 //                             </div>
+
 //                         </div>
 
-//                         <p className="text-xs text-gray-500 mt-3">
-//                             💡 This amount will be held until the task is completed
+//                         <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
+//                             <span>🔒</span>
+//                             <span>This amount will be held securely until task completion</span>
 //                         </p>
 //                     </div>
 
@@ -189,7 +207,7 @@
 //                                             Payment Authorized!
 //                                         </p>
 //                                         <p className="text-sm text-green-600 mt-1">
-//                                             ${fees.totalAmount.toFixed(2)} has been held
+//                                             ${fees.totalClientPays.toFixed(2)} has been held
 //                                         </p>
 //                                     </div>
 //                                 </div>
@@ -207,7 +225,7 @@
 //                                 toast.error(`❌ ${error}`);
 //                             }}
 //                             bidAmount={fees.bidAmount}
-//                             totalAmount={fees.totalAmount}  // Pass total for display
+//                             totalAmount={fees.totalClientPays}
 //                             taskId={taskId}
 //                             taskerId={taskerId}
 //                             customerInfo={customerInfo}
@@ -222,7 +240,6 @@
 // };
 
 // export default AcceptBidPaymentModal;
-
 
 
 'use client';
@@ -251,30 +268,45 @@ interface AcceptBidPaymentModalProps {
     customerInfo?: CustomerInfo;
 }
 
-// Fee calculation constants (DOUBLE-SIDED)
-const PLATFORM_FEE_PERCENT = 0.15; // 15%
-const TAX_PERCENT = 0.13; // 13% HST
+// ⭐ DOUBLE-SIDED FEE CONSTANTS
+// Client Side
+const CLIENT_PLATFORM_FEE_PERCENT = 0.10; // 10%
+const RESERVATION_FEE = 5;                 // $5 flat
+const CLIENT_TAX_PERCENT = 0.13;           // 13% HST
+
+// Tasker Side
+const TASKER_PLATFORM_FEE_PERCENT = 0.12; // 12%
+const TASKER_TAX_PERCENT = 0.13;           // 13% tax
 
 const calculateFees = (bidAmount: number) => {
-    // Client-side fee (15% added on top)
-    const clientPlatformFee = Math.round(bidAmount * PLATFORM_FEE_PERCENT * 100) / 100;
-    const taxOnClientFee = Math.round(clientPlatformFee * TAX_PERCENT * 100) / 100;
-    const totalClientPays = Math.round((bidAmount + clientPlatformFee + taxOnClientFee) * 100) / 100;
+    // ─── CLIENT SIDE ───
+    const clientPlatformFee = Math.round(bidAmount * CLIENT_PLATFORM_FEE_PERCENT * 100) / 100;
+    const reservationFee = RESERVATION_FEE;
+    const clientTax = Math.round(bidAmount * CLIENT_TAX_PERCENT * 100) / 100;
+    const totalClientPays = Math.round((bidAmount + clientPlatformFee + reservationFee + clientTax) * 100) / 100;
 
-    // Tasker-side fee (15% deducted)
-    const taskerPlatformFee = Math.round(bidAmount * PLATFORM_FEE_PERCENT * 100) / 100;
-    const taskerReceives = Math.round((bidAmount - taskerPlatformFee) * 100) / 100;
+    // ─── TASKER SIDE ───
+    const taskerPlatformFee = Math.round(bidAmount * TASKER_PLATFORM_FEE_PERCENT * 100) / 100;
+    const taskerTax = Math.round(bidAmount * TASKER_TAX_PERCENT * 100) / 100;
+    const totalTaskerDeductions = Math.round((taskerPlatformFee + taskerTax) * 100) / 100;
+    const taskerReceives = Math.round((bidAmount - totalTaskerDeductions) * 100) / 100;
 
-    // Platform total
-    const platformTotal = Math.round((clientPlatformFee + taxOnClientFee + taskerPlatformFee) * 100) / 100;
+    // ─── PLATFORM ───
+    const platformTotal = Math.round((totalClientPays - taskerReceives) * 100) / 100;
 
     return {
         bidAmount,
+        // Client
         clientPlatformFee,
-        taxOnClientFee,
+        reservationFee,
+        clientTax,
         totalClientPays,
+        // Tasker
         taskerPlatformFee,
+        taskerTax,
+        totalTaskerDeductions,
         taskerReceives,
+        // Platform
         platformTotal
     };
 };
@@ -381,27 +413,35 @@ const AcceptBidPaymentModal: React.FC<AcceptBidPaymentModalProps> = ({
                         <div className="space-y-2">
                             {/* Bid Amount */}
                             <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">Bid Amount:</span>
+                                <span className="text-gray-600">Task Price:</span>
                                 <span className="font-medium text-gray-900">${fees.bidAmount.toFixed(2)}</span>
                             </div>
 
-                            {/* Your Fees Section */}
+                            {/* Client Fees Section */}
                             <div className="pt-2 border-t border-gray-200">
                                 <p className="text-xs text-gray-500 mb-1">Your Fees:</p>
 
+                                {/* Platform Fee (10%) */}
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600 pl-2">Platform Fee (15%):</span>
+                                    <span className="text-gray-600 pl-2">Platform Fee:</span>
                                     <span className="font-medium text-gray-900">+ ${fees.clientPlatformFee.toFixed(2)}</span>
                                 </div>
 
+                                {/* Reservation Fee ($5) */}
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600 pl-2">HST (13% on fee):</span>
-                                    <span className="font-medium text-gray-900">+ ${fees.taxOnClientFee.toFixed(2)}</span>
+                                    <span className="text-gray-600 pl-2">Reservation Fee:</span>
+                                    <span className="font-medium text-gray-900">+ ${fees.reservationFee.toFixed(2)}</span>
+                                </div>
+
+                                {/* HST (13%) */}
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600 pl-2">HST (13%):</span>
+                                    <span className="font-medium text-gray-900">+ ${fees.clientTax.toFixed(2)}</span>
                                 </div>
                             </div>
 
                             {/* Total Client Pays */}
-                            <div className="border-t border-gray-300 pt-3 mt-3">
+                            <div className="border-t-2 border-gray-300 pt-3 mt-3">
                                 <div className="flex justify-between items-center">
                                     <span className="font-bold text-gray-900">You Pay:</span>
                                     <span className="text-2xl font-bold text-[#E53935]">
@@ -410,21 +450,12 @@ const AcceptBidPaymentModal: React.FC<AcceptBidPaymentModalProps> = ({
                                 </div>
                             </div>
 
-                            {/* Tasker Info */}
-                            {/* <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-100">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-green-700">Tasker will receive:</span>
-                                    <span className="font-bold text-green-700">${fees.taskerReceives.toFixed(2)}</span>
-                                </div>
-                                <p className="text-xs text-green-600 mt-1">
-                                    (After 15% platform fee deduction)
-                                </p>
-                            </div> */}
+                          
                         </div>
 
                         <p className="text-xs text-gray-500 mt-3 flex items-center gap-1">
                             <span>🔒</span>
-                            <span>This amount will be held securely until task completion</span>
+                            <span>Amount held securely until task completion</span>
                         </p>
                     </div>
 

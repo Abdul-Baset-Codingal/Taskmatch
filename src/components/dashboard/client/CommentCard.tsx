@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useGetUserByIdQuery } from "@/features/auth/authApi";
 import Image from "next/image";

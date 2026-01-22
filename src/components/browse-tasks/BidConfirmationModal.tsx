@@ -5,13 +5,13 @@ import { createPortal } from "react-dom";
 import {
     FiX,
     FiDollarSign,
-    FiPercent,
     FiCheckCircle,
     FiAlertCircle,
     FiArrowRight,
     FiInfo,
 } from "react-icons/fi";
 import { MdOutlineAccountBalance } from "react-icons/md";
+import { HiOutlineReceiptTax } from "react-icons/hi";
 
 interface BidConfirmationModalProps {
     isOpen: boolean;
@@ -22,10 +22,12 @@ interface BidConfirmationModalProps {
     isLoading?: boolean;
 }
 
-// Fee configuration - easy to update
+// ⭐ TASKER FEE CONFIGURATION - Double-sided fee structure
 const FEE_CONFIG = {
-    PLATFORM_FEE: 0.15,    // 8% platform fee
-    PLATFORM_LABEL: "Platform Fee",
+    PLATFORM_FEE_PERCENT: 0.12,    // 12% platform fee
+    TAX_PERCENT: 0.13,              // 13% tax
+    PLATFORM_LABEL: "Platform Fee ",
+    TAX_LABEL: "Tax (13%)",
 };
 
 const BidConfirmationModal: React.FC<BidConfirmationModalProps> = ({
@@ -39,18 +41,33 @@ const BidConfirmationModal: React.FC<BidConfirmationModalProps> = ({
     // Calculate all the amounts
     const calculations = useMemo(() => {
         const grossAmount = bidAmount;
-        const platformFee = grossAmount * FEE_CONFIG.PLATFORM_FEE;
-        const totalDeductions = platformFee;
+
+        // Platform Fee: 12% of bid amount
+        const platformFee = grossAmount * FEE_CONFIG.PLATFORM_FEE_PERCENT;
+
+        // Tax: 13% of bid amount
+        const tax = grossAmount * FEE_CONFIG.TAX_PERCENT;
+
+        // Total deductions
+        const totalDeductions = platformFee + tax;
+
+        // Net earnings (what tasker receives)
         const netEarnings = grossAmount - totalDeductions;
-        const totalDeductionPercent = FEE_CONFIG.PLATFORM_FEE * 100;
+
+        // Percentages for display
+        const totalDeductionPercent = (FEE_CONFIG.PLATFORM_FEE_PERCENT + FEE_CONFIG.TAX_PERCENT) * 100;
+        const platformPercent = FEE_CONFIG.PLATFORM_FEE_PERCENT * 100;
+        const taxPercent = FEE_CONFIG.TAX_PERCENT * 100;
 
         return {
             grossAmount,
             platformFee,
+            tax,
             totalDeductions,
             netEarnings,
             totalDeductionPercent,
-            platformPercent: FEE_CONFIG.PLATFORM_FEE * 100,
+            platformPercent,
+            taxPercent,
         };
     }, [bidAmount]);
 
@@ -58,11 +75,11 @@ const BidConfirmationModal: React.FC<BidConfirmationModalProps> = ({
 
     const modalContent = (
         <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn "
             onClick={onClose}
         >
             <div
-                className="bg-white rounded-3xl shadow-2xl w-full max-w-md transform transition-all duration-300 overflow-hidden"
+                className="bg-white rounded-3xl shadow-2xl w-full max-w-md transform transition-all duration-300 overflow-hidden lg:h-[700px] h-[500px] overflow-y-scroll "
                 onClick={(e) => e.stopPropagation()}
             >
                 {/* Header */}
@@ -129,12 +146,12 @@ const BidConfirmationModal: React.FC<BidConfirmationModalProps> = ({
                             <div className="flex items-center gap-2 mb-2">
                                 <FiAlertCircle className="text-gray-400" size={16} />
                                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                                    Deductions
+                                    Deductions ({calculations.totalDeductionPercent}% total)
                                 </span>
                             </div>
 
-                            {/* Platform Fee */}
-                            <div className="flex items-center justify-between py-2">
+                            {/* Platform Fee (12%) */}
+                            <div className="flex items-center justify-between py-2 border-b border-gray-200">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
                                         <MdOutlineAccountBalance className="text-purple-500" size={14} />
@@ -143,16 +160,38 @@ const BidConfirmationModal: React.FC<BidConfirmationModalProps> = ({
                                         <p className="font-medium text-gray-700 text-sm">
                                             {FEE_CONFIG.PLATFORM_LABEL}
                                         </p>
-
+                                        <p className="text-xs text-gray-400">
+                                            Service fee
+                                        </p>
                                     </div>
                                 </div>
                                 <span className="font-semibold text-red-500">
                                     -${calculations.platformFee.toFixed(2)}
                                 </span>
                             </div>
+
+                            {/* Tax (13%) */}
+                            <div className="flex items-center justify-between py-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                                        <HiOutlineReceiptTax className="text-amber-600" size={14} />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-700 text-sm">
+                                            {FEE_CONFIG.TAX_LABEL}
+                                        </p>
+                                        <p className="text-xs text-gray-400">
+                                            Tax withholding
+                                        </p>
+                                    </div>
+                                </div>
+                                <span className="font-semibold text-red-500">
+                                    -${calculations.tax.toFixed(2)}
+                                </span>
+                            </div>
+
+                        
                         </div>
-
-
 
                         {/* Net Earnings */}
                         <div className="flex items-center justify-between p-5 bg-gradient-to-r from-[#109C3D] to-[#063A41] rounded-2xl shadow-lg">
@@ -174,12 +213,34 @@ const BidConfirmationModal: React.FC<BidConfirmationModalProps> = ({
                         </div>
                     </div>
 
+                    {/* Earnings Summary Card */}
+                    <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-amber-600">💡</span>
+                            <p className="font-semibold text-amber-800 text-sm">Earnings Summary</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                            <div>
+                                <p className="text-xs text-gray-500">Bid</p>
+                                <p className="font-bold text-gray-700">${calculations.grossAmount.toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">Fees</p>
+                                <p className="font-bold text-red-500">-${calculations.totalDeductions.toFixed(2)}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-gray-500">You Get</p>
+                                <p className="font-bold text-green-600">${calculations.netEarnings.toFixed(2)}</p>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Info Note */}
-                    <div className="mt-5 flex items-start gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="mt-4 flex items-start gap-2 p-3 bg-blue-50 rounded-xl border border-blue-100">
                         <FiInfo className="text-blue-500 flex-shrink-0 mt-0.5" size={16} />
                         <p className="text-xs text-blue-700 leading-relaxed">
                             Payment will be released to your account after the client confirms
-                            task completion. Funds are held securely until then.
+                            task completion.
                         </p>
                     </div>
 

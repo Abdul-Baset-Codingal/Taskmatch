@@ -30,6 +30,7 @@ import MyServices from "./MyServices"
 import UpdateDocument from "./UpdateDocument"
 import Image from "next/image"
 import StripeConnect from "./stripeConnect"
+import BiddedTasks from "./BiddedTasks"
 
 // Separate PaymentTransactions component
 
@@ -50,6 +51,7 @@ const sidebarItems = [
     { title: "Dashboard", icon: Home, component: <DashboardContent />, active: true },
     // { title: "Urgent Tasks", icon: CheckSquare, component: <UrgentTaskCards /> },
     // { title: "Find Tasks", icon: CheckSquare, component: <AvailableTasks /> },
+    { title: "Bidded Tasks", icon: CheckSquare , component: <BiddedTasks /> },
     { title: "Active Tasks", icon: CheckSquare, component: <ActiveTasks /> },
     { title: "All Bookings", icon: Users, component: <PendingBookings /> },
     { title: "All Request-Quotes", icon: FileText, component: <TaskerQuotes /> },

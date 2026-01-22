@@ -170,18 +170,30 @@ const Banner = () => {
       <Navbar />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {/* Headline & Subtext */}
-        <div className="lg:space-y-6 space-y-6 mb-6 lg:mb-12">
-          <h1 className="text-2xl sm:text-5xl lg:text-5xl font-bold text-white font-nunito leading-tight ">
-            Canada's Most Reliable Task & Service Marketplace<br />
+        <div className="space-y-4 sm:space-y-5 lg:space-y-6 mb-6 lg:mb-12 px-4 sm:px-6 text-center">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-white font-nunito leading-snug sm:leading-tight">
+            Canada's Most Reliable Task & Service Marketplace
           </h1>
-          <p className="text-md sm:text-2xl text3 max-w-3xl mx-auto font-medium">
-            Post a task, request quotes, or choose ready-to-book services. <br /> Simple, transparent, and made for Canadians.
-          </p>
-          <div className="flex items-center justify-center">
-            <Image src="/Images/mapleLeaf.png" alt="Maple Leaf" width={24} height={24} className="inline-block" />          
-            <span className="text3">Proudly Canadian</span>
+
+          <p className="text-sm sm:text-xl lg:text-2xl text3 max-w-3xl mx-auto font-medium leading-relaxed">
+            Post a task, request quotes, or choose ready-to-book services. <br className="hidden sm:block" />
+
+            Your trusted platform for finding reliable local services.          </p>
+
+          <div className="flex items-center justify-center gap-2 pt-1">
+            <Image
+              src="/Images/mapleLeaf.png"
+              alt="Maple Leaf"
+              width={20}
+              height={20}
+              className="inline-block sm:w-6 sm:h-6"
+            />
+            <span className="text3 text-sm sm:text-base font-medium">
+              Proudly Canadian
+            </span>
           </div>
         </div>
+
 
         {/* Main Search Bar – Ultra-Prominent */}
         <div className="w-full max-w-4xl mx-auto mb-8">

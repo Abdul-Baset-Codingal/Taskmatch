@@ -6,7 +6,7 @@ import Cookies from 'js-cookie';
 export const taskApi = createApi({
     reducerPath: "taskApi",
     baseQuery: fetchBaseQuery({
-        baseUrl: `http://localhost:5000/api`,
+        baseUrl: `/api`,
         credentials: "include", // keep if you want to send cookies too
         prepareHeaders: (headers) => {
             const token = Cookies.get("token"); // get your JWT token from cookies (or change source if needed)
@@ -53,6 +53,44 @@ export const taskApi = createApi({
         }),
 
 
+        // Add these to your taskApi.ts endpoints
+
+        // Get tasks bidded by the current tasker
+        getTasksBiddedByTasker: builder.query<
+            { success: boolean; count: number; tasks: any[] },
+            { status?: string; bidStatus?: string } | void
+        >({
+            query: (params) => {
+                const queryParams = new URLSearchParams();
+                if (params?.status) queryParams.append('status', params.status);
+                if (params?.bidStatus) queryParams.append('bidStatus', params.bidStatus);
+
+                const queryString = queryParams.toString();
+                return `/tasks/my-bids${queryString ? `?${queryString}` : ''}`;
+            },
+            providesTags: ['Task'],
+        }),
+
+        // Get tasker's bid statistics  
+        getTaskerBidStats: builder.query<
+            {
+                success: boolean;
+                stats: {
+                    totalBids: number;
+                    pendingBids: number;
+                    acceptedBids: number;
+                    rejectedBids: number;
+                    withdrawnBids: number;
+                    totalBidAmount: number;
+                    averageBidAmount: number;
+                    acceptanceRate: number;
+                }
+            },
+            void
+        >({
+            query: () => '/tasks/my-bids/stats',
+            providesTags: ['Task'],
+        }),
         // Get filter options
         getTaskFilters: builder.query({
             query: () => '/tasks/filters',
@@ -167,22 +205,6 @@ export const taskApi = createApi({
             invalidatesTags: ['Task'],
         }),
 
-        // -------------------------------for bid 
-
-        // createSetupIntentForBid: builder.mutation({
-        //     query: (data) => ({
-        //         url: '/tasks/setup-intent-bid',
-        //         method: 'POST',
-        //         body: data
-        //     })
-        // }),
-        // confirmBidPaymentSetup: builder.mutation({
-        //     query: (data) => ({
-        //         url: '/tasks/confirm-bid-setup',
-        //         method: 'POST',
-        //         body: data
-        //     })
-        // }),
 
         // In your taskApi.ts
         createSetupIntentForBid: builder.mutation({
@@ -223,31 +245,7 @@ export const taskApi = createApi({
         }),
 
 
-        // createSetupIntent: builder.mutation({
-        //     query: ({ taskId, taskerId, bidAmount }: {
-        //         taskId: string;
-        //         taskerId: string;
-        //         bidAmount: number
-        //     }) => ({
-        //         url: '/tasks/setup-intent',
-        //         method: 'POST',
-        //         body: { taskId, taskerId, bidAmount },
-        //     }),
-        // }),
 
-        // savePaymentMethod: builder.mutation({
-        //     query: ({ paymentMethodId, taskId, taskerId, bidAmount }: {
-        //         paymentMethodId: string;
-        //         taskId: string;
-        //         taskerId: string;
-        //         bidAmount: number
-        //     }) => ({
-        //         url: '/tasks/save-payment-method',
-        //         method: 'POST',
-        //         body: { paymentMethodId, taskId, taskerId, bidAmount },
-        //     }),
-        //     invalidatesTags: ['Task'],
-        // }),
 
         // Edit a message
         updateMessage: builder.mutation({
@@ -438,6 +436,8 @@ export const {
     useGetTasksExcludingStatusQuery,
     useGetTasksByTaskerIdAndStatusQuery,
     useGetTasksByClientQuery,
+    useGetTasksBiddedByTaskerQuery,
+    useGetTaskerBidStatsQuery,
     useAddTaskReviewMutation,
     useRequestCompletionMutation,
     useDeclineByTaskerMutation,

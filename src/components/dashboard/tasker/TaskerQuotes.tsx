@@ -10,17 +10,16 @@ import { HiOutlineDocumentText } from "react-icons/hi";
 import { toast } from "react-toastify";
 
 // Fee constants (same as backend)
-const PLATFORM_FEE_PERCENT = 0.15;  // 15%
-const TAX_PERCENT = 0.13;           // 13% HST
+const PLATFORM_FEE_PERCENT = 0.12;  // 12%
+const TAX_PERCENT = 0.13;           // 13% HST (on bid amount)
 
 interface FeeBreakdown {
     bidAmount: number;
-    clientPlatformFee: number;
-    taxOnClientFee: number;
-    totalClientPays: number;
-    taskerPlatformFee: number;
+    platformFee: number;
+    tax: number;
+    totalDeductions: number;
     taskerPayout: number;
-    platformTotal: number;
+    totalClientPays: number;
 }
 
 interface Bid {
@@ -76,26 +75,28 @@ const formatCurrency = (amount: number) => {
 };
 
 // Calculate fees on frontend (for instant preview)
+// Platform Fee: 12% of bid, Tax: 13% of bid, Tasker gets 75%
 const calculateFees = (bidAmount: number): FeeBreakdown => {
     const bidAmountCents = Math.round(bidAmount * 100);
 
+    // Calculate deductions from tasker
+    const platformFee = Math.round(bidAmountCents * PLATFORM_FEE_PERCENT); // 12%
+    const tax = Math.round(bidAmountCents * TAX_PERCENT); // 13%
+    const totalDeductions = platformFee + tax; // 25%
+    const taskerPayout = bidAmountCents - totalDeductions; // 75%
+
+    // What client pays (bid amount + their platform fee + tax on their fee)
     const clientPlatformFee = Math.round(bidAmountCents * PLATFORM_FEE_PERCENT);
-    const taxOnClientFee = Math.round(clientPlatformFee * TAX_PERCENT);
-    const totalClientPays = bidAmountCents + clientPlatformFee + taxOnClientFee;
-
-    const taskerPlatformFee = Math.round(bidAmountCents * PLATFORM_FEE_PERCENT);
-    const taskerPayout = bidAmountCents - taskerPlatformFee;
-
-    const platformTotal = clientPlatformFee + taxOnClientFee + taskerPlatformFee;
+    const clientTax = Math.round(clientPlatformFee * TAX_PERCENT);
+    const totalClientPays = bidAmountCents + clientPlatformFee + clientTax;
 
     return {
         bidAmount: bidAmountCents / 100,
-        clientPlatformFee: clientPlatformFee / 100,
-        taxOnClientFee: taxOnClientFee / 100,
-        totalClientPays: totalClientPays / 100,
-        taskerPlatformFee: taskerPlatformFee / 100,
+        platformFee: platformFee / 100,
+        tax: tax / 100,
+        totalDeductions: totalDeductions / 100,
         taskerPayout: taskerPayout / 100,
-        platformTotal: platformTotal / 100,
+        totalClientPays: totalClientPays / 100,
     };
 };
 
@@ -207,7 +208,7 @@ const FeePreviewModal: React.FC<FeePreviewModalProps> = ({
                             </span>
                         </div>
 
-
+                        {/* What You Receive Section */}
                         <div className="border-t border-dashed border-gray-200 pt-4">
                             <div className="flex items-center gap-2 mb-3">
                                 <FaDollarSign className="w-4 h-4 text-[#109C3D]" />
@@ -220,20 +221,31 @@ const FeePreviewModal: React.FC<FeePreviewModalProps> = ({
                                 </div>
                                 <div className="flex justify-between text-sm text-red-600">
                                     <span>Platform Fee </span>
-                                    <span>-{formatCurrency(fees.taskerPlatformFee)}</span>
+                                    <span>-{formatCurrency(fees.platformFee)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm text-red-600">
+                                    <span>HST (13%)</span>
+                                    <span>-{formatCurrency(fees.tax)}</span>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500 pt-1">
+                                    <span>Total Deductions </span>
+                                    <span>-{formatCurrency(fees.totalDeductions)}</span>
                                 </div>
                                 <div className="flex justify-between font-bold text-[#109C3D] pt-2 border-t border-green-300 text-lg">
-                                    <span>You Receive</span>
+                                    <span>You Receive </span>
                                     <span>{formatCurrency(fees.taskerPayout)}</span>
                                 </div>
                             </div>
                         </div>
 
+                     
+
                         {/* Note about payment */}
                         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mt-4">
                             <p className="text-xs text-amber-800">
+                                <FaInfoCircle className="inline w-3 h-3 mr-1" />
                                 <strong>Note:</strong> Payment will be held securely when the client accepts your bid.
-                                You'll receive {formatCurrency(fees.taskerPayout)} after task completion.
+                                You&apos;ll receive {formatCurrency(fees.taskerPayout)} after task completion.
                             </p>
                         </div>
                     </div>
@@ -279,7 +291,7 @@ export default function TaskerQuotes() {
     const [openBidForm, setOpenBidForm] = useState<string | null>(null);
     const [bidData, setBidData] = useState({ bidAmount: "", bidDescription: "", estimatedDuration: "1" });
 
-    // ⭐ New state for modal
+    // State for modal
     const [showFeeModal, setShowFeeModal] = useState(false);
     const [currentTaskForBid, setCurrentTaskForBid] = useState<Task | null>(null);
 
@@ -289,7 +301,7 @@ export default function TaskerQuotes() {
     useEffect(() => {
         const checkLogin = async () => {
             try {
-                const res = await fetch(`http://localhost:5000/api/auth/verify-token`, {
+                const res = await fetch(`/api/auth/verify-token`, {
                     method: "GET",
                     credentials: "include",
                 });
@@ -334,7 +346,7 @@ export default function TaskerQuotes() {
         setBidData({ bidAmount: "", bidDescription: "", estimatedDuration: "1" });
     };
 
-    // ⭐ Show modal instead of submitting directly
+    // Show modal instead of submitting directly
     const handlePreviewBid = (task: Task) => {
         if (!bidData.bidAmount || Number(bidData.bidAmount) <= 0) {
             toast.error("Please enter a valid amount");
@@ -350,7 +362,7 @@ export default function TaskerQuotes() {
         setShowFeeModal(true);
     };
 
-    // ⭐ Actual submission after modal confirmation
+    // Actual submission after modal confirmation
     const handleConfirmBid = async () => {
         if (!currentTaskForBid) return;
 
@@ -644,10 +656,14 @@ export default function TaskerQuotes() {
                                                                     </span>
                                                                 </div>
                                                             </div>
-                                                            {/* Show payout info */}
+                                                            {/* Show payout info with updated fees */}
                                                             <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
                                                                 <span>
-                                                                    Client pays: <strong className="text-gray-700">{formatCurrency(bidFees.totalClientPays)}</strong>
+                                                                    Bid: <strong className="text-gray-700">{formatCurrency(bidFees.bidAmount)}</strong>
+                                                                </span>
+                                                                <span>•</span>
+                                                                <span>
+                                                                    Deductions (25%): <strong className="text-red-500">-{formatCurrency(bidFees.totalDeductions)}</strong>
                                                                 </span>
                                                                 <span>•</span>
                                                                 <span>
@@ -724,23 +740,35 @@ export default function TaskerQuotes() {
                                                     />
                                                 </div>
 
-                                                {/* ⭐ Real-time Fee Preview */}
+                                                {/* Real-time Fee Preview */}
                                                 {currentFees && Number(bidData.bidAmount) > 0 && (
                                                     <div className="bg-gradient-to-r from-[#E5FFDB] to-[#d4f5c7] rounded-lg p-4 mb-4">
                                                         <div className="flex items-center gap-2 mb-3">
                                                             <FaCalculator className="w-4 h-4 text-[#109C3D]" />
                                                             <span className="text-sm font-semibold text-[#063A41]">Fee Preview</span>
                                                         </div>
-                                                        <div className="grid grid-cols-1 gap-4">
-                                                          
+                                                        <div className="grid grid-cols-2 gap-4">
                                                             <div className="bg-white/70 rounded-lg p-3">
-                                                                <p className="text-xs text-gray-500 mb-1">You Receive</p>
+                                                                <p className="text-xs text-gray-500 mb-1">Your Bid</p>
+                                                                <p className="text-lg font-bold text-[#063A41]">
+                                                                    {formatCurrency(currentFees.bidAmount)}
+                                                                </p>
+                                                            </div>
+                                                            <div className="bg-white/70 rounded-lg p-3">
+                                                                <p className="text-xs text-gray-500 mb-1">You Receive </p>
                                                                 <p className="text-lg font-bold text-[#109C3D]">
                                                                     {formatCurrency(currentFees.taskerPayout)}
                                                                 </p>
-                                                                <p className="text-xs text-gray-400">
-                                                                    (after platform fee)
-                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="mt-3 pt-3 border-t border-green-300/50 grid grid-cols-2 gap-2 text-xs text-gray-600">
+                                                            <div className="flex justify-between">
+                                                                <span>Platform Fee :</span>
+                                                                <span className="text-red-500">-{formatCurrency(currentFees.platformFee)}</span>
+                                                            </div>
+                                                            <div className="flex justify-between">
+                                                                <span>HST (13%):</span>
+                                                                <span className="text-red-500">-{formatCurrency(currentFees.tax)}</span>
                                                             </div>
                                                         </div>
                                                     </div>

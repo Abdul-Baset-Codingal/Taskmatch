@@ -45,7 +45,7 @@ const ContactPage = () => {
                 _autoresponse: "Thank you for contacting Taskallo! We have received your message and will get back to you within 24 hours."
             };
 
-            const response = await fetch('https://formsubmit.co/ajax/taskallo88@gmail.com', {
+            const response = await fetch('https://formsubmit.co/ajax/support@taskallo.com', {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json",

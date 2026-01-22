@@ -110,7 +110,7 @@ const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/auth/check-email?email=${encodeURIComponent(emailValue)}`,
+                `/api/auth/check-email?email=${encodeURIComponent(emailValue)}`,
                 {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },

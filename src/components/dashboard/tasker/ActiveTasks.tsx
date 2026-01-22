@@ -40,7 +40,7 @@ export default function ActiveTasks() {
   useEffect(() => {
     const checkLogin = async () => {
       try {
-        const res = await fetch(`http://localhost:5000/api/auth/verify-token`, {
+        const res = await fetch(`/api/auth/verify-token`, {
           method: "GET",
           credentials: "include",
         });

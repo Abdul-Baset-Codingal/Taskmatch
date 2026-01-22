@@ -96,7 +96,7 @@ const AllBookings: React.FC = () => {
     // Check login status
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
             });
@@ -223,7 +223,7 @@ const AllBookings: React.FC = () => {
 
     const handleReviewSubmit = async (bookingId: string) => {
         try {
-            const response = await fetch("http://localhost:5000/api/taskerBookings/reviews", {
+            const response = await fetch("/api/taskerBookings/reviews", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

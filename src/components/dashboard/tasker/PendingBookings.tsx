@@ -30,7 +30,7 @@ const PendingBookings = () => {
 
     const checkLoginStatus = async () => {
         try {
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
             });
@@ -53,7 +53,7 @@ const PendingBookings = () => {
 
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:5000/api/taskerBookings/tasker/${userId}`, {
+            const response = await fetch(`/api/taskerBookings/tasker/${userId}`, {
                 credentials: "include",
             });
 
@@ -72,7 +72,7 @@ const PendingBookings = () => {
 
     const updateStatus = async (bookingId: string, newStatus: string) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/taskerBookings/${bookingId}`, {
+            const response = await fetch(`/api/taskerBookings/${bookingId}`, {
                 method: "PUT",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },

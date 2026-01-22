@@ -23,10 +23,23 @@ import { toast } from "react-toastify";
 import {
     Save, Upload, CheckCircle, AlertCircle, User, Shield, FileText, X,
     Calendar, Edit3, Globe, Clock, Banknote, Lock, AlertTriangle,
-    ExternalLink, CreditCard, RefreshCw, Building2
+    ExternalLink, CreditCard, RefreshCw, Building2, Briefcase, Check
 } from "lucide-react";
 import { HiOutlineDocumentText } from "react-icons/hi";
 import Navbar from "@/shared/Navbar";
+
+// ==================== SERVICE CATEGORIES ====================
+const SERVICE_CATEGORIES = [
+    { id: 'handyman', label: 'Handyman & Home Repairs', icon: '🔧' },
+    { id: 'renovation', label: 'Renovation & Moving Help', icon: '🏗️' },
+    { id: 'pet', label: 'Pet Services', icon: '🐕' },
+    { id: 'cleaning', label: 'Cleaning Services', icon: '🧹' },
+    { id: 'peh', label: 'Plumbing, Electrical & HVAC (PEH)', icon: '⚡' },
+    { id: 'automotive', label: 'Automotive Services', icon: '🚗' },
+    { id: 'specialized', label: 'All Other Specialized Services', icon: '⭐' },
+];
+
+const MIN_CATEGORIES_REQUIRED = 2;
 
 const uploadToImgBB = async (file: File): Promise<string> => {
     const formData = new FormData();
@@ -68,13 +81,14 @@ const UpdateDocument = () => {
         dob: "" as string,
         about: "" as string,
         yearsOfExperience: "" as string,
+        categories: [] as string[], // ADDED: Service categories
 
         // ID Verification - matches nested schema
-        idVerificationType: "" as string,  // "passport" | "governmentID" | "driverLicense"
+        idVerificationType: "" as string,
         idDocumentFront: "" as string,
         idDocumentBack: "" as string,
-        idIssueDate: "" as string,      // ADDED
-        idExpiryDate: "" as string,     // ADDED
+        idIssueDate: "" as string,
+        idExpiryDate: "" as string,
 
         // Insurance - matches nested schema
         hasInsurance: false as boolean,
@@ -94,8 +108,6 @@ const UpdateDocument = () => {
     const [completedSections, setCompletedSections] = useState<Set<string>>(new Set());
     const [sectionValidation, setSectionValidation] = useState<Record<string, boolean>>({});
     const [showInsuranceUpload, setShowInsuranceUpload] = useState(false);
-    // Add state for date validation errors
-    // Add state for date validation errors
     const [dateErrors, setDateErrors] = useState<{
         issueDate?: string;
         expiryDate?: string;
@@ -176,6 +188,7 @@ const UpdateDocument = () => {
                 dob: userData.dob ? new Date(userData.dob).toISOString().split('T')[0] : "",
                 about: userData.about || "",
                 yearsOfExperience: userData.yearsOfExperience?.toString() || "",
+                categories: userData.categories || [], // ADDED
 
                 // ID Verification - from nested structure
                 idVerificationType: userData.idVerification?.type || "",
@@ -226,9 +239,17 @@ const UpdateDocument = () => {
         stripeStatus?.status === 'not_connected' ||
         stripeStatus?.connected === false;
 
+    // Updated Stripe onboarding handlers
     const handleStartStripeOnboarding = async () => {
         try {
-            const result = await startStripeOnboarding().unwrap();
+            const returnUrl = `${window.location.origin}/complete-tasker-profile?stripe_return=complete`;
+            const refreshUrl = `${window.location.origin}/complete-tasker-profile?stripe_return=refresh`;
+
+            const result = await startStripeOnboarding({
+                returnUrl,
+                refreshUrl
+            }).unwrap();
+
             if (result.url) {
                 window.location.href = result.url;
             }
@@ -240,7 +261,14 @@ const UpdateDocument = () => {
 
     const handleRefreshOnboarding = async () => {
         try {
-            const result = await refreshOnboarding().unwrap();
+            const returnUrl = `${window.location.origin}/complete-tasker-profile?stripe_return=complete`;
+            const refreshUrl = `${window.location.origin}/complete-tasker-profile?stripe_return=refresh`;
+
+            const result = await refreshOnboarding({
+                returnUrl,
+                refreshUrl
+            }).unwrap();
+
             if (result.url) {
                 window.location.href = result.url;
             }
@@ -262,20 +290,44 @@ const UpdateDocument = () => {
         }
     };
 
+    // ==================== CATEGORY HANDLERS ====================
+    const handleCategoryToggle = (categoryId: string) => {
+        setFormData(prev => {
+            const currentCategories = prev.categories || [];
+            const isSelected = currentCategories.includes(categoryId);
 
-    // Helper function to validate dates - ONLY validates complete dates
+            if (isSelected) {
+                // Remove category
+                return {
+                    ...prev,
+                    categories: currentCategories.filter(c => c !== categoryId)
+                };
+            } else {
+                // Add category
+                return {
+                    ...prev,
+                    categories: [...currentCategories, categoryId]
+                };
+            }
+        });
+    };
 
-    // Check if a date string is complete (YYYY-MM-DD format with 4-digit year)
+    const getCategoryValidationStatus = () => {
+        const count = formData.categories?.length || 0;
+        if (count === 0) return { status: 'empty', message: `Select at least ${MIN_CATEGORIES_REQUIRED} categories` };
+        if (count < MIN_CATEGORIES_REQUIRED) return { status: 'incomplete', message: `Select ${MIN_CATEGORIES_REQUIRED - count} more category${MIN_CATEGORIES_REQUIRED - count > 1 ? 's' : ''}` };
+        return { status: 'complete', message: `${count} categories selected` };
+    };
+
+    // ==================== DATE VALIDATION ====================
     const isCompleteDateString = (dateStr: string): boolean => {
         if (!dateStr) return false;
         const parts = dateStr.split('-');
         return parts.length === 3 && parts[0].length === 4 && parts[1].length === 2 && parts[2].length === 2;
     };
 
-    // Sanitize date value - restrict year to 4 digits
     const sanitizeDateValue = (value: string): string => {
         if (!value) return value;
-
         const parts = value.split('-');
         if (parts[0] && parts[0].length > 4) {
             parts[0] = parts[0].slice(0, 4);
@@ -284,16 +336,13 @@ const UpdateDocument = () => {
         return value;
     };
 
-    // Validate dates function
     const validateDates = (issueDate: string, expiryDate: string): { issueDate?: string; expiryDate?: string } => {
         const errors: { issueDate?: string; expiryDate?: string } = {};
         const todayDate = new Date();
         todayDate.setHours(0, 0, 0, 0);
 
-        // Validate issue date
         if (issueDate) {
             const issue = new Date(issueDate);
-
             if (isNaN(issue.getTime())) {
                 errors.issueDate = "Invalid date";
             } else if (issue > todayDate) {
@@ -303,10 +352,8 @@ const UpdateDocument = () => {
             }
         }
 
-        // Validate expiry date
         if (expiryDate) {
             const expiry = new Date(expiryDate);
-
             if (isNaN(expiry.getTime())) {
                 errors.expiryDate = "Invalid date";
             } else if (expiry <= todayDate) {
@@ -316,7 +363,6 @@ const UpdateDocument = () => {
             }
         }
 
-        // Check if expiry is after issue date
         if (issueDate && expiryDate && !errors.issueDate && !errors.expiryDate) {
             const issue = new Date(issueDate);
             const expiry = new Date(expiryDate);
@@ -328,41 +374,31 @@ const UpdateDocument = () => {
         return errors;
     };
 
-    // Handle issue date change
     const handleIssueDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setFormData(prev => ({ ...prev, idIssueDate: value }));
-
-        // Validate
         const errors = validateDates(value, formData.idExpiryDate);
         setDateErrors(errors);
     };
 
-    // Handle expiry date change
     const handleExpiryDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setFormData(prev => ({ ...prev, idExpiryDate: value }));
-
-        // Validate
         const errors = validateDates(formData.idIssueDate, value);
         setDateErrors(errors);
     };
 
-    // Handle blur - validate on blur too
     const handleDateBlur = () => {
         const errors = validateDates(formData.idIssueDate, formData.idExpiryDate);
         setDateErrors(errors);
     };
 
-    // Check if dates are valid for submission
     const areDatesValid = (): boolean => {
         if (!formData.idIssueDate || !formData.idExpiryDate) return false;
         if (!isCompleteDateString(formData.idIssueDate) || !isCompleteDateString(formData.idExpiryDate)) return false;
         const errors = validateDates(formData.idIssueDate, formData.idExpiryDate);
         return Object.keys(errors).length === 0;
     };
- 
-
 
     // ==================== VALIDATION ====================
     const getMissingFields = (sectionId: string): string[] => {
@@ -376,19 +412,19 @@ const UpdateDocument = () => {
                 if (!formData.dob) missing.push('Date of Birth');
                 if (!formData.yearsOfExperience) missing.push('Years of Experience');
                 if (!formData.about) missing.push('About Me');
+                // ADDED: Categories validation
+                if (!formData.categories || formData.categories.length < MIN_CATEGORIES_REQUIRED) {
+                    missing.push(`Service Categories (min ${MIN_CATEGORIES_REQUIRED})`);
+                }
                 break;
             case 'id-verification':
                 if (!formData.idVerificationType) missing.push('ID Type');
                 if (formData.idVerificationType) {
-                    // Issue and Expiry dates are required
                     if (!formData.idIssueDate) missing.push('Issue Date');
                     if (!formData.idExpiryDate) missing.push('Expiry Date');
-
-                    // Front document is always required
                     if (!formData.idDocumentFront || formData.idDocumentFront.startsWith('blob:')) {
                         missing.push('ID Document (Front)');
                     }
-                    // Back document only required for governmentID
                     if (formData.idVerificationType === 'governmentID') {
                         if (!formData.idDocumentBack || formData.idDocumentBack.startsWith('blob:')) {
                             missing.push('ID Document (Back)');
@@ -438,7 +474,12 @@ const UpdateDocument = () => {
             validation.personal = !!personalValid;
             if (personalValid) completed.add('personal');
 
-            const professionalValid = formData.dob && formData.yearsOfExperience && formData.about;
+            // UPDATED: Added categories validation
+            const professionalValid = formData.dob &&
+                formData.yearsOfExperience &&
+                formData.about &&
+                formData.categories &&
+                formData.categories.length >= MIN_CATEGORIES_REQUIRED;
             validation.professional = !!professionalValid;
             if (professionalValid) completed.add('professional');
 
@@ -539,10 +580,8 @@ const UpdateDocument = () => {
         setFormData(prev => ({
             ...prev,
             idVerificationType: value,
-            // Clear documents when type changes
             idDocumentFront: "",
             idDocumentBack: "",
-            // Keep dates - user might want to reuse them
         }));
     };
 
@@ -623,6 +662,10 @@ const UpdateDocument = () => {
         if (formData.dob) payload.dob = new Date(formData.dob);
         if (formData.about) payload.about = formData.about;
         if (formData.yearsOfExperience) payload.yearsOfExperience = parseInt(formData.yearsOfExperience, 10);
+        // ADDED: Include categories
+        if (formData.categories && formData.categories.length >= MIN_CATEGORIES_REQUIRED) {
+            payload.categories = formData.categories;
+        }
 
         console.log('💾 Saving professional profile:', payload);
 
@@ -641,7 +684,6 @@ const UpdateDocument = () => {
         if (!user?._id) return toast.error("User not logged in.");
         if (!formData.idVerificationType) return toast.error("Please select ID type.");
 
-        // Check for pending uploads
         if (formData.idDocumentFront?.startsWith('blob:')) {
             return toast.warn("Please wait for front document upload to complete.");
         }
@@ -649,7 +691,6 @@ const UpdateDocument = () => {
             return toast.warn("Please wait for back document upload to complete.");
         }
 
-        // Validate dates
         if (!formData.idIssueDate) {
             return toast.error("Please enter the issue date.");
         }
@@ -657,7 +698,6 @@ const UpdateDocument = () => {
             return toast.error("Please enter the expiry date.");
         }
 
-        // Run validation
         const errors = validateDates(formData.idIssueDate, formData.idExpiryDate);
         setDateErrors(errors);
 
@@ -673,7 +713,6 @@ const UpdateDocument = () => {
             return toast.error(`Please fill in: ${missing.join(', ')}`);
         }
 
-        // Build payload
         const payload: any = {
             userId: user._id,
             idVerification: {
@@ -699,6 +738,7 @@ const UpdateDocument = () => {
             toast.error(`Failed: ${err.data?.error || err.data?.message || err.message || 'Unknown error'}`);
         }
     };
+
     const handleContinueFromPayment = () => {
         if (!isStripeConnected) {
             return toast.error("Please complete Stripe payment setup to continue.");
@@ -707,7 +747,6 @@ const UpdateDocument = () => {
         navigateToNextSection();
     };
 
-    // Insurance save handler - uses nested schema
     const handleSaveInsurance = async () => {
         if (!user?._id) return toast.error("User not logged in.");
         if (formData.insuranceDocument?.startsWith('blob:')) return toast.warn("Please wait for upload to complete.");
@@ -717,13 +756,12 @@ const UpdateDocument = () => {
             return toast.error(`Please fill in: ${missing.join(', ')}`);
         }
 
-        // Build payload with NESTED structure matching new schema
         const payload: any = {
             userId: user._id,
             insurance: {
                 hasInsurance: formData.hasInsurance,
                 documentUrl: formData.hasInsurance ? formData.insuranceDocument : null,
-                verified: false, // Admin will verify
+                verified: false,
             }
         };
 
@@ -1063,15 +1101,145 @@ const UpdateDocument = () => {
                             </div>
                         </div>
 
+                        {/* ==================== SERVICE CATEGORIES SECTION ==================== */}
+                        <div className={`bg-white rounded-lg border p-5 ${isSectionLocked('professional') ? 'opacity-75' : ''}`}>
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="font-medium text-[#063A41] flex items-center gap-2">
+                                    <Briefcase className="w-5 h-5" />
+                                    Service Categories
+                                    {isSectionLocked('professional') && <Lock className="w-4 h-4 text-blue-500" />}
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    {(() => {
+                                        const validation = getCategoryValidationStatus();
+                                        return (
+                                            <span className={`text-sm flex items-center gap-1 ${validation.status === 'complete'
+                                                    ? 'text-[#109C3D]'
+                                                    : 'text-amber-600'
+                                                }`}>
+                                                {validation.status === 'complete' ? (
+                                                    <CheckCircle className="w-4 h-4" />
+                                                ) : (
+                                                    <AlertCircle className="w-4 h-4" />
+                                                )}
+                                                {validation.message}
+                                            </span>
+                                        );
+                                    })()}
+                                </div>
+                            </div>
+
+                            <p className="text-sm text-gray-600 mb-4">
+                                Select the service categories you can provide. You must select at least {MIN_CATEGORIES_REQUIRED} categories.
+                            </p>
+
+                            <div className="grid sm:grid-cols-2 gap-3">
+                                {SERVICE_CATEGORIES.map((category) => {
+                                    const isSelected = formData.categories?.includes(category.id);
+                                    return (
+                                        <button
+                                            key={category.id}
+                                            type="button"
+                                            onClick={() => !isSectionLocked('professional') && handleCategoryToggle(category.id)}
+                                            disabled={isSectionLocked('professional')}
+                                            className={`relative flex items-center gap-3 p-4 rounded-lg border-2 transition-all text-left ${isSectionLocked('professional')
+                                                    ? 'bg-gray-50 border-gray-200 cursor-not-allowed'
+                                                    : isSelected
+                                                        ? 'bg-[#E5FFDB] border-[#109C3D] shadow-sm'
+                                                        : 'bg-white border-gray-200 hover:border-[#109C3D]/50 hover:bg-[#E5FFDB]/20'
+                                                }`}
+                                        >
+                                            {/* Checkbox indicator */}
+                                            <div className={`flex-shrink-0 w-6 h-6 rounded-md border-2 flex items-center justify-center transition-all ${isSelected
+                                                    ? 'bg-[#109C3D] border-[#109C3D]'
+                                                    : 'border-gray-300 bg-white'
+                                                }`}>
+                                                {isSelected && (
+                                                    <Check className="w-4 h-4 text-white" />
+                                                )}
+                                            </div>
+
+                                            {/* Icon */}
+                                            <span className="text-2xl flex-shrink-0">{category.icon}</span>
+
+                                            {/* Label */}
+                                            <span className={`text-sm font-medium ${isSelected ? 'text-[#063A41]' : 'text-gray-700'
+                                                }`}>
+                                                {category.label}
+                                            </span>
+
+                                            {/* Selected badge */}
+                                            {isSelected && (
+                                                <span className="absolute top-2 right-2">
+                                                    <CheckCircle className="w-4 h-4 text-[#109C3D]" />
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Selected categories summary */}
+                            {formData.categories && formData.categories.length > 0 && (
+                                <div className="mt-4 pt-4 border-t">
+                                    <p className="text-sm text-gray-600 mb-2">Selected categories:</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {formData.categories.map((catId) => {
+                                            const category = SERVICE_CATEGORIES.find(c => c.id === catId);
+                                            if (!category) return null;
+                                            return (
+                                                <span
+                                                    key={catId}
+                                                    className="inline-flex items-center gap-1 px-3 py-1 bg-[#E5FFDB] text-[#063A41] text-sm rounded-full"
+                                                >
+                                                    <span>{category.icon}</span>
+                                                    <span>{category.label}</span>
+                                                    {!isSectionLocked('professional') && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleCategoryToggle(catId)}
+                                                            className="ml-1 hover:text-red-500 transition-colors"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    )}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Warning if less than minimum */}
+                            {formData.categories && formData.categories.length > 0 && formData.categories.length < MIN_CATEGORIES_REQUIRED && (
+                                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                    <p className="text-sm text-amber-700 flex items-center gap-2">
+                                        <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                                        Please select {MIN_CATEGORIES_REQUIRED - formData.categories.length} more category{MIN_CATEGORIES_REQUIRED - formData.categories.length > 1 ? 's' : ''} to continue.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+
                         <button
                             onClick={handleSaveProfessionalProfile}
-                            disabled={isUpdating || isSectionLocked('professional')}
-                            className={`w-full py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${isSectionLocked('professional') ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'}`}
+                            disabled={isUpdating || isSectionLocked('professional') || (formData.categories?.length || 0) < MIN_CATEGORIES_REQUIRED}
+                            className={`w-full py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${isSectionLocked('professional')
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : (formData.categories?.length || 0) < MIN_CATEGORIES_REQUIRED
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'
+                                }`}
                         >
                             {isSectionLocked('professional') ? (
                                 <>
                                     <Lock className="w-4 h-4" />
                                     Section Locked
+                                </>
+                            ) : (formData.categories?.length || 0) < MIN_CATEGORIES_REQUIRED ? (
+                                <>
+                                    <AlertCircle className="w-4 h-4" />
+                                    Select at least {MIN_CATEGORIES_REQUIRED} categories to continue
                                 </>
                             ) : (
                                 <>
@@ -1083,8 +1251,7 @@ const UpdateDocument = () => {
                     </div>
                 )}
 
-                {/* ==================== ID VERIFICATION SECTION (WITH DATES) ==================== */}
-                {/* ==================== ID VERIFICATION SECTION (WITH DATES) ==================== */}
+                {/* ==================== ID VERIFICATION SECTION ==================== */}
                 {activeSection === 'id-verification' && (
                     <div className="space-y-4">
                         <LockedSectionAlert sectionId="id-verification" />
@@ -1117,7 +1284,6 @@ const UpdateDocument = () => {
                                 </div>
 
                                 {/* Issue Date and Expiry Date */}
-                                {/* Issue Date and Expiry Date - Show when type selected */}
                                 {formData.idVerificationType && (
                                     <div className="grid md:grid-cols-2 gap-4">
                                         {/* Issue Date */}
@@ -1136,14 +1302,14 @@ const UpdateDocument = () => {
                                                 max={today}
                                                 disabled={isSectionLocked('id-verification')}
                                                 className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('id-verification')
-                                                        ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
-                                                        : dateErrors.issueDate
-                                                            ? 'border-red-400 bg-red-50/30'
-                                                            : formData.idIssueDate && !dateErrors.issueDate
-                                                                ? 'border-green-400 bg-green-50/30'
-                                                                : !formData.idIssueDate
-                                                                    ? 'border-amber-300 bg-amber-50/30'
-                                                                    : 'border-gray-200'
+                                                    ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
+                                                    : dateErrors.issueDate
+                                                        ? 'border-red-400 bg-red-50/30'
+                                                        : formData.idIssueDate && !dateErrors.issueDate
+                                                            ? 'border-green-400 bg-green-50/30'
+                                                            : !formData.idIssueDate
+                                                                ? 'border-amber-300 bg-amber-50/30'
+                                                                : 'border-gray-200'
                                                     }`}
                                             />
                                             {dateErrors.issueDate ? (
@@ -1177,14 +1343,14 @@ const UpdateDocument = () => {
                                                 max="2099-12-31"
                                                 disabled={isSectionLocked('id-verification')}
                                                 className={`w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent ${isSectionLocked('id-verification')
-                                                        ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
-                                                        : dateErrors.expiryDate
-                                                            ? 'border-red-400 bg-red-50/30'
-                                                            : formData.idExpiryDate && !dateErrors.expiryDate
-                                                                ? 'border-green-400 bg-green-50/30'
-                                                                : !formData.idExpiryDate
-                                                                    ? 'border-amber-300 bg-amber-50/30'
-                                                                    : 'border-gray-200'
+                                                    ? 'bg-gray-50 text-gray-500 cursor-not-allowed'
+                                                    : dateErrors.expiryDate
+                                                        ? 'border-red-400 bg-red-50/30'
+                                                        : formData.idExpiryDate && !dateErrors.expiryDate
+                                                            ? 'border-green-400 bg-green-50/30'
+                                                            : !formData.idExpiryDate
+                                                                ? 'border-amber-300 bg-amber-50/30'
+                                                                : 'border-gray-200'
                                                     }`}
                                             />
                                             {dateErrors.expiryDate ? (
@@ -1207,7 +1373,7 @@ const UpdateDocument = () => {
                                 {/* Document uploads based on ID type */}
                                 {formData.idVerificationType && (
                                     <div className={`grid ${formData.idVerificationType === 'governmentID' ? 'md:grid-cols-2' : 'md:grid-cols-1'} gap-4`}>
-                                        {/* Front Document - Always shown when type selected */}
+                                        {/* Front Document */}
                                         <div>
                                             <label className="block text-sm font-medium text-[#063A41] mb-2">
                                                 {formData.idVerificationType === 'passport' ? 'Passport Photo Page' :
@@ -1329,8 +1495,8 @@ const UpdateDocument = () => {
                                 !!dateErrors.expiryDate
                             }
                             className={`w-full py-3 font-medium rounded-lg transition-colors flex items-center justify-center gap-2 ${isSectionLocked('id-verification') || dateErrors.issueDate || dateErrors.expiryDate
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'
+                                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                : 'bg-[#109C3D] text-white hover:bg-[#0d8534] disabled:opacity-50'
                                 }`}
                         >
                             {isSectionLocked('id-verification') ? (

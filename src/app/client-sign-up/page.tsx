@@ -108,7 +108,7 @@ const SignupPage = () => {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/auth/check-email?email=${encodeURIComponent(email)}`,
+                `/api/auth/check-email?email=${encodeURIComponent(email)}`,
                 {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
@@ -152,7 +152,7 @@ const SignupPage = () => {
 
         try {
             const response = await fetch(
-                `http://localhost:5000/api/auth/check-phone?phone=${encodeURIComponent(phone)}`,
+                `/api/auth/check-phone?phone=${encodeURIComponent(phone)}`,
                 {
                     method: 'GET',
                     headers: { 'Content-Type': 'application/json' },
@@ -307,7 +307,7 @@ const SignupPage = () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch("http://localhost:5000/api/auth/verify-token", {
+            const response = await fetch("/api/auth/verify-token", {
                 method: "GET",
                 credentials: "include",
                 headers,
@@ -332,7 +332,7 @@ const SignupPage = () => {
     const sendOtp = async () => {
         setIsSendingOtp(true);
         try {
-            const response = await fetch("http://localhost:5000/api/auth/send-otp", {
+            const response = await fetch("/api/auth/send-otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email: formData.email }),

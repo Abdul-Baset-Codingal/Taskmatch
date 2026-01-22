@@ -3,17 +3,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FaClock, FaEnvelope, FaShieldAlt, FaStar, FaUser } from "react-icons/fa";
 import BookServiceModal from "./BookServiceModal";
 import RequestQuoteModal from "./RequestQuoteModal";
 import TaskerProfileModal from "./TaskerProfileModal";
 import Link from "next/link";
-
+import { checkLoginStatus } from "@/resusable/CheckUser";
 
 interface Tasker {
     rating: any;
     _id: string;
+    odooId?: string;
+    odooPartnerId?: string;
+    odooUserId?: string;
     firstName: string;
     lastName: string;
     email: string;
@@ -37,8 +40,21 @@ interface Tasker {
     distance?: number;
     reviews?: {
         length: number;
-        reduce(arg0: (sum: any, review: any) => any, arg1: number): unknown; rating: number; count: number; comment: string; clientName?: string; clientEmail?: string; clientImage?: string
+        reduce(arg0: (sum: any, review: any) => any, arg1: number): unknown;
+        rating: number;
+        count: number;
+        comment: string;
+        clientName?: string;
+        clientEmail?: string;
+        clientImage?: string;
     };
+}
+
+interface CurrentUser {
+    _id?: string;
+    id?: string;
+    odooId?: string;
+    email?: string;
 }
 
 const FancyCard = ({ tasker, isSelected, onClick }: {
@@ -49,17 +65,50 @@ const FancyCard = ({ tasker, isSelected, onClick }: {
     const [isBookModalOpen, setIsBookModalOpen] = useState(false);
     const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+    const [isOwnProfile, setIsOwnProfile] = useState(false);
 
+    // Check if current user is viewing their own profile
+    useEffect(() => {
+        const checkUser = async () => {
+            try {
+                const { isLoggedIn, user } = await checkLoginStatus();
+                if (isLoggedIn && user) {
+                    setCurrentUser(user);
 
+                    // Check if the logged-in user is the same as the tasker
+                    // Compare by multiple identifiers to ensure accurate matching
+                    const isSameUser =
+                        (user._id && user._id === tasker._id) ||
+                        (user.id && user.id === tasker._id) ||
+                        (user.odooId && user.odooId === tasker.odooId) ||
+                        (user.email && user.email === tasker.email);
 
-    console.log(tasker)
+                    setIsOwnProfile(isSameUser);
+                }
+            } catch (error) {
+                console.error("Error checking user status:", error);
+                setIsOwnProfile(false);
+            }
+        };
+        checkUser();
+    }, [tasker._id, tasker.odooId, tasker.email]);
+
+    console.log(tasker);
+    console.log("Is own profile:", isOwnProfile);
+
     return (
-
-
         <div
             className={`relative bg-white border rounded-lg cursor-pointer transition-all duration-200 hover:shadow-lg ${isSelected ? "border-[#8560F1] shadow-lg" : "border-gray-200"} w-full`}
             onClick={onClick}
         >
+            {/* Own Profile Badge */}
+            {isOwnProfile && (
+                <div className="absolute top-2 right-2 bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded-full border border-yellow-300 z-10">
+                    Your Profile
+                </div>
+            )}
+
             <div className="flex flex-col sm:flex-row w-full">
                 <div className="flex flex-col items-center sm:items-start">
                     {/* Header with Profile and Basic Info */}
@@ -83,12 +132,21 @@ const FancyCard = ({ tasker, isSelected, onClick }: {
                         </div>
                         <div className="flex justify-center">
                             <div className="flex justify-center">
-                                <Link
-                                    href={`/taskers/${tasker._id}`}
-                                    className="font-bold text-green-800 cursor-pointer p-2 text-sm sm:text-base hover:text-green-600 transition-colors"
-                                >
-                                    View Profile
-                                </Link>
+                                {isOwnProfile ? (
+                                    <Link
+                                        href="/dashboard/profile"
+                                        className="font-bold text-blue-600 cursor-pointer p-2 text-sm sm:text-base hover:text-blue-800 transition-colors"
+                                    >
+                                        Edit Profile
+                                    </Link>
+                                ) : (
+                                    <Link
+                                        href={`/taskers/${tasker._id}`}
+                                        className="font-bold text-green-800 cursor-pointer p-2 text-sm sm:text-base hover:text-green-600 transition-colors"
+                                    >
+                                        View Profile
+                                    </Link>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -218,22 +276,42 @@ const FancyCard = ({ tasker, isSelected, onClick }: {
                     {/* Action Buttons */}
                     <div className="p-3 sm:p-4">
                         <div className="space-y-2">
+                            {/* Show message if own profile */}
+                            {isOwnProfile && (
+                                <p className="text-xs text-amber-600 text-center mb-2 font-medium">
+                                    You cannot book your own services
+                                </p>
+                            )}
                             <div className="flex flex-col sm:flex-row w-full gap-2">
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setIsBookModalOpen(true);
+                                        if (!isOwnProfile) {
+                                            setIsBookModalOpen(true);
+                                        }
                                     }}
-                                    className="color1 text-white w-full sm:w-[50%] text-sm py-2 sm:py-2.5 rounded font-medium hover:bg-[#7451E8] transition-colors duration-200"
+                                    disabled={isOwnProfile}
+                                    className={`w-full sm:w-[50%] text-sm py-2 sm:py-2.5 rounded font-medium transition-colors duration-200 ${isOwnProfile
+                                            ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                            : "color1 text-white hover:bg-[#7451E8]"
+                                        }`}
+                                    title={isOwnProfile ? "You cannot book yourself" : "Select & Continue"}
                                 >
                                     Select & Continue
                                 </button>
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setIsQuoteModalOpen(true);
+                                        if (!isOwnProfile) {
+                                            setIsQuoteModalOpen(true);
+                                        }
                                     }}
-                                    className="flex-1 bg-white border border-gray-300 text-gray-700 text-sm py-2 rounded font-medium hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-1"
+                                    disabled={isOwnProfile}
+                                    className={`flex-1 border text-sm py-2 rounded font-medium transition-colors duration-200 flex items-center justify-center gap-1 ${isOwnProfile
+                                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                                            : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        }`}
+                                    title={isOwnProfile ? "You cannot request a quote from yourself" : "Request Quote"}
                                 >
                                     <FaEnvelope className="text-xs" />
                                     Quote
@@ -244,17 +322,21 @@ const FancyCard = ({ tasker, isSelected, onClick }: {
                 </div>
             </div>
 
-            {/* Modals */}
-            <BookServiceModal
-                tasker={tasker}
-                isOpen={isBookModalOpen}
-                onClose={() => setIsBookModalOpen(false)}
-            />
-            <RequestQuoteModal
-                tasker={{ ...tasker, fullName: `${tasker.firstName} ${tasker.lastName}` }}
-                isOpen={isQuoteModalOpen}
-                onClose={() => setIsQuoteModalOpen(false)}
-            />
+            {/* Modals - Only render if not own profile */}
+            {!isOwnProfile && (
+                <>
+                    <BookServiceModal
+                        tasker={tasker}
+                        isOpen={isBookModalOpen}
+                        onClose={() => setIsBookModalOpen(false)}
+                    />
+                    <RequestQuoteModal
+                        tasker={{ ...tasker, fullName: `${tasker.firstName} ${tasker.lastName}` }}
+                        isOpen={isQuoteModalOpen}
+                        onClose={() => setIsQuoteModalOpen(false)}
+                    />
+                </>
+            )}
             <TaskerProfileModal
                 tasker={{ ...tasker, fullName: `${tasker.firstName} ${tasker.lastName}` }}
                 isOpen={isProfileModalOpen}

@@ -1,4 +1,3 @@
-
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -59,8 +58,9 @@ import Link from "next/link";
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 // ==================== FEE CONSTANTS (Same as Backend) ====================
-const PLATFORM_FEE_PERCENT = 0.15;  // 15%
-const TAX_PERCENT = 0.13;           // 13% HST
+const PLATFORM_FEE_PERCENT = 0.10;  // 10%
+const RESERVATION_FEE = 5.00;        // $5 flat fee
+const TAX_PERCENT = 0.13;            // 13% HST on bid amount
 
 // ==================== INTERFACES ====================
 interface User {
@@ -70,12 +70,11 @@ interface User {
 
 interface FeeBreakdown {
     bidAmount: number;
-    clientPlatformFee: number;
-    taxOnClientFee: number;
+    platformFee: number;
+    reservationFee: number;
+    tax: number;
+    totalFees: number;
     totalClientPays: number;
-    taskerPlatformFee: number;
-    taskerPayout: number;
-    platformTotal: number;
 }
 
 interface Bid {
@@ -116,31 +115,31 @@ interface Quote {
 
 // ==================== UTILITY FUNCTIONS ====================
 
-// Calculate double-sided fees (same logic as backend)
-const 
-calculateFees = (bidAmount: number): FeeBreakdown => {
+// Calculate client fees (same logic as backend)
+// Platform Fee: 10% of bid
+// Reservation Fee: $5 flat
+// Tax: 13% of bid amount
+const calculateFees = (bidAmount: number): FeeBreakdown => {
     const bidAmountCents = Math.round(bidAmount * 100);
+    const reservationFeeCents = Math.round(RESERVATION_FEE * 100); // 500 cents = $5
 
-    // Client side: adds 15% + tax on that fee
-    const clientPlatformFee = Math.round(bidAmountCents * PLATFORM_FEE_PERCENT);
-    const taxOnClientFee = Math.round(clientPlatformFee * TAX_PERCENT);
-    const totalClientPays = bidAmountCents + clientPlatformFee + taxOnClientFee;
+    // Client side fees
+    const platformFeeCents = Math.round(bidAmountCents * PLATFORM_FEE_PERCENT); // 10%
+    const taxCents = Math.round(bidAmountCents * TAX_PERCENT); // 13% of bid amount
 
-    // Tasker side: deducts 15% from bid amount
-    const taskerPlatformFee = Math.round(bidAmountCents * PLATFORM_FEE_PERCENT);
-    const taskerPayout = bidAmountCents - taskerPlatformFee;
+    // Total fees
+    const totalFeesCents = platformFeeCents + reservationFeeCents + taxCents;
 
-    // Platform keeps both fees
-    const platformTotal = clientPlatformFee + taxOnClientFee + taskerPlatformFee;
+    // Total client pays
+    const totalClientPaysCents = bidAmountCents + totalFeesCents;
 
     return {
         bidAmount: bidAmountCents / 100,
-        clientPlatformFee: clientPlatformFee / 100,
-        taxOnClientFee: taxOnClientFee / 100,
-        totalClientPays: totalClientPays / 100,
-        taskerPlatformFee: taskerPlatformFee / 100,
-        taskerPayout: taskerPayout / 100,
-        platformTotal: platformTotal / 100,
+        platformFee: platformFeeCents / 100,
+        reservationFee: reservationFeeCents / 100,
+        tax: taxCents / 100,
+        totalFees: totalFeesCents / 100,
+        totalClientPays: totalClientPaysCents / 100,
     };
 };
 
@@ -181,7 +180,6 @@ const STATUS_MAP: { [key: string]: string } = {
     "Completed": "completed",
 };
 
-// ==================== ACCEPT BID MODAL COMPONENT ====================
 // ==================== ACCEPT BID MODAL COMPONENT ====================
 interface AcceptBidModalProps {
     isOpen: boolean;
@@ -295,7 +293,7 @@ const AcceptBidModal: React.FC<AcceptBidModalProps> = ({
                         <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
                             <div className="flex items-center gap-2 mb-3">
                                 <FaReceipt className="w-4 h-4 text-amber-600" />
-                                <span className="font-semibold text-amber-800">What You&apos;ll Pay</span>
+                                <span className="font-semibold text-amber-800">Payment Breakdown</span>
                             </div>
                             <div className="space-y-2">
                                 <div className="flex justify-between text-sm">
@@ -304,18 +302,30 @@ const AcceptBidModal: React.FC<AcceptBidModalProps> = ({
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-gray-600">Platform Fee </span>
-                                    <span className="text-amber-600">+{formatCurrency(fees.clientPlatformFee)}</span>
+                                    <span className="text-amber-600">+{formatCurrency(fees.platformFee)}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">HST (13% on fee)</span>
-                                    <span className="text-amber-600">+{formatCurrency(fees.taxOnClientFee)}</span>
+                                    <span className="text-gray-600">Reservation Fee</span>
+                                    <span className="text-amber-600">+{formatCurrency(fees.reservationFee)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">HST (13%)</span>
+                                    <span className="text-amber-600">+{formatCurrency(fees.tax)}</span>
+                                </div>
+                                <div className="border-t border-amber-300 my-2"></div>
+                                <div className="flex justify-between text-xs text-gray-500">
+                                    <span>Total Fees</span>
+                                    <span>{formatCurrency(fees.totalFees)}</span>
                                 </div>
                                 <div className="flex justify-between font-bold text-lg pt-2 border-t border-amber-300">
-                                    <span className="text-amber-800">Total</span>
+                                    <span className="text-amber-800">Total to Pay</span>
                                     <span className="text-amber-800">{formatCurrency(fees.totalClientPays)}</span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Visual Breakdown */}
+                   
 
                         {/* Security Note */}
                         <div className="bg-blue-50 rounded-lg p-3 flex items-start gap-3 border border-blue-100">
@@ -324,7 +334,6 @@ const AcceptBidModal: React.FC<AcceptBidModalProps> = ({
                                 <p className="text-sm font-medium text-blue-800">Payment Protection</p>
                                 <p className="text-xs text-blue-600 mt-1">
                                     Your payment of {formatCurrency(fees.totalClientPays)} will be held securely until the task is completed.
-                                    The tasker will receive {formatCurrency(fees.taskerPayout)} after completion.
                                 </p>
                             </div>
                         </div>
@@ -415,12 +424,9 @@ const PaymentFormInModal = ({
     const [createSetupIntent] = useCreateSetupIntentMutation();
     const [savePaymentMethod] = useSavePaymentMethodMutation();
 
-    // ✅ Format Canadian Postal Code (A1A 1A1)
+    // Format Canadian Postal Code (A1A 1A1)
     const formatCanadianPostalCode = (value: string): string => {
-        // Remove all non-alphanumeric characters and convert to uppercase
         const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-
-        // Format as A1A 1A1
         if (cleaned.length <= 3) {
             return cleaned;
         }
@@ -434,7 +440,7 @@ const PaymentFormInModal = ({
         }
     };
 
-    // ✅ Validate Canadian Postal Code
+    // Validate Canadian Postal Code
     const isValidCanadianPostalCode = (code: string): boolean => {
         const regex = /^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i;
         return regex.test(code.replace(/\s/g, ''));
@@ -473,7 +479,7 @@ const PaymentFormInModal = ({
                     card: cardNumberElement,
                     billing_details: {
                         address: {
-                            postal_code: postalCode.replace(/\s/g, ''), // Remove space for Stripe
+                            postal_code: postalCode.replace(/\s/g, ''),
                             country: 'CA',
                         },
                     },
@@ -576,7 +582,7 @@ const PaymentFormInModal = ({
                         </div>
                     </div>
                     <div>
-                        <label className=" text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
+                        <label className="text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
                             Postal Code
                             <span className="text-xs">🇨🇦</span>
                         </label>
@@ -587,10 +593,10 @@ const PaymentFormInModal = ({
                             placeholder="A1A 1A1"
                             maxLength={7}
                             className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-[#109C3D] focus:border-transparent uppercase text-[#063A41] transition-all ${postalCode && !isValidCanadianPostalCode(postalCode)
-                                    ? 'border-red-300 bg-red-50'
-                                    : postalCode && isValidCanadianPostalCode(postalCode)
-                                        ? 'border-[#109C3D] bg-green-50'
-                                        : 'border-gray-200 bg-white'
+                                ? 'border-red-300 bg-red-50'
+                                : postalCode && isValidCanadianPostalCode(postalCode)
+                                    ? 'border-[#109C3D] bg-green-50'
+                                    : 'border-gray-200 bg-white'
                                 }`}
                             disabled={processing}
                         />
@@ -634,6 +640,7 @@ const PaymentFormInModal = ({
         </div>
     );
 };
+
 // ==================== MAIN COMPONENT ====================
 const RequestQuoteByUser: React.FC = () => {
     const [user, setUser] = useState<User | null>(null);
@@ -698,7 +705,7 @@ const RequestQuoteByUser: React.FC = () => {
         const checkLoginStatus = async () => {
             try {
                 const response = await fetch(
-                    `http://localhost:5000/api/auth/verify-token`,
+                    `/api/auth/verify-token`,
                     {
                         method: "GET",
                         credentials: "include",
@@ -747,7 +754,6 @@ const RequestQuoteByUser: React.FC = () => {
     };
 
     // Handle Accept Bid
-    // Handle Accept Bid
     const handleAcceptBid = async (paymentMethodId?: string) => {
         if (!acceptModalState.quote || !acceptModalState.bid) return;
 
@@ -764,7 +770,7 @@ const RequestQuoteByUser: React.FC = () => {
                 bidId: acceptModalState.bid._id,
             };
 
-            // ✅ KEY FIX: Include paymentMethodId if provided
+            // Include paymentMethodId if provided
             if (paymentMethodId) {
                 payload.paymentMethodId = paymentMethodId;
             }
@@ -977,10 +983,10 @@ const RequestQuoteByUser: React.FC = () => {
             {/* Swiper Container */}
             {filteredQuotes.length > 0 && (
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-                    <button className="swiper-button-prev-custom absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#063A41] hover:bg-[#E5FFDB] hover:text-[#109C3D] transition-all  lg:flex">
+                    <button className="swiper-button-prev-custom absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#063A41] hover:bg-[#E5FFDB] hover:text-[#109C3D] transition-all lg:flex">
                         <FaChevronLeft className="text-sm" />
                     </button>
-                    <button className="swiper-button-next-custom absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#063A41] hover:bg-[#E5FFDB] hover:text-[#109C3D] transition-all  lg:flex">
+                    <button className="swiper-button-next-custom absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-10 w-10 h-10 bg-white rounded-full shadow-lg border border-gray-100 flex items-center justify-center text-[#063A41] hover:bg-[#E5FFDB] hover:text-[#109C3D] transition-all lg:flex">
                         <FaChevronRight className="text-sm" />
                     </button>
 
@@ -1067,7 +1073,9 @@ const RequestQuoteByUser: React.FC = () => {
                                                         <span className="text-white/70">You Paid</span>
                                                         <span className="font-semibold">{formatCurrency(acceptedBidFees.totalClientPays)}</span>
                                                     </div>
-                                                  
+                                                    <div className="flex justify-between text-xs text-white/60">
+                                                        <span>Includes: 10% + $5 + 13% HST</span>
+                                                    </div>
                                                 </div>
                                                 {acceptedBid.bidDescription && (
                                                     <p className="mt-2 text-sm text-white/90 bg-white/10 p-2 rounded-lg">
@@ -1212,7 +1220,7 @@ const RequestQuoteByUser: React.FC = () => {
                                                                                     {formatCurrency(bidFees.totalClientPays)}
                                                                                 </span>
                                                                             </div>
-                                                                           
+                                                                      
                                                                         </div>
                                                                     )}
 
@@ -1310,7 +1318,7 @@ const RequestQuoteByUser: React.FC = () => {
                                                     Delete Request
                                                 </button>
                                             )}
-                                       
+
                                             {/* Show completed message */}
                                             {quote.status === 'completed' && (
                                                 <div className="text-center text-sm text-purple-600 font-medium py-2">

@@ -38,7 +38,7 @@ const NotFound = () => {
 
                 {/* Message */}
                 <p className="text-lg text1 text-center leading-relaxed animate-[fadeInUp_0.8s_ease-out]">
-                    This page seems to have wandered off. Let’s get you back to TaskMatch!
+                    This page seems to have wandered off. Let’s get you back to Taskallo!
                 </p>
 
                 {/* Home Button */}

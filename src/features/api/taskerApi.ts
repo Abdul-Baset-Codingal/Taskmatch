@@ -9,7 +9,7 @@ import Cookies from 'js-cookie';
 export const taskerApi = createApi({
     reducerPath: 'taskerApi',
     baseQuery: fetchBaseQuery({
-        baseUrl: `http://localhost:5000/api/taskerBookings`,
+        baseUrl: `/api/taskerBookings`,
         credentials: 'include',
         prepareHeaders: (headers) => {
             const token = Cookies.get('token');
@@ -150,15 +150,23 @@ export const taskerApi = createApi({
         }),
 
         // Submit Bid
+        // In your taskerApi.ts
         submitBid: builder.mutation({
-            query: ({ quoteId, ...bidData }) => ({
-                url: `/request-quotes/${quoteId}/bid`,
-                method: 'POST',
-                body: bidData,
-            }),
+            query: ({ quoteId, bidAmount, bidDescription, estimatedDuration }) => {
+                console.log('📤 Sending bid request:', { quoteId, bidAmount, bidDescription, estimatedDuration });
+
+                return {
+                    url: `/request-quotes/${quoteId}/bid`,
+                    method: 'POST',
+                    body: {
+                        bidAmount: Number(bidAmount),
+                        bidDescription: bidDescription || '',
+                        estimatedDuration: Number(estimatedDuration) || 1,
+                    },
+                };
+            },
             invalidatesTags: ['RequestQuote'],
         }),
-
         // Accept Bid
         acceptBid: builder.mutation({
             query: ({ quoteId, bidId, paymentMethodId }) => ({

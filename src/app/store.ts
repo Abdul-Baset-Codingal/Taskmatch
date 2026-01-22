@@ -7,8 +7,15 @@ import { servicesApi } from '../features/api/servicesApi';
 import { bookingApi } from '../features/api/bookingApi';
 import { taskerApi } from "@/features/api/taskerApi";
 import { stripeApi } from '@/features/stripe/stripeApi';
+import { adminTaskApi } from "../features/api/adminTaskApi";
+import { blogApi } from "../features/api/blogApi";
 
 import taskFormReducer from "../features/taskForm/taskFormSlice";
+import { adminBookingApi } from "@/features/api/adminBookingApi";
+import { adminQuoteApi } from "@/features/api/adminQuoteApi";
+import { adminDashboardPaymentApi } from "@/features/api/adminDashboardPaymentApi"
+import { adminLogApi } from "../features/api/adminLogApi";
+
 
 export const store = configureStore({
   reducer: {
@@ -19,6 +26,12 @@ export const store = configureStore({
     [bookingApi.reducerPath]: bookingApi.reducer,
     [taskerApi.reducerPath]: taskerApi.reducer,
     [stripeApi.reducerPath]: stripeApi.reducer,
+    [adminTaskApi.reducerPath]: adminTaskApi.reducer,
+    [adminBookingApi.reducerPath]: adminBookingApi.reducer,
+    [adminQuoteApi.reducerPath]: adminQuoteApi.reducer,
+    [adminDashboardPaymentApi.reducerPath]: adminDashboardPaymentApi.reducer,
+    [adminLogApi.reducerPath]: adminLogApi.reducer,
+    [blogApi.reducerPath]: blogApi.reducer,
 
     // Normal reducers
     auth: authReducer,
@@ -35,10 +48,16 @@ export const store = configureStore({
       .concat(taskApi.middleware)
       .concat(servicesApi.middleware)
   
-      
       .concat(bookingApi.middleware)
       .concat(taskerApi.middleware)
       .concat(stripeApi.middleware)
+      .concat(adminTaskApi.middleware)
+      .concat(adminDashboardPaymentApi.middleware)
+      .concat(adminBookingApi.middleware)
+      .concat(adminQuoteApi.middleware)
+      .concat(adminLogApi.middleware)
+      .concat(blogApi.middleware)
+
 });
 
 // Typed hooks (optional, but useful)

@@ -5,14 +5,14 @@ import Navbar from '@/shared/Navbar';
 import React, { useEffect } from 'react';
 
 const BrowseTasksClient = () => {
-    useEffect(() => {
-        if (!sessionStorage.getItem("reloaded")) {
-            sessionStorage.setItem("reloaded", "true");
-            window.location.reload();
-        } else {
-            sessionStorage.removeItem("reloaded");
-        }
-    }, []);
+    // useEffect(() => {
+    //     if (!sessionStorage.getItem("reloaded")) {
+    //         sessionStorage.setItem("reloaded", "true");
+    //         window.location.reload();
+    //     } else {
+    //         sessionStorage.removeItem("reloaded");
+    //     }
+    // }, []);
 
     return (
         <div>

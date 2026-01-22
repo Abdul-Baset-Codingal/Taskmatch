@@ -1,3 +1,4 @@
+// @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 import { useGetTasksByClientQuery } from "@/features/api/taskApi";
