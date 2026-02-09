@@ -406,7 +406,56 @@ const Navbar = () => {
   const navLinks = getNavLinks();
 
   // UPDATED: Helper function to get tasker button config based on status
+  // const getTaskerButtonConfig = () => {
+  //   switch (taskerStatus) {
+  //     case "approved":
+  //       return null; // Don't show button - they're already a tasker
+  //     case "under_review":
+  //       return {
+  //         label: "Application Under Review",
+  //         icon: FiClock,
+  //         href: null,
+  //         disabled: true,
+  //         className: "bg-amber-500 cursor-not-allowed",
+  //         onClick: () => toast.info("Your application is being reviewed. We'll notify you once it's processed.")
+  //       };
+  //     case "rejected":
+  //       return {
+  //         label: "Reapply as Tasker",
+  //         icon: FaRedo,
+  //         href: "/complete-tasker-profile",
+  //         disabled: false,
+  //         className: "color2",
+  //         onClick: null
+  //       };
+  //     case "not_applied":
+  //     default:
+  //       return {
+  //         label: "Become a Tasker",
+  //         icon: FaPlusCircle,
+  //         href: "/complete-tasker-profile",
+  //         disabled: false,
+  //         className: "color2",
+  //         onClick: null
+  //       };
+  //   }
+  // };
+
+  // UPDATED: Helper function to get tasker button config based on status and login state
   const getTaskerButtonConfig = () => {
+    // 1. New Logic: If user is NOT logged in
+    if (!isLoggedIn) {
+      return {
+        label: "Become a Tasker",
+        icon: FaPlusCircle,
+        href: "/authentication", // Navigate to Login/Signup page
+        disabled: false,
+        className: "color2",
+        onClick: null
+      };
+    }
+
+    // 2. Existing Logic: If user IS logged in, check specific status
     switch (taskerStatus) {
       case "approved":
         return null; // Don't show button - they're already a tasker
@@ -1045,7 +1094,9 @@ const Navbar = () => {
               <div className="hidden lg:flex items-center gap-3 xl:gap-6">
 
                 {/* Become a Tasker Button */}
-                {isLoggedIn && taskerButtonConfig && (
+                {/* {isLoggedIn && taskerButtonConfig && ( */}
+                {/* Mobile Become Tasker Button */}
+                {taskerButtonConfig && (
                   taskerButtonConfig.href ? (
                     <Link href={taskerButtonConfig.href}>
                       <button
@@ -1224,12 +1275,12 @@ const Navbar = () => {
                           )}
                           {taskerStatus === "rejected" && (
                             <p className="text-[10px] xl:text-xs text-red-600 mt-2 text-center">
-                              Rejected. <Link href="/update-document" className="underline" onClick={() => setShowDropdown(false)}>Reapply</Link>
+                              Rejected. <Link href="/complete-tasker-profile" className="underline" onClick={() => setShowDropdown(false)}>Reapply</Link>
                             </p>
                           )}
                           {taskerStatus === "not_applied" && (
                             <p className="text-[10px] xl:text-xs text-gray-500 mt-2 text-center">
-                              <Link href="/update-document" className="text-blue-600 underline" onClick={() => setShowDropdown(false)}>Become a Tasker</Link>
+                              <Link href="/complete-tasker-profile" className="text-blue-600 underline" onClick={() => setShowDropdown(false)}>Become a Tasker</Link>
                             </p>
                           )}
                         </div>
@@ -1360,14 +1411,16 @@ const Navbar = () => {
                     )}
                     {taskerStatus === "rejected" && (
                       <p className="text-[10px] sm:text-xs text-red-600 mt-2 text-center">
-                        <Link href="/update-document" className="underline" onClick={() => setIsOpen(false)}>Reapply</Link>
+                        <Link href="/complete-tasker-profile" className="underline" onClick={() => setIsOpen(false)}>Reapply</Link>
                       </p>
                     )}
                   </div>
                 )}
 
                 {/* Mobile Become Tasker Button */}
-                {isLoggedIn && taskerButtonConfig && (
+                {/* {isLoggedIn && taskerButtonConfig && ( */}
+                {/* Mobile Become Tasker Button */}
+                {taskerButtonConfig && (
                   taskerButtonConfig.href ? (
                     <Link href={taskerButtonConfig.href} onClick={() => setIsOpen(false)} className="block mb-3">
                       <button
@@ -1560,3 +1613,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+

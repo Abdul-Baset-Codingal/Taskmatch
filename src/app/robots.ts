@@ -9,13 +9,13 @@ export default function robots(): MetadataRoute.Robots {
                 userAgent: '*',
                 allow: '/',
                 disallow: [
-                    '/api/*',                      
-                    '/complete-tasker-profile',  
-                    '/authentication',           
-                    '/dashboard/*',              
-                    '/admin/*',                   
-                    '/user/*',                   
-                    '/*?*',                      
+                    '/api/*',
+                    // '/complete-tasker-profile',  ← REMOVED
+                    // '/authentication',           ← REMOVED (same issue)
+                    '/dashboard/*',
+                    '/admin/*',
+                    '/user/*',
+                    '/*?*',
                 ],
             },
             {
@@ -23,12 +23,11 @@ export default function robots(): MetadataRoute.Robots {
                 allow: '/',
                 disallow: [
                     '/api/*',
-                    '/complete-tasker-profile',
-                    '/authentication',
+                    // '/complete-tasker-profile',  ← REMOVED
+                    // '/authentication',           ← REMOVED
                 ],
             },
         ],
         sitemap: 'https://www.taskallo.com/sitemap.xml',
     }
 }
-

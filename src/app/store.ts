@@ -15,6 +15,7 @@ import { adminBookingApi } from "@/features/api/adminBookingApi";
 import { adminQuoteApi } from "@/features/api/adminQuoteApi";
 import { adminDashboardPaymentApi } from "@/features/api/adminDashboardPaymentApi"
 import { adminLogApi } from "../features/api/adminLogApi";
+import { walletApi } from "../features/api/walletApi";
 
 
 export const store = configureStore({
@@ -32,6 +33,7 @@ export const store = configureStore({
     [adminDashboardPaymentApi.reducerPath]: adminDashboardPaymentApi.reducer,
     [adminLogApi.reducerPath]: adminLogApi.reducer,
     [blogApi.reducerPath]: blogApi.reducer,
+    [walletApi.reducerPath]: walletApi.reducer,
 
     // Normal reducers
     auth: authReducer,
@@ -57,6 +59,7 @@ export const store = configureStore({
       .concat(adminQuoteApi.middleware)
       .concat(adminLogApi.middleware)
       .concat(blogApi.middleware)
+      .concat(walletApi.middleware)
 
 });
 

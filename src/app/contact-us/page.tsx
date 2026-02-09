@@ -216,7 +216,7 @@ const ContactPage = () => {
                                                     onChange={handleChange}
                                                     required
                                                     className="w-full px-4 py-3 rounded-xl border border-[#E5FFDB] focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 outline-none transition-all duration-300 text-[#063A41]"
-                                                    placeholder="John Doe"
+                                                    placeholder="Alex Smith"
                                                 />
                                             </div>
                                             <div>
@@ -230,7 +230,7 @@ const ContactPage = () => {
                                                     onChange={handleChange}
                                                     required
                                                     className="w-full px-4 py-3 rounded-xl border border-[#E5FFDB] focus:border-[#109C3D] focus:ring-2 focus:ring-[#109C3D]/20 outline-none transition-all duration-300 text-[#063A41]"
-                                                    placeholder="john@example.com"
+                                                    placeholder="alex@gmail.com"
                                                 />
                                             </div>
                                         </div>

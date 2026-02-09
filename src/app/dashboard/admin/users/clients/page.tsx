@@ -44,12 +44,16 @@ import { useBulkUpdateUsersMutation, useGetAdminClientsQuery, useLazyExportUsers
 import Image from 'next/image';
 
 // Status Badge Component
-const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
+const StatusBadge: React.FC<{ status?: string }> = ({ status }) => {
+    const safeStatus = status?.toLowerCase() || 'inactive';
+
     const styles: Record<string, string> = {
         active: 'bg-green-100 text-green-700 border-green-200',
         inactive: 'bg-gray-100 text-gray-700 border-gray-200',
         suspended: 'bg-yellow-100 text-yellow-700 border-yellow-200',
         banned: 'bg-red-100 text-red-700 border-red-200',
+        pending: 'bg-blue-100 text-blue-700 border-blue-200',
+        not_connected: 'bg-gray-100 text-gray-700 border-gray-200',
     };
 
     const icons: Record<string, React.ReactNode> = {
@@ -57,20 +61,39 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
         inactive: <Clock className="w-3 h-3" />,
         suspended: <AlertCircle className="w-3 h-3" />,
         banned: <XCircle className="w-3 h-3" />,
+        pending: <Clock className="w-3 h-3" />,
+        not_connected: <XCircle className="w-3 h-3" />,
     };
 
+    const displayStatus = safeStatus.replace(/_/g, ' '); // Handle snake_case
+
     return (
-        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${styles[status] || styles.inactive}`}>
-            {icons[status] || icons.inactive}
-            {status.charAt(0).toUpperCase() + status.slice(1)}
+        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${styles[safeStatus] || styles.inactive}`}>
+            {icons[safeStatus] || icons.inactive}
+            {displayStatus.charAt(0).toUpperCase() + displayStatus.slice(1)}
         </span>
     );
 };
 
 // Verification Badge Component
-const VerificationBadge: React.FC<{ verification: { email: boolean; phone: boolean; identity: boolean; address: boolean } }> = ({ verification }) => {
-    const verifiedCount = Object.values(verification).filter(Boolean).length;
-    const totalCount = Object.keys(verification).length;
+const VerificationBadge: React.FC<{
+    verification?: {
+        email?: boolean;
+        phone?: boolean;
+        identity?: boolean;
+        address?: boolean
+    }
+}> = ({ verification }) => {
+    // Provide default values
+    const safeVerification = {
+        email: verification?.email ?? false,
+        phone: verification?.phone ?? false,
+        identity: verification?.identity ?? false,
+        address: verification?.address ?? false,
+    };
+
+    const verifiedCount = Object.values(safeVerification).filter(Boolean).length;
+    const totalCount = Object.keys(safeVerification).length;
     const percentage = (verifiedCount / totalCount) * 100;
 
     let colorClass = 'bg-red-100 text-red-700';
@@ -83,10 +106,10 @@ const VerificationBadge: React.FC<{ verification: { email: boolean; phone: boole
                 {verifiedCount}/{totalCount}
             </span>
             <div className="flex gap-1">
-                {verification.email && <Mail className="w-3 h-3 text-green-500" title="Email Verified" />}
-                {verification.phone && <Phone className="w-3 h-3 text-green-500" title="Phone Verified" />}
-                {verification.identity && <Shield className="w-3 h-3 text-green-500" title="Identity Verified" />}
-                {verification.address && <MapPin className="w-3 h-3 text-green-500" title="Address Verified" />}
+                {safeVerification.email && <Mail className="w-3 h-3 text-green-500" title="Email Verified" />}
+                {safeVerification.phone && <Phone className="w-3 h-3 text-green-500" title="Phone Verified" />}
+                {safeVerification.identity && <Shield className="w-3 h-3 text-green-500" title="Identity Verified" />}
+                {safeVerification.address && <MapPin className="w-3 h-3 text-green-500" title="Address Verified" />}
             </div>
         </div>
     );
@@ -370,8 +393,8 @@ export default function ClientsPage() {
                         <button
                             onClick={() => setShowFilters(!showFilters)}
                             className={`flex items-center gap-2 px-4 py-2.5 border rounded-lg transition-colors ${showFilters || activeFiltersCount > 0
-                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
-                                    : 'border-gray-200 text-gray-600 hover:bg-gray-50'
+                                ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                                : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                                 }`}
                         >
                             <SlidersHorizontal className="w-4 h-4" />
@@ -571,7 +594,7 @@ export default function ClientsPage() {
                                             Role
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                            Status
+                                            stripeConnectStatus
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                                             Verification
@@ -588,12 +611,12 @@ export default function ClientsPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {clients.map((client: any) => (
-                                        <tr
-                                            key={client.id}
-                                            className={`hover:bg-gray-50 transition-colors ${selectedClients.includes(client.id) ? 'bg-emerald-50' : ''
-                                                }`}
-                                        >
+                                        {clients.map((client: any) => (
+                                            <tr
+                                                key={client.id}
+                                                className={`hover:bg-gray-50 transition-colors ${selectedClients.includes(client.id) ? 'bg-emerald-50' : ''
+                                                    }`}
+                                            >
                                             <td className="px-4 py-4">
                                                 <input
                                                     type="checkbox"
@@ -602,72 +625,79 @@ export default function ClientsPage() {
                                                     className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500"
                                                 />
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-purple-400 to-indigo-500">
-                                                        {client.profilePicture ? (
-                                                            <Image
-                                                                src={client.profilePicture}
-                                                                alt={client.name}
-                                                                width={40}
-                                                                height={40}
-                                                                className="object-cover w-full h-full"
-                                                            />
-                                                        ) : (
-                                                            <span className="text-white font-semibold">
-                                                                    {client.name
-                                                                    .split(" ")
-                                                                    .map((n: string) => n[0])
-                                                                    .join("")
-                                                                    .slice(0, 2)}
-                                                            </span>
-                                                        )}
+                                                <td className="px-4 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-purple-400 to-indigo-500">
+                                                            {client.profilePicture ? (
+                                                                <Image
+                                                                    src={client.profilePicture}
+                                                                    alt={client.name || 'User'}
+                                                                    width={40}
+                                                                    height={40}
+                                                                    className="object-cover w-full h-full"
+                                                                />
+                                                            ) : (
+                                                                <span className="text-white font-semibold">
+                                                                    {(client.name || 'U')
+                                                                        .split(" ")
+                                                                        .map((n: string) => n[0])
+                                                                        .join("")
+                                                                        .slice(0, 2)
+                                                                        .toUpperCase()}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-medium text-gray-900">{client.name || 'Unknown'}</p>
+                                                            <p className="text-sm text-gray-500">{client.email || '-'}</p>
+                                                            <p className="text-xs text-gray-400">{client.phone || '-'}</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="font-medium text-gray-900">{client.name}</p>
-                                                        <p className="text-sm text-gray-500">{client.email}</p>
-                                                        <p className="text-xs text-gray-400">{client.phone}</p>
-                                                    </div>
-                                                </div>
-                                            </td>
+                                                </td>
                                             <td className="px-4 py-4">
                                                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                                                     Client
                                                 </span>
                                             </td>
-                                            <td className="px-4 py-4">
-                                                <StatusBadge status={client.status} />
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <VerificationBadge verification={client.verification} />
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div>
-                                                    <p className="text-sm text-gray-900">
-                                                        {formatRelativeTime(client.lastActive)}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {client.location.city}, {client.location.province}
-                                                    </p>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-4">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-4 text-sm">
-                                                        <span className="flex items-center gap-1 text-gray-600">
-                                                            <ShoppingBag className="w-3 h-3" />
-                                                            {client.stats.tasksCompleted} tasks
-                                                        </span>
+                                                <td className="px-4 py-4">
+                                                    <StatusBadge status={client.stripeConnectStatus} />
+                                                </td>
+
+                                                {/* Verification cell */}
+                                                <td className="px-4 py-4">
+                                                    <VerificationBadge verification={client.verification} />
+                                                </td>
+
+                                                {/* Last Active cell - add null checks */}
+                                                <td className="px-4 py-4">
+                                                    <div>
+                                                        <p className="text-sm text-gray-900">
+                                                            {client.lastActive ? formatRelativeTime(client.lastActive) : 'Never'}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500">
+                                                            {client.location?.city || '-'}, {client.location?.province || '-'}
+                                                        </p>
                                                     </div>
-                                                    <div className="flex items-center gap-1 text-sm text-yellow-600">
-                                                        <Star className="w-3 h-3 fill-current" />
-                                                        <span>{client.rating}</span>
-                                                        <span className="text-gray-400">
-                                                            ({client.reviewCount} reviews)
-                                                        </span>
+                                                </td>
+
+                                                {/* Stats cell - add null checks */}
+                                                <td className="px-4 py-4">
+                                                    <div className="space-y-1">
+                                                        <div className="flex items-center gap-4 text-sm">
+                                                            <span className="flex items-center gap-1 text-gray-600">
+                                                                <ShoppingBag className="w-3 h-3" />
+                                                                {client.stats?.tasksCompleted ?? 0} tasks
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 text-sm text-yellow-600">
+                                                            <Star className="w-3 h-3 fill-current" />
+                                                            <span>{client.rating ?? 'N/A'}</span>
+                                                            <span className="text-gray-400">
+                                                                ({client.reviewCount ?? 0} reviews)
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </td>
+                                                </td>
                                             <td className="px-4 py-4">
                                                 <div className="flex items-center justify-end gap-2">
                                                     <button

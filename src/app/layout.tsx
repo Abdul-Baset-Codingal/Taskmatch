@@ -1,6 +1,4 @@
-
 // import type { Metadata } from "next";
-// import { Geist, Geist_Mono } from "next/font/google";
 // import "./globals.css";
 // import { Providers } from "./Providers";
 // import { ToastContainer } from "react-toastify";
@@ -9,15 +7,8 @@
 // import Script from "next/script";
 // import GlobalMessengerWrapper from "@/components/browse-tasks/GlobalMessengerWrapper";
 
-// const geistSans = Geist({
-//   variable: "--font-geist-sans",
-//   subsets: ["latin"],
-// });
-
-// const geistMono = Geist_Mono({
-//   variable: "--font-geist-mono",
-//   subsets: ["latin"],
-// });
+// // Your GTM ID
+// const GTM_ID = "GTM-NS5FD44F";
 
 // export const metadata: Metadata = {
 //   title: "Taskallo - Canada's Most Reliable Task & Service Marketplace",
@@ -66,7 +57,7 @@
 //     siteName: "Taskallo",
 //     images: [
 //       {
-//         url: "/og-image.png", // Add your Open Graph image here
+//         url: "/og-image.png",
 //         width: 1200,
 //         height: 630,
 //         alt: "Taskallo - Canada's Task & Service Marketplace",
@@ -77,7 +68,7 @@
 //     card: "summary_large_image",
 //     title: "Taskallo - Canada's Most Reliable Task & Service Marketplace",
 //     description: "Post a task, request quotes, or choose ready-to-book services across Canada. Connect with trusted professionals for all your home and specialized service needs.",
-//     images: ["/og-image.png"], // Add your Twitter card image here
+//     images: ["/og-image.png"],
 //   },
 //   robots: {
 //     index: true,
@@ -96,7 +87,7 @@
 //     apple: favIcon.src,
 //   },
 //   verification: {
-//     google: "IA5Wqn6USCMXxWfq1ik3n2Of_4WAvpcT770xD81d3ws", // NEW CODE from boss
+//     google: "IA5Wqn6USCMXxWfq1ik3n2Of_4WAvpcT770xD81d3ws",
 //   },
 // };
 
@@ -112,31 +103,46 @@
 //         <meta name="viewport" content="width=device-width, initial-scale=1" />
 //         <meta name="theme-color" content="#ffffff" />
 //         <link rel="canonical" href="https://www.taskallo.com" />
-//       </head>
 
-//       {/* Google Analytics */}
-//       <Script
-//         src="https://www.googletagmanager.com/gtag/js?id=G-3VYCKSMGWL"
-//         strategy="afterInteractive"
-//       />
-//       <Script id="google-analytics" strategy="afterInteractive">
-//         {`
-//     window.dataLayer = window.dataLayer || [];
-//     function gtag(){dataLayer.push(arguments);}
-//     gtag('js', new Date());
-//     gtag('config', 'G-3VYCKSMGWL');
-//   `}
-//       </Script>
+//         {/* 1. Google Tag Manager (Loads GTM) */}
+//         <Script id="gtm" strategy="afterInteractive">
+//           {`
+//             (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+//             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+//             j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+//             'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+//             })(window,document,'script','dataLayer','${GTM_ID}');
+//           `}
+//         </Script>
+
+//         {/* 2. Marketplace Tracking (Tracks "Start" events automatically) */}
+//         <Script id="marketplace-tracking" strategy="afterInteractive">
+//           {`
+//             window.dataLayer = window.dataLayer || [];
+//             var path = window.location.pathname;
+            
+//             // Track when user starts posting a task
+//             if (path === '/urgent-task') {
+//               window.dataLayer.push({ event: 'post_task_start' });
+//             }
+            
+//             // Track when user starts browsing tasks
+//             if (path.startsWith('/browse-tasks')) {
+//               window.dataLayer.push({ event: 'browse_tasks_start' });
+//             }
+//           `}
+//         </Script>
+//       </head>
 
 //       {/* Microsoft Clarity */}
 //       <Script id="microsoft-clarity" strategy="afterInteractive">
 //         {`
-//     (function(c,l,a,r,i,t,y){
-//       c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-//       t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-//       y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-//     })(window, document, "clarity", "script", "usifz7pkwr");
-//   `}
+//           (function(c,l,a,r,i,t,y){
+//             c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+//             t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+//             y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+//           })(window, document, "clarity", "script", "usifz7pkwr");
+//         `}
 //       </Script>
 
 //       {/* Structured Data - Organization */}
@@ -235,9 +241,17 @@
 //         })}
 //       </Script>
 
-//       <body
-//         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-//       >
+//       <body className="antialiased">
+//         {/* Google Tag Manager (noscript) - Must be first in body */}
+//         <noscript>
+//           <iframe
+//             src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
+//             height="0"
+//             width="0"
+//             style={{ display: "none", visibility: "hidden" }}
+//           />
+//         </noscript>
+
 //         <Providers>
 //           {children}
 //           <ToastContainer
@@ -254,7 +268,6 @@
 
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./Providers";
 import { ToastContainer } from "react-toastify";
@@ -263,18 +276,11 @@ import favIcon from "../../public/Images/favicon.ico";
 import Script from "next/script";
 import GlobalMessengerWrapper from "@/components/browse-tasks/GlobalMessengerWrapper";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 // Your GTM ID
 const GTM_ID = "GTM-NS5FD44F";
+
+// Your Meta Pixel ID
+const META_PIXEL_ID = "2312460462570511";
 
 export const metadata: Metadata = {
   title: "Taskallo - Canada's Most Reliable Task & Service Marketplace",
@@ -381,7 +387,23 @@ export default function RootLayout({
           `}
         </Script>
 
-        {/* 2. Marketplace Tracking (Tracks "Start" events automatically) */}
+        {/* 2. Meta Pixel Code */}
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '${META_PIXEL_ID}');
+            fbq('track', 'PageView');
+          `}
+        </Script>
+
+        {/* 3. Marketplace Tracking (Tracks "Start" events automatically) */}
         <Script id="marketplace-tracking" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
@@ -507,9 +529,7 @@ export default function RootLayout({
         })}
       </Script>
 
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased">
         {/* Google Tag Manager (noscript) - Must be first in body */}
         <noscript>
           <iframe
@@ -517,6 +537,17 @@ export default function RootLayout({
             height="0"
             width="0"
             style={{ display: "none", visibility: "hidden" }}
+          />
+        </noscript>
+
+        {/* Meta Pixel (noscript) */}
+        <noscript>
+          <img
+            height="1"
+            width="1"
+            style={{ display: "none" }}
+            src={`https://www.facebook.com/tr?id=${META_PIXEL_ID}&ev=PageView&noscript=1`}
+            alt=""
           />
         </noscript>
 

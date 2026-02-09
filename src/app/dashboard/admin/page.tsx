@@ -905,6 +905,13 @@ const sidebarMenu: MenuItem[] = [
     ],
   },
   {
+    name: 'Tasker Withdrawals',
+    icon: Grid,
+    subItems: [
+      { name: 'Tasker Withdrawals', href: '/dashboard/admin/withdrawals', icon: Layers },
+    ],
+  },
+  {
     name: 'Support',
     icon: HeadphonesIcon,
     subItems: [

@@ -351,6 +351,33 @@ const SignupPage = () => {
         }
     };
 
+    // const verifyOtp = async () => {
+    //     setIsVerifyingOtp(true);
+    //     try {
+    //         const phoneWithCountryCode = `+1${formData.phone}`;
+    //         const res = await signup({
+    //             ...formData,
+    //             phone: phoneWithCountryCode,
+    //             postalCode: formData.postalCode.replace(/\s/g, ''),
+    //             role: selectedRole,
+    //             otp: otpCode,
+    //         }).unwrap();
+
+    //         if (res.token) {
+    //             localStorage.setItem('token', res.token);
+    //         }
+
+    //         toast.success("Account created successfully!");
+    //         await checkLoginStatus();
+    //         router.push("/");
+    //     } catch (error: any) {
+    //         toast.error(error?.data?.message || "OTP verification failed. Please try again.");
+    //     } finally {
+    //         setIsVerifyingOtp(false);
+    //     }
+    // };
+
+
     const verifyOtp = async () => {
         setIsVerifyingOtp(true);
         try {
@@ -369,7 +396,20 @@ const SignupPage = () => {
 
             toast.success("Account created successfully!");
             await checkLoginStatus();
-            router.push("/");
+
+            // Get the intended role from localStorage and navigate accordingly
+            const intendedRole = localStorage.getItem('userIntendedRole');
+
+            if (intendedRole === 'tasker') {
+                // Clear the intended role after use
+                localStorage.removeItem('userIntendedRole');
+                router.push("/complete-tasker-profile");
+            } else {
+                // Clear the intended role after use
+                localStorage.removeItem('userIntendedRole');
+                router.push("/");
+            }
+
         } catch (error: any) {
             toast.error(error?.data?.message || "OTP verification failed. Please try again.");
         } finally {

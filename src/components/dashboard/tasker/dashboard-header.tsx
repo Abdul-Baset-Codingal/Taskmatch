@@ -215,39 +215,7 @@ export function DashboardHeader({ isSidebarOpen, toggleSidebar }: DashboardHeade
 
                 {/* Right Side Actions */}
                 <div className="flex items-center gap-2 sm:gap-4">
-                    {/* Search - Mobile Toggle */}
-                    <div className="relative flex items-center">
-                        {/* <Button
-                            variant="ghost"
-                            size="icon"
-                            className="sm:hidden"
-                            onClick={() => setIsSearchOpen(!isSearchOpen)}
-                        >
-                            {isSearchOpen ? (
-                                <X className="h-5 w-5" />
-                            ) : (
-                                <Search className="h-5 w-5" />
-                            )}
-                        </Button> */}
-
-                        {/* Search Input */}
-                        {/* <div
-                            className={cn(
-                                "absolute top-16 left-0 right-0 z-20 bg-card border-b border-border p-4 sm:static sm:p-0 sm:border-0",
-                                isSearchOpen ? "block" : "hidden sm:block"
-                            )}
-                        >
-                            <div className="relative max-w-full">
-                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                    placeholder="Search tasks, clients..."
-                                    className="w-full sm:w-40 md:w-64 pl-10 focus:ring-[#109C3D] focus:border-[#109C3D]"
-                                    onBlur={() => setIsSearchOpen(false)}
-                                />
-                            </div>
-                        </div> */}
-                    </div>
-
+                    
                     {/* Notifications */}
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -16,13 +16,16 @@ import {
     FaCheckCircle,
     FaArrowRight,
 } from "react-icons/fa";
+import WalletSection from "./WalletSection";
 
 export function DashboardContent() {
     const [user, setUser] = useState<any>(null);
     const [isSwitching, setIsSwitching] = useState(false);
     const router = useRouter();
 
-    const fetchUser = async () => {
+    const 
+    
+    fetchUser = async () => {
         const { isLoggedIn, user } = await checkLoginStatus();
         if (isLoggedIn) setUser(user);
     };
@@ -37,6 +40,7 @@ export function DashboardContent() {
 
     // Switch role function
     const switchRole = async (newRole: "tasker" | "client") => {
+
         if (!user?._id) {
             toast.error("User ID not found.");
             return;
@@ -97,7 +101,7 @@ export function DashboardContent() {
             user.idType === "passport" ? !!user.passportUrl : !!user.governmentIdFront && !!user.governmentIdBack,
             !!user.issueDate,
             !!user.expiryDate,
-            !!user.sin,
+            // !!user.sin,
             !!user.backgroundCheckConsent,
             Array.isArray(user.availability) && user.availability.length > 0,
         ];
@@ -213,7 +217,7 @@ export function DashboardContent() {
                         </div>
 
                         {/* Profile Completion - Only for Taskers */}
-                        {isTasker && (
+                        {/* {isTasker && (
                             <div className="bg-white rounded-2xl shadow-xl p-7 w-full lg:w-96">
                                 <div className="flex items-center justify-between mb-5">
                                     <h3 className="text-lg font-semibold text-[#063A41]">Profile Completion</h3>
@@ -222,7 +226,6 @@ export function DashboardContent() {
                                     </span>
                                 </div>
 
-                                {/* Progress Bar */}
                                 <div className="w-full bg-gray-200 rounded-full h-4 overflow-hidden mb-5">
                                     <div
                                         className="h-full bg-[#109C3D] transition-all duration-1000 ease-out"
@@ -255,13 +258,15 @@ export function DashboardContent() {
                                     </div>
                                 )}
                             </div>
-                        )}
+                        )} */}
                     </div>
                 </div>
             </div>
 
             {/* Stats */}
-            <DashboardStats />
+            {/* <DashboardStats /> */}
+
+            <WalletSection/>
 
             {/* Main Grid */}
             <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-3">

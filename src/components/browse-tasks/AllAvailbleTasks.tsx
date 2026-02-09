@@ -1249,7 +1249,6 @@ const AllAvailableTasks = () => {
                 taskTitle={pendingBidTaskTitle}
                 isLoading={isBidding}
             />
-            <Footer />
 
             {/* Global Styles */}
             <style jsx global>{`

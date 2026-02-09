@@ -43,15 +43,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             changeFrequency: 'monthly',
             priority: 0.4,
         },
+        {
+            url: `${baseUrl}/our-story`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.3,
+        },
+        {
+            url: `${baseUrl}/blog`,
+            lastModified: new Date(),
+            changeFrequency: 'monthly',
+            priority: 0.3,
+        },
     ]
 
+    // Service pages (by ID)
     const serviceIds = [
-        '688bb7262056a9b591a72862', 
+        '688bb7262056a9b591a72862',
         '688bbdea2056a9b591a7288b',
         '688bbe762056a9b591a72892',
-        '688bbf7d2056a9b591a728b1', 
-        '688bcb3a2056a9b591a728ba', 
-        '688bce0c2056a9b591a728cc', 
+        '688bbf7d2056a9b591a728b1',
+        '688bcb3a2056a9b591a728ba',
+        '688bce0c2056a9b591a728cc',
     ]
 
     const servicePages: MetadataRoute.Sitemap = serviceIds.map((id) => ({
@@ -61,6 +74,45 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority: 0.9,
     }))
 
-    return [...staticPages, ...servicePages]
-}
+    // Toronto SEO location pages (under /services/toronto/)
+    const torontoSeoPages: MetadataRoute.Sitemap = [
+        {
+            url: `${baseUrl}/services/toronto/plumber`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/services/toronto/handyman`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/services/toronto/pet-services`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/services/toronto/cleaning-services`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/services/toronto/automotive-services`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+        {
+            url: `${baseUrl}/services/toronto/specialized-services`,
+            lastModified: new Date(),
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        },
+    ]
 
+    return [...staticPages, ...servicePages, ...torontoSeoPages]
+}
